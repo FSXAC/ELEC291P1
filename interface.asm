@@ -34,6 +34,7 @@ dseg at 0x30
 
 bseg
   seconds_flag: 	dbit 1
+  ongoing_flag:		dbit 1			;only check for buttons when the process has not started
 
 ;LCD SCREEN
 ;                     		1234567890123456
@@ -135,8 +136,54 @@ main:
     Send_Constant_String(#MainScreen_Top)
     Set_Cursor(2, 1)
   	Send_Constant_String(#MainScreen_Bottom)
+    clr		ongoing_flag
     setb 	seconds_flag
 	mov 	seconds, #0x00   			; initial seconds
 	mov 	minutes, #0x00 				; initial minutes
 
 main_loop:
+    jb 		BTN_START, check_state_0  				; if the button is not pressed skip
+	Wait_Milli_Seconds(#50)						; Debounce delay.  This macro is also in 'LCD_4bit.inc'
+	jb 		BTN_START, check_state_0  				; if the button is not pressed skip
+	jnb 	BTN_START, $						; Wait for button release.
+
+
+
+
+;-------------------------------------;
+;			SOAK TEMPERATURE		   ;
+;-------------------------------------;
+Soak_Temp_Interface:
+    ljmp 	set_Soak_Temp_Interface
+
+check_state_1:
+    jb 		BTN_STATE, Soak_Temp_Interface  	; if the button is not pressed skip
+	Wait_Milli_Seconds(#50)						; Debounce delay.  This macro is also in 'LCD_4bit.inc'
+	jb 		BTN_STATE, Soak_Temp_Interface   	; if the button is not pressed skip
+	jnb 	BTN_STATE, $						; Wait for button release.
+    ljmp
+
+set_Soak_Temp_Interface:
+	; Update LCD Screen
+    jb 		BTN_UP, check_temp_down  				; if the button is not pressed skip
+	Wait_Milli_Seconds(#50)							; Debounce delay.  This macro is also in 'LCD_4bit.inc'
+	jb 		BTN_UP, check_temp_down  				; if the button is not pressed skip
+	jnb 	BTN_UP, $								; Wait for button release.
+    lcall 	inc_soak_temp
+
+    jb 		BTN_DOWN, check_state_1  				; if the button is not pressed skip
+	Wait_Milli_Seconds(#50)							; Debounce delay.  This macro is also in 'LCD_4bit.inc'
+	jb 		BTN_DOWN, check_state_1  				; if the button is not pressed skip
+	jnb 	BTN_DOWN, $								; Wait for button release.
+    lcall 	dec_soak_temp
+
+ljmp Check_State
+	setb 	ongoing_flag
+
+
+
+inc_soak_temp:
+	mov 	a, soakTemp
+    add		a, #0x01
+    da		a
+    mov		soakTemp, a
