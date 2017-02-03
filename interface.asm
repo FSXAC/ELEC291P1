@@ -59,8 +59,6 @@ Timer2_Init:
 	mov 	RCAP2H, #high(TIMER2_RELOAD)
 	mov 	RCAP2L, #low(TIMER2_RELOAD)
 	clr 	a
-	mov 	Count1ms+0, a
-	mov 	Count1ms+1, a
     setb 	ET2  ; Enable timer 2 interrupt
     setb 	TR2  ; Enable timer 2
 	ret
