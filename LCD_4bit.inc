@@ -6,7 +6,7 @@ cseg
 ;---------------------------------;
 ; Wait 40 microseconds            ;
 ;---------------------------------;
-Wait40uSec:
+sleep40us:
 	push AR0
 	mov R0, #177
 L0:
@@ -14,28 +14,6 @@ L0:
 	nop
 	djnz R0, L0 ; 1+1+3 cycles->5*45.21123ns*177=40us
 	pop AR0
-    ret
-
-;---------------------------------;
-; Wait 'R2' milliseconds          ;
-;---------------------------------;
-sleep mac
-	push AR2
-	mov R2, %0
-	lcall ?sleep
-	pop AR2
-endmac
-
-?sleep:
-	push AR0
-	push AR1
-L3: mov R1, #45
-L2: mov R0, #166
-L1: djnz R0, L1 ; 3 cycles->3*45.21123ns*166=22.51519us
-    djnz R1, L2 ; 22.51519us*45=1.013ms
-    djnz R2, L3 ; number of millisecons to wait passed in R2
-    pop AR1
-    pop AR0
     ret
 
 ;---------------------------------;
@@ -77,48 +55,39 @@ LCD_byte:
 ;---------------------------------;
 ; Write data to LCD               ;
 ;---------------------------------;
-WriteData mac
+LCD_write mac
 	mov a, %0
-	lcall ?WriteData
+	lcall ?LCD_write
 endmac
-
-?WriteData:
+?LCD_write:
 	setb LCD_RS
 	ljmp LCD_byte
 
 ;---------------------------------;
 ; Write command to LCD            ;
 ;---------------------------------;
-WriteCommand mac
+LCD_cmd mac
 	mov a, %0
-	lcall ?WriteCommand
+	lcall ?LCD_cmd
 endmac
-
-?WriteCommand:
+?LCD_cmd:
 	clr LCD_RS
 	ljmp LCD_byte
 
 ;---------------------------------;
 ; Configure LCD in 4-bit mode     ;
 ;---------------------------------;
-LCD_4BIT:
+LCD_config:
 	clr LCD_E   ; Resting state of LCD's enable pin is zero
 	clr LCD_RW  ; We are only writing to the LCD in this program
-
-	; After power on, let the LCD start up before initializing
-	; NOTE: the preprogrammed power-on delay of 16 ms on the AT89LP52
-	; seems to be enough.  That is why this line is commented out.
-	; sleep(#40)
-
 	; First make sure the LCD is in 8-bit mode and then change to 4-bit mode
-	WriteCommand(#0x33)
-	WriteCommand(#0x33)
-	WriteCommand(#0x32) ; change to 4-bit mode
-
+	LCD_cmd(#0x33)
+	LCD_cmd(#0x33)
+	LCD_cmd(#0x32) ; change to 4-bit mode
 	; Configure the LCD
-	WriteCommand(#0x28)
-	WriteCommand(#0x0c)
-	WriteCommand(#0x01) ;  Clear screen command (takes some time)
+	LCD_cmd(#0x28)
+	LCD_cmd(#0x0c)
+	LCD_cmd(#0x01) ;  Clear screen command (takes some time)
 
     ;Wait for the clear screen command to finish.
 	sleep(#2)
@@ -127,76 +96,73 @@ LCD_4BIT:
 ;---------------------------------;
 ; Send a constant string to LCD   ;
 ;---------------------------------;
-Send_Constant_String mac
-	push dph
-	push dpl
-	push acc
-	mov dptr, %0
-	lcall ?Send_Constant_String
-	pop acc
-	pop dpl
-	pop dph
+LCD_print mac
+	push   dph
+	push   dpl
+	push   acc
+	mov    dptr, %0
+	lcall  ?LCD_print
+	pop    acc
+	pop    dpl
+	pop    dph
 endmac
-
-?Send_Constant_String:
-    clr a
-    movc a, @a+dptr
-    jz ?Send_Constant_String_Done
-    lcall ?WriteData
-    inc dptr
-    sjmp ?Send_Constant_String
-?Send_Constant_String_Done:
+?LCD_print:
+    clr     a
+    movc    a,  @a+dptr
+    jz      ?LCD_print_return
+    lcall   ?LCD_write
+    inc     dptr
+    sjmp    ?LCD_print
+?LCD_print_return:
     ret
 
 ;---------------------------------;
 ; Set LCD cursor at row, column   ;
 ;---------------------------------;
-Set_Cursor mac
-	push acc
-	mov a, #%1
-	dec a
-	lcall ?Set_Cursor_%0 ; Select column and row
-	pop acc
+LCD_cursor mac
+	push   acc
+	mov    a,  #%1
+	dec    a
+	lcall  ?LCD_cursor_%0 ; Select column and row
+	pop    acc
 endmac
-
-?Set_Cursor_2:
-	orl a, #01000000B
-?Set_Cursor_1:
-	orl a, #10000000B
-	ljmp ?WriteCommand ; Select column and row
+?LCD_cursor_2:
+	orl    a,  #01000000B
+?LCD_cursor_1:
+	orl    a,  #10000000B
+	ljmp   ?LCD_cmd ; Select column and row
 
 ;---------------------------------;
 ; Display a BCD number in the LCD ;
 ;---------------------------------;
-Display_BCD mac
+LCD_printBCD mac
 	push ar0
 	mov r0, %0
-	lcall ?Display_BCD
+	lcall ?LCD_printBCD
 	pop ar0
 endmac
-
-?Display_BCD:
+?LCD_printBCD:
 	push acc
 	; Write most significant digit
 	mov a, r0
 	swap a
 	anl a, #0fh
 	orl a, #30h
-	lcall ?WriteData
+	lcall ?LCD_write
 	; write least significant digit
 	mov a, r0
 	anl a, #0fh
 	orl a, #30h
-	lcall ?WriteData
+	lcall ?LCD_write
 	pop acc
 	ret
 
 ;------------------------------------;
 ; Display a char in the LCD          ;
 ;------------------------------------;
-Display_char mac
+LCD_printChar mac
 	push acc
 	mov a, %0
-	lcall ?WriteData
+	lcall ?LCD_write
 	pop acc
 endmac

@@ -1,20 +1,41 @@
 ; LIT SOLDER OVEN CONTROLLER
-; AUTHOR:
+; AUTHOR:   SCOTT BEAULIEU (no contributions yet)
 ;			GEOFF GOODWIN
 ;			MUCHEN HE
 ;			LARRY LIU
 ;			LUFEI LIU
 ;			WENOA TEVES
 ; VERSION:	0
-; REVISION DATE:	2017-02-02
+; REVISION DATE:	2017-02-03
 ; http:;i.imgur.com/7wOfG4U.gif
 
+; standard library
+$NOLIST
+$MODLP52
+$LIST
+
+; Preprocessor constants
+CLK             equ     22118400
+T0_RATE         equ     4096
+T0_RELOAD       equ     ((65536-(CLK/4096)))
+T2_RATE         equ     1000
+T2_RELOAD       equ     (65536-(CLK/T2_RATE))
+DEBOUNCE        equ     50
+TIME_RATE       equ     1000
+
+org 0x0000
+    ljmp    setup
+org 0x000B
+    ljmp    T0_ISR
+org 0x002B
+    ljmp    T2_ISR
+
 ; States
-RAMP2SOAK		equ 1
-PREHEAT_SOAK	equ 2
-RAMP2PEAK		equ 3
-REFLOW			equ 4
-COOLING			equ 5
+RAMP2SOAK		equ     1
+PREHEAT_SOAK	equ     2
+RAMP2PEAK		equ     3
+REFLOW			equ     4
+COOLING			equ     5
 
 ; BUTTONS PINs
 BTN_START   	equ 	P2.4
@@ -24,166 +45,264 @@ BTN_DOWN	  	equ 	P2.7
 
 ; Parameters
 dseg at 0x30
-  soakTemp:		ds 1 ; soak temperature
-  soakTime:		ds 1 ; soak time
-  reflowTemp:	ds 1 ; reflow temperature
-  reflowTime:	ds 1 ; reflow time
-  Count1ms:		ds 2 ; counting seconds
-  seconds:		ds 1 ; seconds counter
-  minutes:		ds 1 ; minutes counter
-
+    soakTemp:   ds  1
+    soakTime:   ds  1
+    reflowTemp: ds  1
+    reflowTime: ds  1
+    seconds:    ds  1
+    minutes:    ds  1
+    countms:    ds  2
 bseg
-  seconds_flag: 	dbit 1
-  ongoing_flag:		dbit 1			;only check for buttons when the process has not started
+    seconds_f: 	dbit 1
+    ongoing_f:	dbit 1			;only check for buttons when the process has not started
 
-;LCD SCREEN
-;                     		1234567890123456
-MainScreen_Top:  		db 'STATE:X  T=xxx C', 0  ;State: 1-5
-MainScreen_Bottom: 		db '   TIME XX:XX   ', 0  ;elapsed time
-Soak_Temp1:				db 'SOAK TEMP:     <', 0
-Soak_Temp2: 			db '	  XXX C    >', 0
-
-Reflow_Temp1:			db 'REFLOW TEMP:    ', 0
-
-Soak_Time1:				db 'SOAK TIME:     <', 0
-Soak_Time2:				db '     XX:XX     >', 0
-
-Reflow_Time1:			db 'REFLOW TIME:   <', 0
-Reflow_Time2: 			db '     XX:XX     >', 0
+; LCD SCREEN
+;                     	1234567890ABCDEF
+msg_main_top:  		db 'STATE:-  T=--- C', 0  ;State: 1-5
+msg_main_btm: 		db '   TIME --:--   ', 0  ;elapsed time
+msg_soakTemp:       db 'SOAK TEMP:     <', 0
+msg_soakTime:       db 'SOAK TIME:     <', 0
+msg_reflowTemp:	    db 'REFLOW TEMP:   <', 0
+msg_reflowTime:	    db 'REFLOW TIME:   <', 0
+msg_temp_btm:	    db '      --- C    >', 0
+msg_time_btm:	    db '     --:--     >', 0
 
 
-; ---------------------------------;
-; Initialize Timer 2 Interrupt		;
-; ---------------------------------;
-Timer2_Init:
-	mov 	T2CON, 	#0
-	mov 	RCAP2H, #high(TIMER2_RELOAD)
-	mov 	RCAP2L, #low(TIMER2_RELOAD)
-	clr 	a
-	mov 	Count1ms+0, a
-	mov 	Count1ms+1, a
+; -------------------------;
+; Initialize Timer 2	   ;
+; -------------------------;
+T2_init:
+    mov 	T2CON, 	#0
+    mov 	RCAP2H, #high(T2_RELOAD)
+    mov 	RCAP2L, #low(T2_RELOAD)
+    clr 	a
+    mov 	countms+0, a
+    mov 	countms+1, a
     setb 	ET2  ; Enable timer 2 interrupt
     setb 	TR2  ; Enable timer 2
-	ret
+    ret
 
 ;---------------------------------;
 ; ISR for timer 2                 ;
 ;---------------------------------;
-Timer2_ISR:
-	clr 	TF2 		; Timer 2 doesn't clear TF2 automatically. Do it in ISR
-	cpl 	P3.6 		; To check the interrupt rate with oscilloscope. It must be precisely a 1 ms pulse.
-
-	; The two registers used in the ISR must be saved in the stack
-	push 	acc
-	push 	psw
-	push 	AR1
-
-	; Increment the 16-bit one mili second counter
-	inc 	Count1ms+0    		; Increment the low 8-bits first
-	mov 	a, Count1ms+0 		; If the low 8-bits overflow, then increment high 8-bits
-	jnz 	Inc_Done
-	inc 	Count1ms+1
-
-Inc_Done:
+T2_ISR:
+    clr 	TF2
+    push 	acc
+    push 	psw
+    push 	AR1
+    inc 	countms+0
+    mov 	a,     countms+0
+    jnz 	T2_ISR_incDone
+    inc 	countms+1
+T2_ISR_incDone:
 	; Check if half second has passed
-	mov 	a, Count1ms+0
-	cjne 	a, #low(1000), Timer2_ISR_done
-	mov 	a, Count1ms+1
-	cjne 	a, #high(1000), Timer2_ISR_done
-
-	; 500 milliseconds have passed.  Set a flag so the main program knows
-	setb 	seconds_flag 			; Let the main program know half second had passed
-    cpl 	TR0 					; Enable/disable timer/counter 0. This line creates a beep-silence-beep-silence sound.
-	; Reset to zero the milli-seconds counter, it is a 16-bit variable
-	clr 	TR0
-	clr 	a
-	mov 	Count1ms+0, a
-	mov 	Count1ms+1, a
-	; Increment the BCD counter
-	mov 	a, seconds
-	add 	a, #0x01
+    mov     a,  countms+0
+    cjne    a,  #low(TIME_RATE),    Timer2_ISR_done
+    mov     a,  countms+1
+    cjne    a,  #high(TIME_RATE),   Timer2_ISR_done
+    ; Let the main program know half second had passed
+    setb 	seconds_f
+    ; reset 16 bit ms counter
+    clr 	a
+    mov 	countms+0,     a
+    mov 	countms+1,     a
+    ; Increment seconds
+    mov     a,   seconds
+    add     a,   #0x01
     ; BCD Conversion
-	da 		a
-	mov 	seconds, a
-	clr 	c
-	subb 	a, #0x60
-	jz 		minute					; Increment minute after 60 Seconds
-	sjmp 	Timer2_ISR_done
-minute:
-	mov 	a, minutes
-	add 	a, #0x01
-	da 		a
-	mov 	minutes, a
-	mov 	seconds, #0x00
-	sjmp Timer2_ISR_done
-Timer2_ISR_done:
-	pop 	AR1
-	pop 	psw
-	pop 	acc
-	reti
-
+    da 	    a
+    mov     seconds,    a
+    clr     c
+    ; increment minutes when seconds -> 60
+    subb    a,          #0x60
+    jz 	    T2_ISR_minutes
+    sjmp 	T2_ISR_return
+T2_ISR_minutes:
+    mov     a,          minutes
+    add     a,          #0x01
+    da 	    a
+    mov     minutes,    a
+    mov     seconds,    #0x00
+    sjmp    T2_ISR_return
+T2_ISR_return:
+    pop 	AR1
+    pop 	psw
+    pop 	acc
+    reti
 
 ;-----------------------------;
-;	MAIN PROGRAM		       ;
+;	MAIN PROGRAM		      ;
 ;-----------------------------;
+setup:
+    mov     SP,     #0x7F
+    mov     PMOD,   #0
+    lcall   T2_init
+    setb    EA
+    lcall   LCD_4BIT
+    LCD_cursor(1, 1)
+    LCD_print(#msg_main_top)
+    LCD_curosr(2, 1)
+    LCD_print(#msg_main_btm)
+    clr	    ongoing_f
+    setb    seconds_f
+    mov     seconds,    #0x00   			; initial seconds
+    mov     minutes,    #0x00 				; initial minutes
 main:
-    mov 	SP, #0x7F
-    mov 	PMOD, #0
-    lcall 	Timer2_Init
-    setb 	EA
-    lcall 	LCD_4BIT
-	Set_Cursor(1, 1)
-    Send_Constant_String(#MainScreen_Top)
-    Set_Cursor(2, 1)
-  	Send_Constant_String(#MainScreen_Bottom)
-    clr		ongoing_flag
-    setb 	seconds_flag
-	mov 	seconds, #0x00   			; initial seconds
-	mov 	minutes, #0x00 				; initial minutes
-
-main_loop:
-    jb 		BTN_START, check_state_0  				; if the button is not pressed skip
-	Wait_Milli_Seconds(#50)						; Debounce delay.  This macro is also in 'LCD_4bit.inc'
-	jb 		BTN_START, check_state_0  				; if the button is not pressed skip
-	jnb 	BTN_START, $						; Wait for button release.
-
-
-
+    ; MAIN MENU LOOP
+    ; CHECK: [START], [STATE]
+    ; [START] - start the reflow program
+main_button_start:
+    jb 		BTN_START, main_button_state
+    sleep(#DEBOUNCE)
+    jb 		BTN_START, main_button_state
+    jnb 	BTN_START, $
+    ; **PUT WHAT HAPPENS IF YOU PRESS START HERE LMAO HELP ME LORD
+main_button_state:
+    ; [STATE] - configure reflow program
+    jb 		BTN_STATE, main_update
+    sleep(#DEBOUNCE)
+    jb 		BTN_STATE, main_update
+    jnb 	BTN_STATE, $
+    ljmp    conf_soakTemp
+main_update:
+	; **update time and temperature display here
+    ljmp 	main
 
 ;-------------------------------------;
-;			SOAK TEMPERATURE		   ;
+; CONFIGURE: Soak Temperature 		  ;
 ;-------------------------------------;
-Soak_Temp_Interface:
-    ljmp 	set_Soak_Temp_Interface
+conf_soakTemp:
+    ; change LCD screen to soak temperature interface (((FIXME)))
 
-check_state_1:
-    jb 		BTN_STATE, Soak_Temp_Interface  	; if the button is not pressed skip
-	Wait_Milli_Seconds(#50)						; Debounce delay.  This macro is also in 'LCD_4bit.inc'
-	jb 		BTN_STATE, Soak_Temp_Interface   	; if the button is not pressed skip
-	jnb 	BTN_STATE, $						; Wait for button release.
-    ljmp
+conf_soakTemp_button_up:
+    jb 		BTN_UP, conf_soakTemp_button_down
+    sleep(#50)
+    jb 		BTN_UP, conf_soakTemp_button_down
+    jnb 	BTN_UP, $
 
-set_Soak_Temp_Interface:
-	; Update LCD Screen
-    jb 		BTN_UP, check_temp_down  				; if the button is not pressed skip
-	Wait_Milli_Seconds(#50)							; Debounce delay.  This macro is also in 'LCD_4bit.inc'
-	jb 		BTN_UP, check_temp_down  				; if the button is not pressed skip
-	jnb 	BTN_UP, $								; Wait for button release.
-    lcall 	inc_soak_temp
+    ; increment soak temp (((FIXME)))
 
-    jb 		BTN_DOWN, check_state_1  				; if the button is not pressed skip
-	Wait_Milli_Seconds(#50)							; Debounce delay.  This macro is also in 'LCD_4bit.inc'
-	jb 		BTN_DOWN, check_state_1  				; if the button is not pressed skip
-	jnb 	BTN_DOWN, $								; Wait for button release.
-    lcall 	dec_soak_temp
+conf_soakTemp_button_down:
+    jb 		BTN_DOWN, conf_soakTemp_button_state
+    sleep(#50)
+    jb 		BTN_DOWN, conf_soakTemp_button_state
+    jnb 	BTN_DOWN, $
+    ; decrement soak temp (((FIXME)))
 
-ljmp Check_State
+conf_soakTemp_button_state:
+    jb 		BTN_STATE, conf_soakTemp
+    sleep(#50)
+    jb 		BTN_STATE, conf_soakTemp
+    jnb 	BTN_STATE, $
+    ljmp 	conf_soakTime
 	setb 	ongoing_flag
 
+;-------------------------------------;
+; CONFIGURE: Soak Time       		  ;
+;-------------------------------------;
+conf_soakTime:
+	; **Update LCD Screen
+conf_soakTime_button_up:
+    jb 		BTN_UP, conf_soakTime_button_down
+	sleep(#50)
+	jb 		BTN_UP, conf_soakTime_button_down
+	jnb 	BTN_UP, $
+    lcall 	inc_soak_time
+
+conf_soakTime_button_down:
+    jb 		BTN_DOWN, conf_soakTime_button_state
+	sleep(#50)
+	jb 		BTN_DOWN, conf_soakTime_button_state
+	jnb 	BTN_DOWN, $
+    lcall 	dec_soak_time
+
+conf_soakTime_button_state:
+    jb 		BTN_STATE, conf_soakTime
+	sleep(#50)
+	jb 		BTN_STATE, conf_soakTime
+	jnb 	BTN_STATE, $
+    ljmp 	Reflow_Temp_Interface
+
+;-------------------------------------;
+; CONFIGURE: Reflow Temperature		  ;
+;-------------------------------------;
+Reflow_Temp_Interface:
+    ; **Update LCD Screen
+
+    jb 		BTN_UP, check_reflowTemp_down
+	Wait_Milli_Seconds(#50)
+	jb 		BTN_UP, check_reflowTemp_down
+	jnb 	BTN_UP, $
+    lcall 	inc_reflow_temp
+
+check_reflowTemp_down:
+    jb 		BTN_DOWN, check_state_3
+	Wait_Milli_Seconds(#50)
+	jb 		BTN_DOWN, check_state_3
+	jnb 	BTN_DOWN, $
+    lcall 	dec_reflow_temp
+
+check_state_3:
+    jb 		BTN_STATE, Reflow_Temp_Interface  
+	Wait_Milli_Seconds(#50)					
+	jb 		BTN_STATE, Reflow_Temp_Interface   
+	jnb 	BTN_STATE, $					
+    ljmp 	Reflow_Time_Interface
 
 
+;-------------------------------------;
+;			REFLOW TIME				   ;
+;-------------------------------------;
+Reflow_Time_Interface:
+    ; **Update LCD Screen
+
+    jb 		BTN_UP, check_reflowTime_down  				; if the button is not pressed skip
+	Wait_Milli_Seconds(#50)								; Debounce delay.  This macro is also in 'LCD_4bit.inc'
+	jb 		BTN_UP, check_reflowTime_down  				; if the button is not pressed skip
+	jnb 	BTN_UP, $									; Wait for button release.
+    lcall 	inc_reflow_time
+
+check_reflowTime_down:
+    jb 		BTN_DOWN, check_state_4  				; if the button is not pressed skip
+	Wait_Milli_Seconds(#50)							; Debounce delay.  This macro is also in 'LCD_4bit.inc'
+	jb 		BTN_DOWN, check_state_4  				; if the button is not pressed skip
+	jnb 	BTN_DOWN, $								; Wait for button release.
+    lcall 	dec_reflow_time
+
+check_state_4:
+    jb 		BTN_STATE, Reflow_Time_Interface  	; if the button is not pressed skip
+	Wait_Milli_Seconds(#50)						; Debounce delay.  This macro is also in 'LCD_4bit.inc'
+	jb 		BTN_STATE, Reflow_Time_Interface   	; if the button is not pressed skip
+	jnb 	BTN_STATE, $						; Wait for button release.
+    ljmp 	main
+
+;------------------------------;
+; 		FUNCTION CALLS			;
+;------------------------------;
 inc_soak_temp:
 	mov 	a, soakTemp
     add		a, #0x01
     da		a
     mov		soakTemp, a
+    ; ** other stuffs
+	ret
+
+dec_soak_temp:
+	; ** insert function hereeee
+	ret
+
+inc_soak_time:
+	; ** Insert function here
+	ret
+
+dec_soak_time:
+	; ** insert function here
+	ret
+
+inc_reflow_time:
+	; ** insert function here
+	ret
+
+dec_reflow_time:
+	; ** insert function here
+	ret

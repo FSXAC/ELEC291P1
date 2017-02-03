@@ -1,4 +1,3 @@
-
 ;===SLEEP===
 sleep mac
 	push AR2
@@ -41,6 +40,7 @@ endmac
     pop     acc
     ret
 
+;===DISPLAY TO LED BAR===
 barLED mac
     push    ACC
     push    AR0
