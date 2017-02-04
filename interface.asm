@@ -52,6 +52,7 @@ dseg at 0x30
     seconds:    ds  1
     minutes:    ds  1
     countms:    ds  2
+    state:      ds  1 ; current state of the controller
 bseg
     seconds_f: 	dbit 1
     ongoing_f:	dbit 1			;only check for buttons when the process has not started
@@ -66,7 +67,7 @@ msg_reflowTemp:	    db 'REFLOW TEMP:   <', 0
 msg_reflowTime:	    db 'REFLOW TIME:   <', 0
 msg_temp:	        db '      --- C    >', 0
 msg_time:	        db '     --:--     >', 0
-
+msg_ramptosoak    db '   RampToSoak', 0
 
 ; -------------------------;
 ; Initialize Timer 2	   ;
@@ -151,6 +152,10 @@ main:
     ; MAIN MENU LOOP
     ; CHECK: [START], [STATE]
     ; [START] - start the reflow program
+
+
+    mov state, #0  ; reset our state to 0
+
 main_button_start:
     jb 		BTN_START, main_button_state
     sleep(#DEBOUNCE)
@@ -165,7 +170,45 @@ main_button_state:
     jnb 	BTN_STATE, $
     ljmp    conf_soakTemp
 main_update:
-	; **update time and temperature display here
+  ; **update time and temperature display here
+; compare temperature and time to change STATE
+; state 1, 100% power; reach to 150 C in 120 seconds (aprox.)
+state1:
+    cjne a, RAMP2SOAK, state2
+    ; display on LCD
+    LCD_cursor(1,1)
+    LCD_print(#msg_ramptosoak)
+    LCD_cursor(2,1)
+    LCD_print(#msg_soakTemp)
+    LCD_print(soakTemp) ; need to convert our ADC voltage into decimal
+    LCD_cursor(2,8)
+    LCD_print(#msg_soakTime)
+    LCD_print(soakTime)
+
+    mov pwm, #100 ; (Geoff pls change this line of code to fit)
+    mov soakTime, #0
+    mov a, #150
+    clr c
+    subb a, soakTemp ; here our soaktime has to be in binary or Decimal not ADC
+    jnc state1_done
+    mov state, #2
+state1_done:
+    ljmp forever ; here should it be state1?
+
+state2:
+    cjne a, #2, state3
+
+
+
+state3:
+
+
+
+
+state2:
+
+
+  ; **update time and temperature display here
     ljmp 	main
 
 ;-------------------------------------;
