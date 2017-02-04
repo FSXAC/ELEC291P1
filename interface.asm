@@ -176,7 +176,7 @@ conf_soakTemp:
 
 conf_soakTemp_button_up:
     jb 		BTN_UP, conf_soakTemp_button_down
-    sleep(#50)
+    sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_soakTemp_button_down
     jnb 	BTN_UP, $
 
@@ -184,14 +184,14 @@ conf_soakTemp_button_up:
 
 conf_soakTemp_button_down:
     jb 		BTN_DOWN, conf_soakTemp_button_state
-    sleep(#50)
+    sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_soakTemp_button_state
     jnb 	BTN_DOWN, $
     ; decrement soak temp (((FIXME)))
 
 conf_soakTemp_button_state:
     jb 		BTN_STATE, conf_soakTemp
-    sleep(#50)
+    sleep(#DEBOUNCE)
     jb 		BTN_STATE, conf_soakTemp
     jnb 	BTN_STATE, $
     ljmp 	conf_soakTime
@@ -204,21 +204,21 @@ conf_soakTime:
 	; **Update LCD Screen
 conf_soakTime_button_up:
     jb 		BTN_UP, conf_soakTime_button_down
-	sleep(#50)
+	sleep(#DEBOUNCE)
 	jb 		BTN_UP, conf_soakTime_button_down
 	jnb 	BTN_UP, $
-    lcall 	inc_soak_time
+    ; lcall 	inc_soak_time
 
 conf_soakTime_button_down:
     jb 		BTN_DOWN, conf_soakTime_button_state
-	sleep(#50)
+	sleep(#DEBOUNCE)
 	jb 		BTN_DOWN, conf_soakTime_button_state
 	jnb 	BTN_DOWN, $
-    lcall 	dec_soak_time
+    ; lcall 	dec_soak_time
 
 conf_soakTime_button_state:
     jb 		BTN_STATE, conf_soakTime
-	sleep(#50)
+	sleep(#DEBOUNCE)
 	jb 		BTN_STATE, conf_soakTime
 	jnb 	BTN_STATE, $
     ljmp 	Reflow_Temp_Interface
@@ -226,54 +226,56 @@ conf_soakTime_button_state:
 ;-------------------------------------;
 ; CONFIGURE: Reflow Temperature		  ;
 ;-------------------------------------;
-Reflow_Temp_Interface:
+conf_reflowTemp:
     ; **Update LCD Screen
 
-    jb 		BTN_UP, check_reflowTemp_down
-	Wait_Milli_Seconds(#50)
-	jb 		BTN_UP, check_reflowTemp_down
+conf_reflowTemp_button_up:
+    jb 		BTN_UP, conf_reflowTemp_down
+	sleep(#DEBOUNCE)
+	jb 		BTN_UP, conf_reflowTemp_down
 	jnb 	BTN_UP, $
-    lcall 	inc_reflow_temp
+    ; lcall 	inc_reflow_temp
 
-check_reflowTemp_down:
-    jb 		BTN_DOWN, check_state_3
-	Wait_Milli_Seconds(#50)
-	jb 		BTN_DOWN, check_state_3
+conf_reflowTemp_button_down:
+    jb 		BTN_DOWN, conf_reflowTemp_button_state
+	sleep(#DEBOUNCE)
+	jb 		BTN_DOWN, conf_reflowTemp_button_state
 	jnb 	BTN_DOWN, $
-    lcall 	dec_reflow_temp
+    ; lcall 	dec_reflow_temp
 
-check_state_3:
-    jb 		BTN_STATE, Reflow_Temp_Interface  
-	Wait_Milli_Seconds(#50)					
-	jb 		BTN_STATE, Reflow_Temp_Interface   
-	jnb 	BTN_STATE, $					
-    ljmp 	Reflow_Time_Interface
+conf_reflowTemp_button_state:
+    jb 		BTN_STATE, conf_reflowTemp
+	sleep(#DEBOUNCE)
+	jb 		BTN_STATE, conf_reflowTemp
+	jnb 	BTN_STATE, $
+    ljmp 	conf_reflowTime:
 
 
 ;-------------------------------------;
 ;			REFLOW TIME				   ;
 ;-------------------------------------;
-Reflow_Time_Interface:
+conf_reflowTime:
     ; **Update LCD Screen
 
-    jb 		BTN_UP, check_reflowTime_down  				; if the button is not pressed skip
-	Wait_Milli_Seconds(#50)								; Debounce delay.  This macro is also in 'LCD_4bit.inc'
-	jb 		BTN_UP, check_reflowTime_down  				; if the button is not pressed skip
-	jnb 	BTN_UP, $									; Wait for button release.
-    lcall 	inc_reflow_time
+conf_reflowTime_button_up:
+    jb 		BTN_UP, conf_reflowTime_button_down
+	sleep(#DEBOUNCE)
+	jb 		BTN_UP, conf_reflowTime_button_down
+	jnb 	BTN_UP, $
+    ; lcall 	inc_reflow_time
 
-check_reflowTime_down:
-    jb 		BTN_DOWN, check_state_4  				; if the button is not pressed skip
-	Wait_Milli_Seconds(#50)							; Debounce delay.  This macro is also in 'LCD_4bit.inc'
-	jb 		BTN_DOWN, check_state_4  				; if the button is not pressed skip
-	jnb 	BTN_DOWN, $								; Wait for button release.
-    lcall 	dec_reflow_time
+conf_reflowTime_button_down:
+    jb 		BTN_DOWN, conf_reflowTime_button_state
+	sleep(#DEBOUNCE)
+	jb 		BTN_DOWN, conf_reflowTime_button_state
+	jnb 	BTN_DOWN, $
+    ; lcall 	dec_reflow_time
 
-check_state_4:
-    jb 		BTN_STATE, Reflow_Time_Interface  	; if the button is not pressed skip
-	Wait_Milli_Seconds(#50)						; Debounce delay.  This macro is also in 'LCD_4bit.inc'
-	jb 		BTN_STATE, Reflow_Time_Interface   	; if the button is not pressed skip
-	jnb 	BTN_STATE, $						; Wait for button release.
+conf_reflowTime_button_state:
+    jb 		BTN_STATE, conf_reflowTime
+	sleep(#DEBOUNCE)
+	jb 		BTN_STATE, conf_reflowTime
+	jnb 	BTN_STATE, $
     ljmp 	main
 
 ;------------------------------;
