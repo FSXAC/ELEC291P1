@@ -308,14 +308,16 @@ conf_soakTime_button_up:
 	sleep(#DEBOUNCE)
 	jb 		BTN_UP, conf_soakTime_button_down
 	jnb 	BTN_UP, $
-    lcall 	inc_soak_time
+    ; lcall 	inc_soak_time
+    increment_BCD(soakTime, #0x05)
 
 conf_soakTime_button_down:
     jb 		BTN_DOWN, conf_soakTime_button_state
 	sleep(#DEBOUNCE)
 	jb 		BTN_DOWN, conf_soakTime_button_state
 	jnb 	BTN_DOWN, $
-    lcall 	dec_soak_time
+    ; lcall 	dec_soak_time
+    decrement_BCD(soakTime, #0x05)
 
 conf_soakTime_button_state:
     jb 		BTN_STATE, conf_soakTime_j
@@ -382,14 +384,16 @@ conf_reflowTime_button_up:
 	sleep(#DEBOUNCE)
 	jb 		BTN_UP, conf_reflowTime_button_down
 	jnb 	BTN_UP, $
-    lcall 	inc_reflow_time
+    ; lcall 	inc_reflow_time
+    increment_BCD(reflowTime, #0x05)
 
 conf_reflowTime_button_down:
     jb 		BTN_DOWN, conf_reflowTime_button_state
 	sleep(#DEBOUNCE)
 	jb 		BTN_DOWN, conf_reflowTime_button_state
 	jnb 	BTN_DOWN, $
-    lcall 	dec_reflow_time
+    ; lcall 	dec_reflow_time
+    decrement_BCD(reflowTime, #0x05)
 
 conf_reflowTime_button_state:
     jb 		BTN_STATE, conf_reflowTime_j
