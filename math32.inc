@@ -5,7 +5,6 @@ $NOLIST
 ; binary to bcd and bcd to binary conversion subroutines.
 ;
 ; 2011-2013 by Jesus Calvino-Fraga
-;
 ;----------------------------------------------------
 
 CSEG

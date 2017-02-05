@@ -273,14 +273,14 @@ conf_soakTemp_button_up:
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_soakTemp_button_down
     jnb 	BTN_UP, $
-	increment_BCD(soakTemp)
+	increment_BCD(soakTemp, #1)
 
 conf_soakTemp_button_down:
     jb 		BTN_DOWN, conf_soakTemp_button_state
     sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_soakTemp_button_state
     jnb 	BTN_DOWN, $
-    decrement_BCD(soakTemp)
+    decrement_BCD(soakTemp, #1)
 
 conf_soakTemp_button_state:
     jb 		BTN_STATE, conf_soakTemp_j
@@ -345,14 +345,14 @@ conf_reflowTemp_button_up:
 	sleep(#DEBOUNCE)
 	jb 		BTN_UP, conf_reflowTemp_button_down
 	jnb 	BTN_UP, $
-	increment_BCD(reflowTemp)
+	increment_BCD(reflowTemp, #1)
 
 conf_reflowTemp_button_down:
     jb 		BTN_DOWN, conf_reflowTemp_button_state
 	sleep(#DEBOUNCE)
 	jb 		BTN_DOWN, conf_reflowTemp_button_state
 	jnb 	BTN_DOWN, $
-	decrement_BCD(reflowTemp)
+	decrement_BCD(reflowTemp, #1)
 
 conf_reflowTemp_button_state:
     jb 		BTN_STATE, conf_reflowTemp_j
@@ -402,7 +402,7 @@ conf_reflowTime_j:
 	ljmp    conf_reflowTime_update
 
 ;------------------------------;
-; 		FUNCTION CALLS			;
+; 		FUNCTION CALLS		   ; ABCDEF
 ;------------------------------;
 ; increment soak time by 5 seconds
 inc_soak_time:
