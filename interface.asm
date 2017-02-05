@@ -57,16 +57,6 @@ BTN_DOWN	  	equ 	P2.7
 
 ; Parameters
 dseg at 0x30
-<<<<<<< HEAD
-    soakTemp:   ds  1
-    soakTime:   ds  1
-    reflowTemp: ds  1
-    reflowTime: ds  1
-    seconds:    ds  1
-    minutes:    ds  1
-    countms:    ds  2
-    crtTemp:	ds	1			; temperature of oven
-=======
     soakTemp:       ds  1
     soakTime:       ds  1
     reflowTemp:     ds  1
@@ -76,7 +66,7 @@ dseg at 0x30
     countms:        ds  2
     state:          ds  1 ; current state of the controller
     crtTemp:	    ds	1			; temperature of oven
->>>>>>> origin/lucy
+
 bseg
     seconds_f: 	dbit 1
     ongoing_f:	dbit 1			;only check for buttons when the process has not started (JK just realized we might not need this..)
@@ -95,93 +85,9 @@ msg_time:	        db '     --:--     >', 0
 msg_state1:         db '   RampToSoak   ', 0
 msg_fsm:            db '  --- C  --:--  ', 0
 
-<<<<<<< HEAD
 
-	
-  
-; -------------------------;
-; Increment Macro		   ;
-; -------------------------;
-Increment_variable MAC
-  	mov 	a, %0
-    add		a, #0x01
-    mov 	%0, a
-ENDMAC
-; -------------------------;
-; Decrement Macro		   ;
-; -------------------------;
-Decrement_variable MAC
-  	mov 	a, %0
-	add		a, #0xFF
-    mov 	%0, a
-ENDMAC
 
-; -------------------------;
-; Print Time Macro		   ;		; does this even work like this? QQ
-; -------------------------;
-Print_Time MAC
-	mov 	a, %0
-    mov 	b, #60
-    div		ab				; minutes are in a, seconds are in b
-	
-	mov		R2, b
-	
-    mov 	b, #10
-    div		ab				; result is in a, remainder is in b
-    LCD_cursor(2, 6)
-    add		a, #0x30
-    mov		R3, a
-    Display_Char(R3)
-    
-    LCD_cursor(2, 7)
-    mov		a, b
-    add		a, #0x30
-    mov		b, a
-    Display_Char(b)
-        
-    mov		b, #10
-    mov		a, R2
-    div		ab
-    LCD_cursor(2, 9)
-    add		a, #0x30
-    mov		R3, a
-    Display_Char(R3)
-    
-    LCD_cursor(2, 10)
-    mov		a, b
-    add		a, #0x30
-    mov		b, a
-    Display_Char(b)
-ENDMAC
 
-; -------------------------;
-; Print Temp Macro		   ;	
-; -------------------------;
-Print_Temp MAC
-	mov 	a, %0
-    mov 	b, #100
-    div		ab				; result is in a, remainder is in b
-    LCD_cursor(2, 7)
-    add		a, #0x30
-    mov		R1, a
-    Display_Char(R1)
-    mov		a, b
-    mov		b, #10
-    div		ab
-    add		a, #0x30
-    mov		R1, a
-    LCD_cursor(2, 8)
-    Display_Char(R1)
-    LCD_cursor(2, 9)
-    mov		a, b
-    add		a, #0x30
-    mov		b, a
-    Display_Char(b)    
-ENDMAC
-  
-
-=======
->>>>>>> origin/lucy
 ; -------------------------;
 ; Initialize Timer 2	   ;
 ; -------------------------;
