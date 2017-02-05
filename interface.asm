@@ -175,7 +175,7 @@ main:
     LCD_cursor(2, 1)
     LCD_print(#msg_main_btm)
     LCD_cursor(1, 15)
-    Display_char(#0xDF)
+    LCD_printChar(#0xDF)
 main_button_start:
     jb 		BTN_START, main_button_state
     sleep(#DEBOUNCE)
@@ -214,7 +214,7 @@ conf_soakTemp:
     LCD_print(#msg_temp)
 conf_soakTemp_update:
     LCD_cursor(2, 7)
-	LCD_temp(soakTemp)					; display soak temperature on LCD
+	LCD_printTemp(soakTemp)					; display soak temperature on LCD
 
 
 conf_soakTemp_button_up:
@@ -254,7 +254,7 @@ conf_soakTime:
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_soakTime_update:
-    LCD_time(soakTime) ; soakTime is a variable for seconds, convert into minutes and seconds here
+    LCD_printTime(soakTime) ; soakTime is a variable for seconds, convert into minutes and seconds here
 
 conf_soakTime_button_up:
     jb 		BTN_UP, conf_soakTime_button_down
@@ -291,7 +291,7 @@ conf_reflowTemp:
     LCD_print(#msg_temp)
 conf_reflowTemp_update:
     LCD_cursor(2, 7)
-	LCD_temp(reflowTemp)
+	LCD_printTemp(reflowTemp)
 
 
 conf_reflowTemp_button_up:
@@ -331,7 +331,7 @@ conf_reflowTime:
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_reflowTime_update:
-    LCD_time(reflowTime)
+    LCD_printTime(reflowTime)
 
 conf_reflowTime_button_up:
     jb 		BTN_UP, conf_reflowTime_button_down
