@@ -14,6 +14,8 @@ AT89LP52 Microcontroller
 - **Input**: ADC module, LM335, thermocouple, buttons
 - **Output**: Serial to PC (via USB), PWM SSR control, speaker, LCD, LED
 
+![](doc/Hardware.svg?raw=true)
+
 ### Task 1: Circuit and Hardware Assembly
 
 - [x] Assemble OP AMP
