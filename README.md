@@ -1,9 +1,11 @@
 # ELEC291P1
 Reflow Oven Controller - A.K.A Lit Solder Controller
 
-## Trello
+## Resources
 
 **Trelle Link**: https://trello.com/b/4QynfMXc/project-1-lit-solder-controller
+
+**Google Drive**: https://drive.google.com/drive/folders/0B7_AKRr0ByjpWmxVZVN0MWlLRlU
 
 ## Hardware
 
