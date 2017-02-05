@@ -221,7 +221,6 @@ conf_soakTemp_button_up:
     jb 		BTN_UP, conf_soakTemp_button_down
     jnb 	BTN_UP, $
 
-
     ; increment soak temp (((FIXME)))
 	Increment_variable(soakTemp)
 
@@ -253,7 +252,7 @@ conf_soakTime:
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_soakTime_update:
-    Print_Time(soakTime)							; soakTime is a variable for seconds, convert into minutes and seconds here
+    Print_Time(soakTime) ; soakTime is a variable for seconds, convert into minutes and seconds here
 
 conf_soakTime_button_up:
     jb 		BTN_UP, conf_soakTime_button_down
