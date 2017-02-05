@@ -95,30 +95,41 @@ L1: djnz    R0,     L1 ; 3 cycles->3*45.21123ns*166=22.51519us
 ; -------------------------;
 ; Increment Macro		   ;
 ; -------------------------;
-Increment_variable MAC
+increment_BCD mac
     push    ACC
-  	mov 	a, %0
-    add		a, #0x01
-    mov 	%0, a
+    mov     a,      %0
+    add     a,      %1
+    ; TODO do i need decimal adjust here?
+    mov     %0,     a
     pop     ACC
-ENDMAC
+endmac
+
 ; -------------------------;
 ; Decrement Macro		   ;
 ; -------------------------;
-Decrement_variable MAC
+decrement_BCD mac
     push    ACC
-  	mov 	a, %0
-	add		a, #0xFF
-    mov 	%0, a
+    push    AR0
+    ; get second param - how many to subtract
+    mov     a,      %1
+    dec     a
+    mov     R0,     a
+    mov     a,      #0xFF ; 0xFF is -1, oxFB is -5
+    subb    a,      R0
+    mov     R0,     a   ; computed compliment, store in R0
+    mov     a,      %0
+    add	    a,      R0
+    ; decimal adjust here?
+    mov     %0,     a
+    pop     AR0
     pop     ACC
-ENDMAC
+endmac
 
 ; -------------------------;
-; Print Time Macro		   ;		; does this even work like this? QQ
+; Print Time Macro		   ;
 ; -------------------------;
-LCD_printTime MAC
+LCD_printTime mac
     push    ACC
-    ; push    B               ; not sure how to push B
     push    AR2
     push    AR3
 
@@ -159,14 +170,13 @@ LCD_printTime MAC
     pop     AR3
     ; pop     B
     pop     ACC
-ENDMAC
+endmac
 
 ; -------------------------;
 ; Print Temp Macro		   ;
 ; -------------------------;
-LCD_printTemp MAC
+LCD_printTemp mac
     push    ACC
-    ; push    B
     push    AR1
 
 	mov 	a, %0
@@ -190,6 +200,5 @@ LCD_printTemp MAC
     LCD_printChar(b)
 
     push    AR1
-    ; push    B
     push    ACC
-ENDMAC
+endmac
