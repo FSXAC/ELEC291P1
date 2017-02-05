@@ -85,9 +85,6 @@ msg_time:	        db '     --:--     >', 0
 msg_state1:         db '   RampToSoak   ', 0
 msg_fsm:            db '  --- C  --:--  ', 0
 
-
-
-
 ; -------------------------;
 ; Initialize Timer 2	   ;
 ; -------------------------;
@@ -168,7 +165,7 @@ setup:
     mov		soakTime, 	#0x00
 	mov		reflowTemp, #0x00
     mov		reflowTime, #0x00
-   	mov 	crtTemp,	#0x00	;temporary for testing purposes
+   	mov 	crtTemp,	#0x00	            ; temporary for testing purposes
 main:
     ; MAIN MENU LOOP
     ; CHECK: [START], [STATE]
@@ -185,7 +182,9 @@ main_button_start:
     jb 		BTN_START, main_button_state
     jnb 	BTN_START, $
     setb	ongoing_f
+
     ; **PUT WHAT HAPPENS IF YOU PRESS START HERE LMAO HELP ME LORD (whatever goes here has to connect to main_update and check for stop button)
+
 main_button_state:
 	jb		ongoing_f, main_update					; skip checking for state if process has started
     ; [STATE] - configure reflow program
@@ -197,11 +196,11 @@ main_button_state:
 main_update:
 	; update time and ** temperature display here
     LCD_cursor(2, 9)
-    Display_BCD(minutes)
+    LCD_printBCD(minutes)
     LCD_cursor(2, 12)
-    Display_BCD(seconds)
+    LCD_printBCD(seconds)
     LCD_cursor(1, 12)
-    Display_BCD(crtTemp)							; where is the temperature coming from ??
+    LCD_printBCD(crtTemp)							; where is the temperature coming from ??
     ljmp 	main_button_start
 
 ;-------------------------------------;
@@ -215,7 +214,7 @@ conf_soakTemp:
     LCD_print(#msg_temp)
 conf_soakTemp_update:
     LCD_cursor(2, 7)
-	Print_Temp(soakTemp)					; display soak temperature on LCD
+	LCD_temp(soakTemp)					; display soak temperature on LCD
 
 
 conf_soakTemp_button_up:
@@ -243,7 +242,7 @@ conf_soakTemp_button_state:
     jnb 	BTN_STATE, $
     ljmp 	conf_soakTime
 conf_soakTemp_j:
-	ljmp conf_soakTemp_update
+	ljmp    conf_soakTemp_update
 
 ;-------------------------------------;
 ; CONFIGURE: Soak Time       		  ;
@@ -255,7 +254,7 @@ conf_soakTime:
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_soakTime_update:
-    Print_Time(soakTime) ; soakTime is a variable for seconds, convert into minutes and seconds here
+    LCD_time(soakTime) ; soakTime is a variable for seconds, convert into minutes and seconds here
 
 conf_soakTime_button_up:
     jb 		BTN_UP, conf_soakTime_button_down
@@ -279,7 +278,7 @@ conf_soakTime_button_state:
     ljmp 	conf_reflowTemp
 
 conf_soakTime_j:
-	ljmp conf_soakTime_update
+	ljmp    conf_soakTime_update
 
 ;-------------------------------------;
 ; CONFIGURE: Reflow Temperature		  ;
@@ -292,7 +291,7 @@ conf_reflowTemp:
     LCD_print(#msg_temp)
 conf_reflowTemp_update:
     LCD_cursor(2, 7)
-	Print_Temp(reflowTemp)
+	LCD_temp(reflowTemp)
 
 
 conf_reflowTemp_button_up:
@@ -332,7 +331,7 @@ conf_reflowTime:
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_reflowTime_update:
-    Print_Time(reflowTime)
+    LCD_time(reflowTime)
 
 conf_reflowTime_button_up:
     jb 		BTN_UP, conf_reflowTime_button_down
@@ -356,7 +355,7 @@ conf_reflowTime_button_state:
     ljmp 	main
 
 conf_reflowTime_j:
-	ljmp conf_reflowTime_update
+	ljmp    conf_reflowTime_update
 
 ;------------------------------;
 ; 		FUNCTION CALLS			;

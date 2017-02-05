@@ -98,7 +98,7 @@ ENDMAC
 ; -------------------------;
 ; Print Time Macro		   ;		; does this even work like this? QQ
 ; -------------------------;
-Print_Time MAC
+LCD_time MAC
     push    ACC
     push    B               ; not sure how to push B
     push    R3
@@ -144,7 +144,7 @@ ENDMAC
 ; -------------------------;
 ; Print Temp Macro		   ;
 ; -------------------------;
-Print_Temp MAC
+LCD_temp MAC
     push    ACC
     push    B
     push    R1
