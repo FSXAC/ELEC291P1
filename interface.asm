@@ -6,7 +6,7 @@
 ;			LUFEI LIU
 ;			WENOA TEVES
 ; VERSION:	0
-; LAST REVISION:	2017-02-05 MANSUR HE
+; LAST REVISION:	2017-02-05
 ; http:;i.imgur.com/7wOfG4U.gif
 
 
@@ -117,7 +117,6 @@ T2_ISR_incDone:
     cjne    a,  #low(TIME_RATE),    T2_ISR_return
     mov     a,  countms+1
     cjne    a,  #high(TIME_RATE),   T2_ISR_return
-    ; Let the main program know half second had passed
     setb 	seconds_f
     ; reset 16 bit ms counter
     clr 	a
@@ -126,11 +125,11 @@ T2_ISR_incDone:
     ; Increment seconds
     mov     a,   seconds
     add     a,   #0x01
-    ; BCD Conversion
+    ; BCD Conversion and writeback
     da 	    a
     mov     seconds,    a
-    clr     c
     ; increment minutes when seconds -> 60
+    clr     c
     subb    a,          #0x60
     jz 	    T2_ISR_minutes
     sjmp 	T2_ISR_return
@@ -140,7 +139,11 @@ T2_ISR_minutes:
     da 	    a
     mov     minutes,    a
     mov     seconds,    #0x00
-    sjmp    T2_ISR_return
+    ; reset minute to 0 when minutes -> 60
+    clr     c
+    subb    a,          #0x60
+    jnz     T2_ISR_return
+    mov     minutes,    #0x00
 T2_ISR_return:
     pop 	AR1
     pop 	psw
