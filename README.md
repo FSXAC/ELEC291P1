@@ -11,7 +11,7 @@ Reflow Oven Controller - A.K.A Lit Solder Controller
 
 AT89LP52 Microcontroller
 
-- **Input**: ADC module, LM335, and thermocouple
+- **Input**: ADC module, LM335, thermocouple, buttons
 - **Output**: Serial to PC (via USB), PWM SSR control, speaker, LCD, LED
 
 ### Task 1: Circuit and Hardware Assembly
