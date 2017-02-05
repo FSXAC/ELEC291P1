@@ -57,6 +57,9 @@ ADC_MOSI    equ     P2.1
 ADC_MISO    equ     P2.2
 ADC_SCLK    equ     P2.3
 
+; SSR / oven control pin
+SSR         equ     P3.7
+
 ; States
 RAMP2SOAK		equ     1
 PREHEAT_SOAK	equ     2
@@ -76,8 +79,8 @@ dseg at 0x30
     countms:        ds  2
     state:          ds  1 ; current state of the controller
     crtTemp:	    ds	1 ; temperature of oven
-	perCntr:		ds  1 ;counter to count period in PWM
-	power:			ds  1 ;currnet power of the toaster, number between 0 and 10
+	perCntr:		ds  1 ; counter to count period in PWM
+	power:			ds  1 ; currnet power of the toaster, number between 0 and 10
 
     ; for math32
     result:         ds  2
@@ -96,8 +99,8 @@ bseg
 cseg
 ; LCD SCREEN
 ;                     	1234567890123456
-msg_main_top:  		db 'STATE:-  T=--- C', 0  ;State: 1-5
-msg_main_btm: 		db '   TIME --:--   ', 0  ;elapsed time
+msg_main_top:  		db 'STATE:-  T=--- C', 0  ; State: 1-5
+msg_main_btm: 		db '   TIME --:--   ', 0  ; elapsed time
 msg_soakTemp:       db 'SOAK TEMP:     <', 0
 msg_soakTime:       db 'SOAK TIME:     <', 0
 msg_reflowTemp:	    db 'REFLOW TEMP:   <', 0
@@ -133,46 +136,47 @@ T2_ISR:
     mov 	a,     countms+0
     jnz 	T2_ISR_incDone
     inc 	countms+1
+
 ;---------------------------------;
 ; Pulse Width Modulation		  ;
-; Power = #0-#10					  ;
+; Power = #0-#10				  ;
 ; Period = #10					  ;
 ; Occurs roughly every half sec.  ;
 ;---------------------------------;
-	mov a, perCntr
-	JNB toaster, toaster_on
-	ljmp toaster_off
+    mov     a,          perCntr
+    jnb     toaster,    toaster_on
+    ljmp    toaster_off
 toaster_off:
-	;toaster is now off, check to see if toaster should be turned on
-	cjne a, power, cont
-	;if power 10, then never turn off (corner case)
-	mov a, power
-	cjne a, #10, corner1false
-	ljmp corner1true
-corner1false:	
-	setb P3.7
+    ;toaster is now off, check to see if toaster should be turned on
+    cjne    a,  power,  cont
+    ;if power 10, then never turn off (corner case)
+    mov     a,  power
+    cjne    a,  #10,    corner1false
+    ljmp    corner1true
+corner1false:
+    setb    SSR
 corner1true:
-	setb toaster
-	ljmp cont
+    setb    toaster
+    ljmp    cont
 toaster_on:
-	;toaster is now on, check to see if toaster should be turned off
-	cjne a, #10, cont
-	;if power 0, then never turn on (corner case)
-	mov a, power
-	cjne a, #0, corner2false
-	ljmp corner2true
-corner2false:	
-	clr P3.7
+    ;toaster is now on, check to see if toaster should be turned off
+    cjne    a,  #10,    cont
+    ;if power 0, then never turn on (corner case)
+    mov     a,  power
+    cjne    a,  #0,     corner2false
+    ljmp    corner2true
+corner2false:
+    clr     SSR
 corner2true:
-	clr toaster
-	clr a
-	mov perCntr, a
-	ljmp T2_ISR_incDone
+    clr     toaster
+    clr     a
+    mov     perCntr,    a
+    ljmp    T2_ISR_incDone
 cont:
-	mov a, perCntr
-	inc a 
-	mov perCntr, a	
-	
+    mov     a, perCntr
+    inc     a
+    mov     perCntr, a
+
 T2_ISR_incDone:
 	; Check if half second has passed
     mov     a,  countms+0
@@ -319,7 +323,7 @@ setup:
 
     ; LCD setup
     lcall   LCD_config
-	
+
 	; PWM setup
 	mov Power, #0 ;choose initial power here (0-10)
     setb toaster
