@@ -33,6 +33,10 @@ AT89LP52 Microcontroller
 
 ### Task 3: Interface and Configuration (FSM)
 
+*important*: `crtTemp` should be temperature input from sensors
+
+- [ ] Wire up `crtTemp` to sensors
+
 - [x] Update LCD Screen for each state
 - [x] Make marcos for incrementing and decrementing temperature
 - [ ] Program what happens when you press start while on the main screen

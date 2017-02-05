@@ -73,7 +73,7 @@ bseg
 
 cseg
 ; LCD SCREEN
-;                     	1234567890ABCDEF
+;                     	1234567890123456
 msg_main_top:  		db 'STATE:-  T=--- C', 0  ;State: 1-5
 msg_main_btm: 		db '   TIME --:--   ', 0  ;elapsed time
 msg_soakTemp:       db 'SOAK TEMP:     <', 0
@@ -227,7 +227,7 @@ main:
     LCD_cursor(2, 1)
     LCD_print(#msg_main_btm)
     LCD_cursor(1, 15)
-    LCD_printChar(#0xDF)
+    LCD_printChar(#0xDF)    ; deg symbol
 main_button_start:
     jb 		BTN_START, main_button_state
     sleep(#DEBOUNCE)
@@ -238,7 +238,7 @@ main_button_start:
     ; **PUT WHAT HAPPENS IF YOU PRESS START HERE LMAO HELP ME LORD (whatever goes here has to connect to main_update and check for stop button)
 
 main_button_state:
-	jb		ongoing_f, main_update					; skip checking for state if process has started
+	jb		ongoing_f, main_update	; skip checking for state if process has started
     ; [STATE] - configure reflow program
     jb 		BTN_STATE, main_update
     sleep(#DEBOUNCE)
@@ -252,7 +252,7 @@ main_update:
     LCD_cursor(2, 12)
     LCD_printBCD(seconds)
     LCD_cursor(1, 12)
-    LCD_printBCD(crtTemp)							; where is the temperature coming from ??
+    LCD_printBCD(crtTemp) ; TODO FIXME
     ljmp 	main_button_start
 
 ;-------------------------------------;
@@ -266,26 +266,21 @@ conf_soakTemp:
     LCD_print(#msg_temp)
 conf_soakTemp_update:
     LCD_cursor(2, 7)
-	LCD_printTemp(soakTemp)					; display soak temperature on LCD
-
+	LCD_printTemp(soakTemp)	; display soak temperature on LCD
 
 conf_soakTemp_button_up:
     jb 		BTN_UP, conf_soakTemp_button_down
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_soakTemp_button_down
     jnb 	BTN_UP, $
-
-    ; increment soak temp (((FIXME)))
-	Increment_variable(soakTemp)
-
+	increment_BCD(soakTemp)
 
 conf_soakTemp_button_down:
     jb 		BTN_DOWN, conf_soakTemp_button_state
     sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_soakTemp_button_state
     jnb 	BTN_DOWN, $
-    ; decrement soak temp (((FIXME)))
-    Decrement_variable(soakTemp)
+    decrement_BCD(soakTemp)
 
 conf_soakTemp_button_state:
     jb 		BTN_STATE, conf_soakTemp_j
@@ -345,22 +340,19 @@ conf_reflowTemp_update:
     LCD_cursor(2, 7)
 	LCD_printTemp(reflowTemp)
 
-
 conf_reflowTemp_button_up:
     jb 		BTN_UP, conf_reflowTemp_button_down
 	sleep(#DEBOUNCE)
 	jb 		BTN_UP, conf_reflowTemp_button_down
 	jnb 	BTN_UP, $
-
-	Increment_variable(reflowTemp)
+	increment_BCD(reflowTemp)
 
 conf_reflowTemp_button_down:
     jb 		BTN_DOWN, conf_reflowTemp_button_state
 	sleep(#DEBOUNCE)
 	jb 		BTN_DOWN, conf_reflowTemp_button_state
 	jnb 	BTN_DOWN, $
-
-	Decrement_variable(reflowTemp)
+	decrement_BCD(reflowTemp)
 
 conf_reflowTemp_button_state:
     jb 		BTN_STATE, conf_reflowTemp_j
@@ -412,18 +404,6 @@ conf_reflowTime_j:
 ;------------------------------;
 ; 		FUNCTION CALLS			;
 ;------------------------------;
-inc_soak_temp:
-	mov 	a, soakTemp
-    add		a, #0x01
-    da		a
-    mov		soakTemp, a
-    ; ** other stuffs
-	ret
-
-dec_soak_temp:
-	; ** insert function hereeee
-	ret
-
 ; increment soak time by 5 seconds
 inc_soak_time:
 	mov 	a, soakTime
@@ -450,4 +430,5 @@ dec_reflow_time:
     mov		reflowTime, a
 	ret
 
+; === END OF PROGRAM ===
 END

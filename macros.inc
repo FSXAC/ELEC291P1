@@ -95,7 +95,7 @@ L1: djnz    R0,     L1 ; 3 cycles->3*45.21123ns*166=22.51519us
 ; -------------------------;
 ; Increment Macro		   ;
 ; -------------------------;
-Increment_variable MAC
+increment_BCD MAC
     push    ACC
   	mov 	a, %0
     add		a, #0x01
@@ -105,7 +105,7 @@ ENDMAC
 ; -------------------------;
 ; Decrement Macro		   ;
 ; -------------------------;
-Decrement_variable MAC
+decrement_BCD MAC
     push    ACC
   	mov 	a, %0
 	add		a, #0xFF
