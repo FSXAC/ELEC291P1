@@ -26,8 +26,10 @@ $include(LCD_4bit.inc)
 
 ; Preprocessor constants
 CLK             equ     22118400
-T0_RATE         equ     4096
-T0_RELOAD       equ     ((65536-(CLK/4096)))
+BAUD            equ     115200
+; T0_RATE         equ     4096
+; T0_RELOAD       equ     ((65536-(CLK/4096)))
+T1_RELOAD       equ     (0x100-CLK/(16*BAUD))
 T2_RATE         equ     1000
 T2_RELOAD       equ     (65536-(CLK/T2_RATE))
 DEBOUNCE        equ     50
@@ -74,9 +76,18 @@ dseg at 0x30
     state:          ds  1 ; current state of the controller
     crtTemp:	    ds	1			; temperature of oven
 
+    ; for math32
+    result:         ds  2
+    bcd:            ds  5
+    x:              ds  4
+    y:              ds  4
+
 bseg
     seconds_flag: 	dbit 1
     ongoing_flag:	dbit 1			;only check for buttons when the process has not started (JK just realized we might not need this..)
+
+    ; for math32
+    mf:             dbit 1
 
 cseg
 ; LCD SCREEN
@@ -171,8 +182,8 @@ SPI_init:
     anl     TMOD,   #0x0f
     orl	    TMOD,   #0x20
     orl	    PCON,   #0x80
-    mov	    TH1,    #T1LOAD
-    mov	    TL1,    #T1LOAD
+    mov	    TH1,    #T1_RELOAD
+    mov	    TL1,    #T1_RELOAD
     setb    TR1
     mov	    SCON,   #0x52
     ret
@@ -202,7 +213,7 @@ ADC_comm_loop:
     rlc     a
     mov     R1,     a
     clr     ADC_SCLK
-    djnz    R2,     SPIcomm_loop
+    djnz    R2,     ADC_comm_loop
     pop     ACC
     ret
 
@@ -212,10 +223,20 @@ ADC_comm_loop:
 setup:
     mov     SP,     #0x7F
     mov     PMOD,   #0
+
+    ; Timer setup
     lcall   T2_init
     setb    EA
+
+    ; LCD setup
     lcall   LCD_config
 
+    ; Initialize MCP3008 ADC
+    setb    ADC_CE
+    lcall   ADC_init
+    lcall   SPI_init
+
+    ; Variables declaration
     clr	    ongoing_flag
     setb    seconds_flag						; may not need this..
     mov     seconds,    #0x00   			; initialize variables
