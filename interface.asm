@@ -24,6 +24,7 @@ $LIST
 $include(macros.inc)
 $include(LCD_4bit.inc)
 
+
 ; Preprocessor constants
 CLK             equ     22118400
 T0_RATE         equ     4096
@@ -60,7 +61,7 @@ dseg at 0x30
     soakTemp:       ds  1
     soakTime:       ds  1
     reflowTemp:     ds  1
-    reflowTim:      ds  1
+    reflowTime:     ds  1
     seconds:        ds  1
     minutes:        ds  1
     countms:        ds  2
@@ -155,7 +156,7 @@ setup:
     mov     PMOD,   #0
     lcall   T2_init
     setb    EA
-    lcall   LCD_4BIT
+    lcall   LCD_config
 
     clr	    ongoing_f
     setb    seconds_f						; may not need this..

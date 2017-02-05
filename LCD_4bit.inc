@@ -40,7 +40,7 @@ L0:
 ;---------------------------------;
 LCD_pulse:
 	setb LCD_E
-	lcall Wait40uSec
+	lcall sleep40us
 	clr LCD_E
     ret
 
@@ -58,7 +58,7 @@ LCD_byte:
 	mov c, ACC.4
 	mov LCD_D4, c
     lcall LCD_pulse
-    lcall Wait40uSec
+    lcall sleep40us
 	; Write low 4 bits next
 	mov c, ACC.3
 	mov LCD_D7, c
