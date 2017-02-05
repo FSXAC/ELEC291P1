@@ -22,7 +22,7 @@ $NOLIST
 $MODLP52
 $LIST
 $include(LCD_4bit.inc)
-
+$include(macros.inc)
 
 ; Preprocessor constants
 CLK             equ     22118400
