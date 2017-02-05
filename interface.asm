@@ -21,8 +21,8 @@ org 0x002B
 $NOLIST
 $MODLP52
 $LIST
-$include(LCD_4bit.inc)
 $include(macros.inc)
+$include(LCD_4bit.inc)
 
 ; Preprocessor constants
 CLK             equ     22118400
