@@ -74,7 +74,6 @@ barLED_end:
     setb    LED_LATCH
     ret
 
-
 ; -------------------------;
 ; Increment Macro		   ;
 ; -------------------------;

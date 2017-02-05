@@ -23,6 +23,7 @@ $MODLP52
 $LIST
 $include(LCD_4bit.inc)
 
+
 ; Preprocessor constants
 CLK             equ     22118400
 T0_RATE         equ     4096
@@ -32,14 +33,13 @@ T2_RELOAD       equ     (65536-(CLK/T2_RATE))
 DEBOUNCE        equ     50
 TIME_RATE       equ     1000
 
-; LCD pins
-LCD_RS          equ     P1.2
-LCD_RW          equ     P1.3
-LCD_E           equ     P1.4
-LCD_D4          equ     P3.2
-LCD_D5          equ     P3.3
-LCD_D6          equ     P3.4
-LCD_D7          equ     P3.5
+LCD_RS equ P1.2
+LCD_RW equ P1.3
+LCD_E  equ P1.4
+LCD_D4 equ P3.2
+LCD_D5 equ P3.3
+LCD_D6 equ P3.4
+LCD_D7 equ P3.5
 
 
 ; States
@@ -49,7 +49,7 @@ RAMP2PEAK		equ     3
 REFLOW			equ     4
 COOLING			equ     5
 
-; BUTTONS PINS
+; BUTTONS PINs
 BTN_START   	equ 	P2.4
 BTN_STATE	    equ 	P2.5
 BTN_UP	        equ 	P2.6
@@ -57,6 +57,7 @@ BTN_DOWN	  	equ 	P2.7
 
 ; Parameters
 dseg at 0x30
+<<<<<<< HEAD
     soakTemp:   ds  1
     soakTime:   ds  1
     reflowTemp: ds  1
@@ -65,6 +66,17 @@ dseg at 0x30
     minutes:    ds  1
     countms:    ds  2
     crtTemp:	ds	1			; temperature of oven
+=======
+    soakTemp:       ds  1
+    soakTime:       ds  1
+    reflowTemp:     ds  1
+    reflowTim:      ds  1
+    seconds:        ds  1
+    minutes:        ds  1
+    countms:        ds  2
+    state:          ds  1 ; current state of the controller
+    crtTemp:	    ds	1			; temperature of oven
+>>>>>>> origin/lucy
 bseg
     seconds_f: 	dbit 1
     ongoing_f:	dbit 1			;only check for buttons when the process has not started (JK just realized we might not need this..)
@@ -299,14 +311,17 @@ conf_soakTemp_update:
     LCD_cursor(2, 7)
 	Print_Temp(soakTemp)					; display soak temperature on LCD
 
+
 conf_soakTemp_button_up:
     jb 		BTN_UP, conf_soakTemp_button_down
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_soakTemp_button_down
     jnb 	BTN_UP, $
 
+
     ; increment soak temp (((FIXME)))
 	Increment_variable(soakTemp)
+
 
 conf_soakTemp_button_down:
     jb 		BTN_DOWN, conf_soakTemp_button_state
@@ -478,4 +493,5 @@ dec_reflow_time:
     add		a, #0xFB
     mov		reflowTime, a
 	ret
+
 END
