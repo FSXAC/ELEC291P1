@@ -24,6 +24,7 @@ $LIST
 $include(LCD_4bit.inc)
 $include(macros.inc)
 
+
 ; Preprocessor constants
 CLK             equ     22118400
 T0_RATE         equ     4096
@@ -60,7 +61,7 @@ dseg at 0x30
     soakTemp:       ds  1
     soakTime:       ds  1
     reflowTemp:     ds  1
-    reflowTim:      ds  1
+    reflowTime:     ds  1
     seconds:        ds  1
     minutes:        ds  1
     countms:        ds  2
@@ -158,7 +159,7 @@ setup:
     mov     PMOD,   #0
     lcall   T2_init
     setb    EA
-    lcall   LCD_4BIT
+    lcall   LCD_config
 
     clr	    ongoing_f
     setb    seconds_f						; may not need this..
@@ -178,7 +179,7 @@ main:
     LCD_cursor(2, 1)
     LCD_print(#msg_main_btm)
     LCD_cursor(1, 15)
-    Display_char(#0xDF)
+    LCD_printChar(#0xDF)
 main_button_start:
     jb 		BTN_START, main_button_state
     sleep(#DEBOUNCE)
@@ -197,11 +198,11 @@ main_button_state:
 main_update:
 	; update time and ** temperature display here
     LCD_cursor(2, 9)
-    Display_BCD(minutes)
+    LCD_printBCD(minutes)
     LCD_cursor(2, 12)
-    Display_BCD(seconds)
+    LCD_printBCD(seconds)
     LCD_cursor(1, 12)
-    Display_BCD(crtTemp)							; where is the temperature coming from ??
+    LCD_printBCD(crtTemp)							; where is the temperature coming from ??
     ljmp 	main_button_start
 
 ;-------------------------------------;
