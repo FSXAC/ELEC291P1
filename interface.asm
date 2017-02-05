@@ -6,14 +6,14 @@
 ;			LUFEI LIU
 ;			WENOA TEVES
 ; VERSION:	0
-; LAST REVISION:	2017-02-03 MANSUR HE
+; LAST REVISION:	2017-02-05 MANSUR HE
 ; http:;i.imgur.com/7wOfG4U.gif
 
 
 org 0x0000
     ljmp    setup
-;org 0x000B
-;    ljmp    T0_ISR
+; org 0x000B
+;     ljmp    T0_ISR
 org 0x002B
     ljmp    T2_ISR
 
@@ -24,7 +24,6 @@ $LIST
 $include(macros.inc)
 $include(LCD_4bit.inc)
 
-
 ; Preprocessor constants
 CLK             equ     22118400
 T0_RATE         equ     4096
@@ -34,13 +33,13 @@ T2_RELOAD       equ     (65536-(CLK/T2_RATE))
 DEBOUNCE        equ     50
 TIME_RATE       equ     1000
 
-LCD_RS equ P1.2
-LCD_RW equ P1.3
-LCD_E  equ P1.4
-LCD_D4 equ P3.2
-LCD_D5 equ P3.3
-LCD_D6 equ P3.4
-LCD_D7 equ P3.5
+LCD_RS          equ     P1.2
+LCD_RW          equ     P1.3
+LCD_E           equ     P1.4
+LCD_D4          equ     P3.2
+LCD_D5          equ     P3.3
+LCD_D6          equ     P3.4
+LCD_D7          equ     P3.5
 
 
 ; States
@@ -147,6 +146,55 @@ T2_ISR_return:
     pop 	psw
     pop 	acc
     reti
+
+;-----------------------------;
+; Initialize SPI		      ;
+;-----------------------------;
+; SPI_init:
+;     ; debounce reset button
+;     mov     R1,     #222
+;     mov     R0,     #166
+;     djnz    R0,     $
+;     djnz    R1,     $-4
+;     ; set timer
+;     clr     TR1
+;     anl     TMOD,   #0x0f
+;     orl	    TMOD,   #0x20
+;     orl	    PCON,   #0x80
+;     mov	    TH1,    #T1LOAD
+;     mov	    TL1,    #T1LOAD
+;     setb    TR1
+;     mov	    SCON,   #0x52
+;     ret
+;-----------------------------;
+; Initialize comm to ADC      ;
+;-----------------------------;
+; ADC_init:
+;     setb    ADC_MISO
+;     clr     ADC_SCLK
+;     ret
+;-----------------------------;
+; Communicate with ADC        ;
+;-----------------------------;
+; send byte in R0, receive byte in R1
+; ADC_comm:
+;     push    ACC
+;     mov     R1,     #0
+;     mov     R2,     #8
+; ADC_comm_loop:
+;     mov     a,      R0
+;     rlc     a
+;     mov     R0,     a
+;     mov     ADC_MOSI,   c
+;     setb    ADC_SCLK
+;     mov     c,      ADC_MISO
+;     mov     a,      R1
+;     rlc     a
+;     mov     R1,     a
+;     clr     ADC_SCLK
+;     djnz    R2,     SPIcomm_loop
+;     pop     ACC
+;     ret
 
 ;-----------------------------;
 ;	MAIN PROGRAM		      ;
