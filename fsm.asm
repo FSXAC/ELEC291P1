@@ -168,7 +168,7 @@ fsm_state1:
     LCD_curosr(2,10)
     LCD_print(soakTime_min)
 
-    mov     pwm,        #100 ; (Geoff pls change this line of code to fit)
+    mov     power,        #10 ; (Geoff pls change this line of code to fit)
     ;mov     soakTime_sec, #0
     ;mov     soakTime_min, #0
     mov     a,          #150
@@ -187,7 +187,7 @@ fsm_state2:
     LCD_cursor(1, 1)
     LCD_print(#msg_state2)
     ; display the current state, all other display will keep the same
-    mov pwm, #20
+    mov power,        #2
     mov a, soaktime  ; our soaktime has to be
     clr c
     subb a, soakTime_sec
@@ -206,7 +206,7 @@ fsm_state3:
    LCD_print(#msg_state3)
    ; display the current state, all other display will keep the same
 
-   mov     pwm,        #100 ; (Geoff pls change this line of code to fit)
+   mov     power,        #10  ; (Geoff pls change this line of code to fit)
    ;mov     soakTime_sec, #0
    ;mov     soakTime_min, #0
    mov     a,          #220
@@ -225,7 +225,7 @@ fsm_state4:
    LCD_cursor(1, 1)
    LCD_print(#msg_state4)
    ; display the current state, all other display will keep the same
-   mov pwm, #20
+   mov power,        #2
    mov a, soaktime  ; our soaktime has to be
    clr c
    subb a, soakTime_sec
@@ -242,7 +242,7 @@ fsm_state5:
     LCD_cursor(1, 1)
     LCD_print(#msg_state5)
 
-    mov     pwm,        #0 ; (Geoff pls change this line of code to fit)
+    mov     power,        #0 ; (Geoff pls change this line of code to fit)
     ;mov     soakTime_sec, #0
     ;mov     soakTime_min, #0
 Three_beeper:
