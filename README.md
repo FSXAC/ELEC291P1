@@ -3,6 +3,8 @@ Reflow Oven Controller - A.K.A Lit Solder Controller
 
 ## Resources
 
+**GitHub Pages**: https://fsxac.github.io/ELEC291P1/
+
 **Trelle Link**: https://trello.com/b/4QynfMXc/project-1-lit-solder-controller
 
 **Google Drive**: https://drive.google.com/drive/folders/0B7_AKRr0ByjpWmxVZVN0MWlLRlU
@@ -14,7 +16,7 @@ AT89LP52 Microcontroller
 - **Input**: ADC module, LM335, thermocouple, buttons
 - **Output**: Serial to PC (via USB), PWM SSR control, speaker, LCD, LED
 
-![](doc/Hardware.svg?raw=true)
+![](doc/Hardware.png "Hardware Layout")
 
 ### Task 1: Circuit and Hardware Assembly
 
