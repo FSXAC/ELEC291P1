@@ -33,6 +33,7 @@ T2_RELOAD       equ     (65536-(CLK/T2_RATE))
 DEBOUNCE        equ     50
 TIME_RATE       equ     1000
 
+; LCD PINS
 LCD_RS          equ     P1.2
 LCD_RW          equ     P1.3
 LCD_E           equ     P1.4
@@ -41,6 +42,17 @@ LCD_D5          equ     P3.3
 LCD_D6          equ     P3.4
 LCD_D7          equ     P3.5
 
+; BUTTONS PINs
+BTN_START   	equ 	P2.4
+BTN_STATE	    equ 	P2.5
+BTN_UP	        equ 	P2.6
+BTN_DOWN	  	equ 	P2.7
+
+; ADC SPI PINS
+ADC_CE      equ     P2.0
+ADC_MOSI    equ     P2.1
+ADC_MISO    equ     P2.2
+ADC_SCLK    equ     P2.3
 
 ; States
 RAMP2SOAK		equ     1
@@ -49,11 +61,6 @@ RAMP2PEAK		equ     3
 REFLOW			equ     4
 COOLING			equ     5
 
-; BUTTONS PINs
-BTN_START   	equ 	P2.4
-BTN_STATE	    equ 	P2.5
-BTN_UP	        equ 	P2.6
-BTN_DOWN	  	equ 	P2.7
 
 ; Parameters
 dseg at 0x30
@@ -153,51 +160,51 @@ T2_ISR_return:
 ;-----------------------------;
 ; Initialize SPI		      ;
 ;-----------------------------;
-; SPI_init:
-;     ; debounce reset button
-;     mov     R1,     #222
-;     mov     R0,     #166
-;     djnz    R0,     $
-;     djnz    R1,     $-4
-;     ; set timer
-;     clr     TR1
-;     anl     TMOD,   #0x0f
-;     orl	    TMOD,   #0x20
-;     orl	    PCON,   #0x80
-;     mov	    TH1,    #T1LOAD
-;     mov	    TL1,    #T1LOAD
-;     setb    TR1
-;     mov	    SCON,   #0x52
-;     ret
+SPI_init:
+    ; debounce reset button
+    mov     R1,     #222
+    mov     R0,     #166
+    djnz    R0,     $
+    djnz    R1,     $-4
+    ; set timer
+    clr     TR1
+    anl     TMOD,   #0x0f
+    orl	    TMOD,   #0x20
+    orl	    PCON,   #0x80
+    mov	    TH1,    #T1LOAD
+    mov	    TL1,    #T1LOAD
+    setb    TR1
+    mov	    SCON,   #0x52
+    ret
 ;-----------------------------;
 ; Initialize comm to ADC      ;
 ;-----------------------------;
-; ADC_init:
-;     setb    ADC_MISO
-;     clr     ADC_SCLK
-;     ret
+ADC_init:
+    setb    ADC_MISO
+    clr     ADC_SCLK
+    ret
 ;-----------------------------;
 ; Communicate with ADC        ;
 ;-----------------------------;
 ; send byte in R0, receive byte in R1
-; ADC_comm:
-;     push    ACC
-;     mov     R1,     #0
-;     mov     R2,     #8
-; ADC_comm_loop:
-;     mov     a,      R0
-;     rlc     a
-;     mov     R0,     a
-;     mov     ADC_MOSI,   c
-;     setb    ADC_SCLK
-;     mov     c,      ADC_MISO
-;     mov     a,      R1
-;     rlc     a
-;     mov     R1,     a
-;     clr     ADC_SCLK
-;     djnz    R2,     SPIcomm_loop
-;     pop     ACC
-;     ret
+ADC_comm:
+    push    ACC
+    mov     R1,     #0
+    mov     R2,     #8
+ADC_comm_loop:
+    mov     a,      R0
+    rlc     a
+    mov     R0,     a
+    mov     ADC_MOSI,   c
+    setb    ADC_SCLK
+    mov     c,      ADC_MISO
+    mov     a,      R1
+    rlc     a
+    mov     R1,     a
+    clr     ADC_SCLK
+    djnz    R2,     SPIcomm_loop
+    pop     ACC
+    ret
 
 ;-----------------------------;
 ;	MAIN PROGRAM		      ;
