@@ -57,21 +57,22 @@ BTN_DOWN	  	equ 	P2.7
 
 ; Parameters
 dseg at 0x30
-    soakTemp:   ds  1
-    soakTime:   ds  1
-    reflowTemp: ds  1
-    reflowTime: ds  1
-    seconds:    ds  1
-    minutes:    ds  1
-    countms:    ds  2
-    crtTemp:	ds	1			; temperature of oven
+    soakTemp:       ds  1
+    soakTime:       ds  1
+    reflowTemp:     ds  1
+    reflowTim:      ds  1
+    seconds:        ds  1
+    minutes:        ds  1
+    countms:        ds  2
+    state:          ds  1 ; current state of the controller
+    crtTemp:	    ds	1			; temperature of oven
 bseg
     seconds_f: 	dbit 1
     ongoing_f:	dbit 1			;only check for buttons when the process has not started (JK just realized we might not need this..)
 
 cseg
 ; LCD SCREEN
-;                     	1234567890ABCDEF
+;                     	1234567890123456
 msg_main_top:  		db 'STATE:-  T=--- C', 0  ;State: 1-5
 msg_main_btm: 		db '   TIME --:--   ', 0  ;elapsed time
 msg_soakTemp:       db 'SOAK TEMP:     <', 0
@@ -81,7 +82,8 @@ msg_reflowTime:	    db 'REFLOW TIME:   <', 0
 msg_temp:	        db '      --- C    >', 0
 msg_time:	        db '     --:--     >', 0
 msg_state1:         db '   RampToSoak   ', 0
-msg_fsm:            db '  --- C  --:--  ', 0
+;                     	1234567890123456
+msg_fsm:            db '  --- C  --:-- ', 0
 
 ; -------------------------;
 ; Initialize Timer 2	   ;
