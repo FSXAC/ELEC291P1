@@ -285,13 +285,13 @@ setup:
     ; Variables declaration
     clr	    ongoing_flag
     setb    seconds_flag					; may not need this..
-    mov     seconds,    #0x00   			; initialize variables
-    mov     minutes,    #0x00
-    mov		soakTemp, 	#0x00
-    mov		soakTime, 	#0x00
-	mov		reflowTemp, #0x00
-    mov		reflowTime, #0x00
-   	mov 	crtTemp,	#0x00	            ; temporary for testing purposes
+    mov     seconds,        #0x00   			; initialize variables
+    mov     minutes,        #0x00
+    mov	    soakTemp,       #0x00
+    mov	    soakTime,       #0x00
+    mov     reflowTemp,     #0x00
+    mov     reflowTime,     #0x00
+   	mov     crtTemp,        #0x00	            ; temporary for testing purposes
 main:
     ; MAIN MENU LOOP
     ; CHECK: [START], [STATE]
@@ -322,6 +322,8 @@ main_button_state:
 main_update:
     ; read ADC via SPI -> result
     lcall   ADC_get
+
+    ; *** CONTINUE HERE
 
 	; update time and ** temperature display here
     LCD_cursor(2, 9)
