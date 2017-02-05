@@ -21,8 +21,8 @@ org 0x002B
 $NOLIST
 $MODLP52
 $LIST
-$include(LCD_4bit.inc)
 $include(macros.inc)
+$include(LCD_4bit.inc)
 
 
 ; Preprocessor constants
@@ -34,13 +34,13 @@ T2_RELOAD       equ     (65536-(CLK/T2_RATE))
 DEBOUNCE        equ     50
 TIME_RATE       equ     1000
 
-LCD_RS equ P1.2
-LCD_RW equ P1.3
-LCD_E  equ P1.4
-LCD_D4 equ P3.2
-LCD_D5 equ P3.3
-LCD_D6 equ P3.4
-LCD_D7 equ P3.5
+LCD_RS          equ     P1.2
+LCD_RW          equ     P1.3
+LCD_E           equ     P1.4
+LCD_D4          equ     P3.2
+LCD_D5          equ     P3.3
+LCD_D6          equ     P3.4
+LCD_D7          equ     P3.5
 
 
 ; States
@@ -85,9 +85,6 @@ msg_temp:	        db '      --- C    >', 0
 msg_time:	        db '     --:--     >', 0
 msg_state1:         db '   RampToSoak   ', 0
 msg_fsm:            db '  --- C  --:--  ', 0
-
-
-
 
 ; -------------------------;
 ; Initialize Timer 2	   ;

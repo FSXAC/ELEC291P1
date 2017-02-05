@@ -19,283 +19,283 @@
 002E             19   
 002E             20   ; standard library
                  22   $LIST
+                 -1   $include(macros.inc)
+002E              1   
+002E              2   ?sleep:
+002E C000         3            push AR0
+0030 C001         4            push AR1
+0032 792D         5   L3: mov R1, #45
+0034 78A6         6   L2: mov R0, #166
+0036 D8FE         7   L1: djnz R0, L1 ; 3 cycles->3*45.21123ns*166=22.51519us
+0038 D9FA         8       djnz R1, L2 ; 22.51519us*45=1.013ms
+003A DAF6         9       djnz R2, L3 ; number of millisecons to wait passed in R2
+003C D001        10       pop AR1
+003E D000        11       pop AR0
+0040 22          12       ret
+0041             13   ;---------------------------------;
+0041             14   ; Toggles the 'E' pin in the LCD  ;
+0041             15   ;---------------------------------;
+0041             16   LCD_pulse:
+0041 D294        17            setb LCD_E
+0043 120049      18            lcall sleep40us
+0046 C294        19            clr LCD_E
+0048 22          20       ret
+0049             21   
+0049             22   ; -------------------------;
+0049             23   ; Increment Macro                   ;
+0049             24   ; -------------------------;
+                 25   Increment_variable MAC
+                 26     	mov 	a, %0
+                 27       add		a, #0x01
+                 28       mov 	%0, a
+                 29   ENDMAC
+0049             30   ; -------------------------;
+0049             31   ; Decrement Macro                   ;
+0049             32   ; -------------------------;
+                 33   Decrement_variable MAC
+                 34     	mov 	a, %0
+                 35   	add		a, #0xFF
+                 36       mov 	%0, a
+                 37   ENDMAC
+0049             38   
+0049             39   ; -------------------------;
+0049             40   ; Print Time Macro                  ;            ; does this even work like this? QQ
+0049             41   ; -------------------------;
+                 42   Print_Time MAC
+                 43   	mov 	a, %0
+                 44       mov 	b, #60
+                 45       div		ab				; minutes are in a, seconds are in b
+                 46   
+                 47   	mov		R2, b
+                 48   
+                 49       mov 	b, #10
+                 50       div		ab				; result is in a, remainder is in b
+                 51       LCD_cursor(2, 6)
+                 52       add		a, #0x30
+                 53       mov		R3, a
+                 54       LCD_printChar(R3)
+                 55   
+                 56       LCD_cursor(2, 7)
+                 57       mov		a, b
+                 58       add		a, #0x30
+                 59       mov		b, a
+                 60       LCD_printChar(b)
+                 61   
+                 62       mov		b, #10
+                 63       mov		a, R2
+                 64       div		ab
+                 65       LCD_cursor(2, 9)
+                 66       add		a, #0x30
+                 67       mov		R3, a
+                 68       LCD_printChar(R3)
+                 69   
+                 70       LCD_cursor(2, 10)
+                 71       mov		a, b
+                 72       add		a, #0x30
+                 73       mov		b, a
+                 74       LCD_printChar(b)
+                 75   ENDMAC
+0049             76   
+0049             77   ; -------------------------;
+0049             78   ; Print Temp Macro                  ;
+0049             79   ; -------------------------;
+                 80   Print_Temp MAC
+                 81   	mov 	a, %0
+                 82       mov 	b, #100
+                 83       div		ab				; result is in a, remainder is in b
+                 84       LCD_cursor(2, 7)
+                 85       add		a, #0x30
+                 86       mov		R1, a
+                 87       LCD_printChar(R1)
+                 88       mov		a, b
+                 89       mov		b, #10
+                 90       div		ab
+                 91       add		a, #0x30
+                 92       mov		R1, a
+                 93       LCD_cursor(2, 8)
+                 94       LCD_printChar(R1)
+                 95       LCD_cursor(2, 9)
+                 96       mov		a, b
+                 97       add		a, #0x30
+                 98       mov		b, a
+                 99       LCD_printChar(b)
+                100   ENDMAC
                  -1   $include(LCD_4bit.inc)
-002E              1   cseg
-002E              2   
-002E              3   ; When using a 22.1184MHz crystal in fast mode
-002E              4   ; one cycle takes 1.0/22.1184MHz = 45.21123 ns
-002E              5   
-002E              6   ;---------------------------------;
-002E              7   ; Wait 40 microseconds            ;
-002E              8   ;---------------------------------;
-002E              9   sleep40us:
-002E C000        10            push AR0
-0030 78B1        11            mov R0, #177
-0032             12   L0:
-0032 00          13            nop
-0033 00          14            nop
-0034 D8FC        15            djnz R0, L0 ; 1+1+3 cycles->5*45.21123ns*177=40us
-0036 D000        16            pop AR0
-0038 22          17       ret
-0039             18   ;===SLEEP===
+0049              1   cseg
+0049              2   
+0049              3   ; When using a 22.1184MHz crystal in fast mode
+0049              4   ; one cycle takes 1.0/22.1184MHz = 45.21123 ns
+0049              5   
+0049              6   ;---------------------------------;
+0049              7   ; Wait 40 microseconds            ;
+0049              8   ;---------------------------------;
+0049              9   sleep40us:
+0049 C000        10            push AR0
+004B 78B1        11            mov R0, #177
+004D             12   L0:
+004D 00          13            nop
+004E 00          14            nop
+004F D8FC        15            djnz R0, L0 ; 1+1+3 cycles->5*45.21123ns*177=40us
+0051 D000        16            pop AR0
+0053 22          17       ret
+0054             18   ;===SLEEP===
                  19   sleep mac
                  20   	push AR2
                  21   	mov R2, %0
                  22   	lcall ?sleep
                  23   	pop AR2
                  24   endmac
-0039             25   ?sleep:
-0039 C000        26            push AR0
-003B C001        27            push AR1
-003D 792D        28   L3: mov R1, #45
-003F 78A6        29   L2: mov R0, #166
-0041 D8FE        30   L1: djnz R0, L1 ; 3 cycles->3*45.21123ns*166=22.51519us
-0043 D9FA        31       djnz R1, L2 ; 22.51519us*45=1.013ms
-0045 DAF6        32       djnz R2, L3 ; number of millisecons to wait passed in R2
-0047 D001        33       pop AR1
-0049 D000        34       pop AR0
-004B 22          35       ret
-004C             36   ;---------------------------------;
-004C             37   ; Toggles the 'E' pin in the LCD  ;
-004C             38   ;---------------------------------;
-004C             39   LCD_pulse:
-004C D294        40            setb LCD_E
-004E 12002E      41            lcall sleep40us
-0051 C294        42            clr LCD_E
-0053 22          43       ret
-0054             44   
-0054             45   ;---------------------------------;
-0054             46   ; Writes acc to LCD in 4-bit mode ;
-0054             47   ;---------------------------------;
-0054             48   LCD_byte:
-0054             49            ; Write high 4 bits first
-0054 A2E7        50            mov c, ACC.7
-0056 92B5        51            mov LCD_D7, c
-0058 A2E6        52            mov c, ACC.6
-005A 92B4        53            mov LCD_D6, c
-005C A2E5        54            mov c, ACC.5
-005E 92B3        55            mov LCD_D5, c
-0060 A2E4        56            mov c, ACC.4
-0062 92B2        57            mov LCD_D4, c
-0064 12004C      58       lcall LCD_pulse
-0067 12002E      59       lcall sleep40us
-006A             60            ; Write low 4 bits next
-006A A2E3        61            mov c, ACC.3
-006C 92B5        62            mov LCD_D7, c
-006E A2E2        63            mov c, ACC.2
-0070 92B4        64            mov LCD_D6, c
-0072 A2E1        65            mov c, ACC.1
-0074 92B3        66            mov LCD_D5, c
-0076 A2E0        67            mov c, ACC.0
-0078 92B2        68            mov LCD_D4, c
-007A 12004C      69       lcall LCD_pulse
-007D 22          70            ret
-007E             71   
-007E             72   ;---------------------------------;
-007E             73   ; Write data to LCD               ;
-007E             74   ;---------------------------------;
-                 75   LCD_write mac
-                 76   	mov a, %0
-                 77   	lcall ?LCD_write
-                 78   endmac
-007E             79   ?LCD_write:
-007E D292        80            setb LCD_RS
-0080 020054      81            ljmp LCD_byte
-0083             82   
-0083             83   ;---------------------------------;
-0083             84   ; Write command to LCD            ;
-0083             85   ;---------------------------------;
-                 86   LCD_cmd mac
-                 87   	mov a, %0
-                 88   	lcall ?LCD_cmd
-                 89   endmac
-0083             90   ?LCD_cmd:
-0083 C292        91            clr LCD_RS
-0085 020054      92            ljmp LCD_byte
-0088             93   
-0088             94   ;---------------------------------;
-0088             95   ; Configure LCD in 4-bit mode     ;
-0088             96   ;---------------------------------;
-0088             97   LCD_config:
-0088 C294        98            clr LCD_E   ; Resting state of LCD's enable pin is zero
-008A C293        99            clr LCD_RW  ; We are only writing to the LCD in this program
-008C            100            ; First make sure the LCD is in 8-bit mode and then change to 4-bit mode
-008C 7433       101            mov a, #0x33
-008E 120083     101            lcall ?LCD_cmd
-0091 7433       102            mov a, #0x33
-0093 120083     102            lcall ?LCD_cmd
-0096 7432       103            mov a, #0x32
-0098 120083     103            lcall ?LCD_cmd ; change to 4-bit mode
-009B            104            ; Configure the LCD
-009B 7428       105            mov a, #0x28
-009D 120083     105            lcall ?LCD_cmd
-00A0 740C       106            mov a, #0x0c
-00A2 120083     106            lcall ?LCD_cmd
-00A5 7401       107            mov a, #0x01
-00A7 120083     107            lcall ?LCD_cmd ;  Clear screen command (takes some time)
-00AA            108   
-00AA            109       ;Wait for the clear screen command to finish.
-00AA C002       110            push AR2
-00AC 7A02       110            mov R2, #2
-00AE 120039     110            lcall ?sleep
-00B1 D002       110            pop AR2
-00B3 22         111       ret
-00B4            112   
-00B4            113   ;---------------------------------;
-00B4            114   ; Send a constant string to LCD   ;
-00B4            115   ;---------------------------------;
-                116   LCD_print mac
-                117   	push   dph
-                118   	push   dpl
-                119   	push   acc
-                120   	mov    dptr, %0
-                121   	lcall  ?LCD_print
-                122   	pop    acc
-                123   	pop    dpl
-                124   	pop    dph
-                125   endmac
-00B4            126   ?LCD_print:
-00B4 E4         127       clr     a
-00B5 93         128       movc    a,  @a+dptr
-00B6 6006       129       jz      ?LCD_print_return
-00B8 12007E     130       lcall   ?LCD_write
-00BB A3         131       inc     dptr
-00BC 80F6       132       sjmp    ?LCD_print
-00BE            133   ?LCD_print_return:
-00BE 22         134       ret
-00BF            135   
-00BF            136   ;---------------------------------;
-00BF            137   ; Set LCD cursor at row, column   ;
-00BF            138   ;---------------------------------;
-                139   LCD_cursor mac
-                140   	push   acc
-                141   	mov    a,  #%1
-                142   	dec    a
-                143   	lcall  ?LCD_cursor_%0 ; Select column and row
-                144   	pop    acc
-                145   endmac
-00BF            146   ?LCD_cursor_2:
-00BF 4440       147            orl    a,  #01000000B
-00C1            148   ?LCD_cursor_1:
-00C1 4480       149            orl    a,  #10000000B
-00C3 020083     150            ljmp   ?LCD_cmd ; Select column and row
-00C6            151   
-00C6            152   ;---------------------------------;
-00C6            153   ; Display a BCD number in the LCD ;
-00C6            154   ;---------------------------------;
-                155   LCD_printBCD mac
-                156   	push ar0
-                157   	mov r0, %0
-                158   	lcall ?LCD_printBCD
-                159   	pop ar0
-                160   endmac
-00C6            161   ?LCD_printBCD:
-00C6 C0E0       162            push acc
-00C8            163            ; Write most significant digit
-00C8 E8         164            mov a, r0
-00C9 C4         165            swap a
-00CA 540F       166            anl a, #0fh
-00CC 4430       167            orl a, #30h
-00CE 12007E     168            lcall ?LCD_write
-00D1            169            ; write least significant digit
-00D1 E8         170            mov a, r0
-00D2 540F       171            anl a, #0fh
-00D4 4430       172            orl a, #30h
-00D6 12007E     173            lcall ?LCD_write
-00D9 D0E0       174            pop acc
-00DB 22         175            ret
-00DC            176   
-00DC            177   ;------------------------------------;
-00DC            178   ; Display a char in the LCD          ;
-00DC            179   ;------------------------------------;
-                180   LCD_printChar mac
-                181   	push acc
-                182   	mov a, %0
-                183   	lcall ?LCD_write
-                184   	pop acc
-                185   endmac
-00DC            186   
-                 -1   $include(macros.inc)
-00DC              1   
-00DC              2   ; -------------------------;
-00DC              3   ; Increment Macro                   ;
-00DC              4   ; -------------------------;
-                  5   Increment_variable MAC
-                  6     	mov 	a, %0
-                  7       add		a, #0x01
-                  8       mov 	%0, a
-                  9   ENDMAC
-00DC             10   ; -------------------------;
-00DC             11   ; Decrement Macro                   ;
-00DC             12   ; -------------------------;
-                 13   Decrement_variable MAC
-                 14     	mov 	a, %0
-                 15   	add		a, #0xFF
-                 16       mov 	%0, a
-                 17   ENDMAC
-00DC             18   
-00DC             19   ; -------------------------;
-00DC             20   ; Print Time Macro                  ;            ; does this even work like this? QQ
-00DC             21   ; -------------------------;
-                 22   Print_Time MAC
-                 23   	mov 	a, %0
-                 24       mov 	b, #60
-                 25       div		ab				; minutes are in a, seconds are in b
-                 26   
-                 27   	mov		R2, b
-                 28   
-                 29       mov 	b, #10
-                 30       div		ab				; result is in a, remainder is in b
-                 31       LCD_cursor(2, 6)
-                 32       add		a, #0x30
-                 33       mov		R3, a
-                 34       LCD_printChar(R3)
-                 35   
-                 36       LCD_cursor(2, 7)
-                 37       mov		a, b
-                 38       add		a, #0x30
-                 39       mov		b, a
-                 40       LCD_printChar(b)
-                 41   
-                 42       mov		b, #10
-                 43       mov		a, R2
-                 44       div		ab
-                 45       LCD_cursor(2, 9)
-                 46       add		a, #0x30
-                 47       mov		R3, a
-                 48       LCD_printChar(R3)
-                 49   
-                 50       LCD_cursor(2, 10)
-                 51       mov		a, b
-                 52       add		a, #0x30
-                 53       mov		b, a
-                 54       LCD_printChar(b)
-                 55   ENDMAC
-00DC             56   
-00DC             57   ; -------------------------;
-00DC             58   ; Print Temp Macro                  ;
-00DC             59   ; -------------------------;
-                 60   Print_Temp MAC
-                 61   	mov 	a, %0
-                 62       mov 	b, #100
-                 63       div		ab				; result is in a, remainder is in b
-                 64       LCD_cursor(2, 7)
-                 65       add		a, #0x30
-                 66       mov		R1, a
-                 67       LCD_printChar(R1)
-                 68       mov		a, b
-                 69       mov		b, #10
-                 70       div		ab
-                 71       add		a, #0x30
-                 72       mov		R1, a
-                 73       LCD_cursor(2, 8)
-                 74       LCD_printChar(R1)
-                 75       LCD_cursor(2, 9)
-                 76       mov		a, b
-                 77       add		a, #0x30
-                 78       mov		b, a
-                 79       LCD_printChar(b)
-                 80   ENDMAC
+0054             25   
+0054             26   ;---------------------------------;
+0054             27   ; Writes acc to LCD in 4-bit mode ;
+0054             28   ;---------------------------------;
+0054             29   LCD_byte:
+0054             30            ; Write high 4 bits first
+0054 A2E7        31            mov c, ACC.7
+0056 92B5        32            mov LCD_D7, c
+0058 A2E6        33            mov c, ACC.6
+005A 92B4        34            mov LCD_D6, c
+005C A2E5        35            mov c, ACC.5
+005E 92B3        36            mov LCD_D5, c
+0060 A2E4        37            mov c, ACC.4
+0062 92B2        38            mov LCD_D4, c
+0064 120041      39       lcall LCD_pulse
+0067 120049      40       lcall sleep40us
+006A             41            ; Write low 4 bits next
+006A A2E3        42            mov c, ACC.3
+006C 92B5        43            mov LCD_D7, c
+006E A2E2        44            mov c, ACC.2
+0070 92B4        45            mov LCD_D6, c
+0072 A2E1        46            mov c, ACC.1
+0074 92B3        47            mov LCD_D5, c
+0076 A2E0        48            mov c, ACC.0
+0078 92B2        49            mov LCD_D4, c
+007A 120041      50       lcall LCD_pulse
+007D 22          51            ret
+007E             52   
+007E             53   ;---------------------------------;
+007E             54   ; Write data to LCD               ;
+007E             55   ;---------------------------------;
+                 56   LCD_write mac
+                 57   	mov a, %0
+                 58   	lcall ?LCD_write
+                 59   endmac
+007E             60   ?LCD_write:
+007E D292        61            setb LCD_RS
+0080 020054      62            ljmp LCD_byte
+0083             63   
+0083             64   ;---------------------------------;
+0083             65   ; Write command to LCD            ;
+0083             66   ;---------------------------------;
+                 67   LCD_cmd mac
+                 68   	mov a, %0
+                 69   	lcall ?LCD_cmd
+                 70   endmac
+0083             71   ?LCD_cmd:
+0083 C292        72            clr LCD_RS
+0085 020054      73            ljmp LCD_byte
+0088             74   
+0088             75   ;---------------------------------;
+0088             76   ; Configure LCD in 4-bit mode     ;
+0088             77   ;---------------------------------;
+0088             78   LCD_config:
+0088 C294        79            clr LCD_E   ; Resting state of LCD's enable pin is zero
+008A C293        80            clr LCD_RW  ; We are only writing to the LCD in this program
+008C             81            ; First make sure the LCD is in 8-bit mode and then change to 4-bit mode
+008C 7433        82            mov a, #0x33
+008E 120083      82            lcall ?LCD_cmd
+0091 7433        83            mov a, #0x33
+0093 120083      83            lcall ?LCD_cmd
+0096 7432        84            mov a, #0x32
+0098 120083      84            lcall ?LCD_cmd ; change to 4-bit mode
+009B             85            ; Configure the LCD
+009B 7428        86            mov a, #0x28
+009D 120083      86            lcall ?LCD_cmd
+00A0 740C        87            mov a, #0x0c
+00A2 120083      87            lcall ?LCD_cmd
+00A5 7401        88            mov a, #0x01
+00A7 120083      88            lcall ?LCD_cmd ;  Clear screen command (takes some time)
+00AA             89   
+00AA             90       ;Wait for the clear screen command to finish.
+00AA C002        91            push AR2
+00AC 7A02        91            mov R2, #2
+00AE 12002E      91            lcall ?sleep
+00B1 D002        91            pop AR2
+00B3 22          92       ret
+00B4             93   
+00B4             94   ;---------------------------------;
+00B4             95   ; Send a constant string to LCD   ;
+00B4             96   ;---------------------------------;
+                 97   LCD_print mac
+                 98   	push   dph
+                 99   	push   dpl
+                100   	push   acc
+                101   	mov    dptr, %0
+                102   	lcall  ?LCD_print
+                103   	pop    acc
+                104   	pop    dpl
+                105   	pop    dph
+                106   endmac
+00B4            107   ?LCD_print:
+00B4 E4         108       clr     a
+00B5 93         109       movc    a,  @a+dptr
+00B6 6006       110       jz      ?LCD_print_return
+00B8 12007E     111       lcall   ?LCD_write
+00BB A3         112       inc     dptr
+00BC 80F6       113       sjmp    ?LCD_print
+00BE            114   ?LCD_print_return:
+00BE 22         115       ret
+00BF            116   
+00BF            117   ;---------------------------------;
+00BF            118   ; Set LCD cursor at row, column   ;
+00BF            119   ;---------------------------------;
+                120   LCD_cursor mac
+                121   	push   acc
+                122   	mov    a,  #%1
+                123   	dec    a
+                124   	lcall  ?LCD_cursor_%0 ; Select column and row
+                125   	pop    acc
+                126   endmac
+00BF            127   ?LCD_cursor_2:
+00BF 4440       128            orl    a,  #01000000B
+00C1            129   ?LCD_cursor_1:
+00C1 4480       130            orl    a,  #10000000B
+00C3 020083     131            ljmp   ?LCD_cmd ; Select column and row
+00C6            132   
+00C6            133   ;---------------------------------;
+00C6            134   ; Display a BCD number in the LCD ;
+00C6            135   ;---------------------------------;
+                136   LCD_printBCD mac
+                137   	push ar0
+                138   	mov r0, %0
+                139   	lcall ?LCD_printBCD
+                140   	pop ar0
+                141   endmac
+00C6            142   ?LCD_printBCD:
+00C6 C0E0       143            push acc
+00C8            144            ; Write most significant digit
+00C8 E8         145            mov a, r0
+00C9 C4         146            swap a
+00CA 540F       147            anl a, #0fh
+00CC 4430       148            orl a, #30h
+00CE 12007E     149            lcall ?LCD_write
+00D1            150            ; write least significant digit
+00D1 E8         151            mov a, r0
+00D2 540F       152            anl a, #0fh
+00D4 4430       153            orl a, #30h
+00D6 12007E     154            lcall ?LCD_write
+00D9 D0E0       155            pop acc
+00DB 22         156            ret
+00DC            157   
+00DC            158   ;------------------------------------;
+00DC            159   ; Display a char in the LCD          ;
+00DC            160   ;------------------------------------;
+                161   LCD_printChar mac
+                162   	push acc
+                163   	mov a, %0
+                164   	lcall ?LCD_write
+                165   	pop acc
+                166   endmac
 00DC             26   
 00DC             27   
 00DC             28   ; Preprocessor constants
@@ -307,13 +307,13 @@
 00DC             34   DEBOUNCE        equ     50
 00DC             35   TIME_RATE       equ     1000
 00DC             36   
-00DC             37   LCD_RS equ P1.2
-00DC             38   LCD_RW equ P1.3
-00DC             39   LCD_E  equ P1.4
-00DC             40   LCD_D4 equ P3.2
-00DC             41   LCD_D5 equ P3.3
-00DC             42   LCD_D6 equ P3.4
-00DC             43   LCD_D7 equ P3.5
+00DC             37   LCD_RS          equ     P1.2
+00DC             38   LCD_RW          equ     P1.3
+00DC             39   LCD_E           equ     P1.4
+00DC             40   LCD_D4          equ     P3.2
+00DC             41   LCD_D5          equ     P3.3
+00DC             42   LCD_D6          equ     P3.4
+00DC             43   LCD_D7          equ     P3.5
 00DC             44   
 00DC             45   
 00DC             46   ; States
@@ -399,714 +399,711 @@
      2D2D2020
      00
 0186             88   
-0186             89   
-0186             90   
-0186             91   
-0186             92   ; -------------------------;
-0186             93   ; Initialize Timer 2        ;
-0186             94   ; -------------------------;
-0186             95   T2_init:
-0186 75C800      96       mov          T2CON,          #0
-0189 75CBA9      97       mov          RCAP2H, #high(T2_RELOAD)
-018C 75CA9A      98       mov          RCAP2L, #low(T2_RELOAD)
-018F E4          99       clr          a
-0190 F536       100       mov          countms+0, a
-0192 F537       101       mov          countms+1, a
-0194 D2AD       102       setb         ET2  ; Enable timer 2 interrupt
-0196 D2CA       103       setb         TR2  ; Enable timer 2
-0198 22         104       ret
-0199            105   
-0199            106   ;---------------------------------;
-0199            107   ; ISR for timer 2                 ;
-0199            108   ;---------------------------------;
-0199            109   T2_ISR:
-0199 C2CF       110       clr          TF2
-019B C0E0       111       push         acc
-019D C0D0       112       push         psw
-019F C001       113       push         AR1
-01A1 0536       114       inc          countms+0
-01A3 E536       115       mov          a,     countms+0
-01A5 7002       116       jnz          T2_ISR_incDone
-01A7 0537       117       inc          countms+1
-01A9            118   T2_ISR_incDone:
-01A9            119            ; Check if half second has passed
-01A9 E536       120       mov     a,  countms+0
-01AB B4E826     121       cjne    a,  #low(TIME_RATE),    T2_ISR_return
-01AE E537       122       mov     a,  countms+1
-01B0 B40321     123       cjne    a,  #high(TIME_RATE),   T2_ISR_return
-01B3            124       ; Let the main program know half second had passed
-01B3 D200       125       setb         seconds_f
-01B5            126       ; reset 16 bit ms counter
-01B5 E4         127       clr          a
-01B6 F536       128       mov          countms+0,     a
-01B8 F537       129       mov          countms+1,     a
-01BA            130       ; Increment seconds
-01BA E534       131       mov     a,   seconds
-01BC 2401       132       add     a,   #0x01
-01BE            133       ; BCD Conversion
-01BE D4         134       da       a
-01BF F534       135       mov     seconds,    a
-01C1 C3         136       clr     c
-01C2            137       ; increment minutes when seconds -> 60
-01C2 9460       138       subb    a,          #0x60
-01C4 6002       139       jz       T2_ISR_minutes
-01C6 800C       140       sjmp         T2_ISR_return
-01C8            141   T2_ISR_minutes:
-01C8 E535       142       mov     a,          minutes
-01CA 2401       143       add     a,          #0x01
-01CC D4         144       da       a
-01CD F535       145       mov     minutes,    a
-01CF 753400     146       mov     seconds,    #0x00
-01D2 8000       147       sjmp    T2_ISR_return
-01D4            148   T2_ISR_return:
-01D4 D001       149       pop          AR1
-01D6 D0D0       150       pop          psw
-01D8 D0E0       151       pop          acc
-01DA 32         152       reti
-01DB            153   
-01DB            154   ;-----------------------------;
-01DB            155   ;        MAIN PROGRAM                  ;
-01DB            156   ;-----------------------------;
-01DB            157   setup:
-01DB 75817F     158       mov     SP,     #0x7F
-01DE 75C100     159       mov     PMOD,   #0
-01E1 120186     160       lcall   T2_init
-01E4 D2AF       161       setb    EA
-01E6 120088     162       lcall   LCD_config
-01E9            163   
-01E9 C201       164       clr      ongoing_f
-01EB D200       165       setb    seconds_f                                            ; may not need this..
-01ED 753400     166       mov     seconds,    #0x00                            ; initialize variables
-01F0 753500     167       mov     minutes,    #0x00
-01F3 753000     168       mov          soakTemp,       #0x00
-01F6 753100     169       mov          soakTime,       #0x00
-01F9 753200     170            mov             reflowTemp, #0x00
-01FC 753300     171       mov          reflowTime, #0x00
-01FF 753900     172            mov     crtTemp,        #0x00   ;temporary for testing purposes
-0202            173   main:
-0202            174       ; MAIN MENU LOOP
-0202            175       ; CHECK: [START], [STATE]
-0202            176       ; [START] - start the reflow program
-0202 C0E0       177            push   acc
-0204 7401       177            mov    a,  #1
-0206 14         177            dec    a
-0207 1200C1     177            lcall  ?LCD_cursor_1 ; Select column and row
-020A D0E0       177            pop    acc
-020C C083       178            push   dph
-020E C082       178            push   dpl
-0210 C0E0       178            push   acc
-0212 9000DC     178            mov    dptr, #msg_main_top
-0215 1200B4     178            lcall  ?LCD_print
-0218 D0E0       178            pop    acc
-021A D082       178            pop    dpl
-021C D083       178            pop    dph
-021E C0E0       179            push   acc
-0220 7401       179            mov    a,  #1
-0222 14         179            dec    a
-0223 1200BF     179            lcall  ?LCD_cursor_2 ; Select column and row
-0226 D0E0       179            pop    acc
-0228            179   
-0228 C083       180            push   dph
-022A C082       180            push   dpl
-022C C0E0       180            push   acc
-022E 9000ED     180            mov    dptr, #msg_main_btm
-0231 1200B4     180            lcall  ?LCD_print
-0234 D0E0       180            pop    acc
-0236 D082       180            pop    dpl
-0238 D083       180            pop    dph
-023A C0E0       181            push   acc
-023C 740F       181            mov    a,  #15
-023E 14         181            dec    a
-023F 1200C1     181            lcall  ?LCD_cursor_1 ; Select column and row
-0242 D0E0       181            pop    acc
-0244 C0E0       182            push acc
-0246 74DF       182            mov a, #0xDF
-0248 12007E     182            lcall ?LCD_write
-024B D0E0       182            pop acc
-024D            183   main_button_start:
-024D 20A411     184       jb           BTN_START, main_button_state
-0250 C002       185            push AR2
-0252 7A32       185            mov R2, #DEBOUNCE
-0254 120039     185            lcall ?sleep
-0257 D002       185            pop AR2
-0259 20A405     186       jb           BTN_START, main_button_state
-025C 30A4FD     187       jnb          BTN_START, $
-025F D201       188       setb         ongoing_f
-0261            189       ; **PUT WHAT HAPPENS IF YOU PRESS START HERE LMAO HELP ME LORD (whatever goes here has to connect to main_update and check for stop button)
-0261            190   main_button_state:
-0261 200115     191            jb              ongoing_f, main_update                                  ; skip checking for state if process has started
-0264            192       ; [STATE] - configure reflow program
-0264 20A512     193       jb           BTN_STATE, main_update
-0267 C002       194            push AR2
-0269 7A32       194            mov R2, #DEBOUNCE
-026B 120039     194            lcall ?sleep
-026E D002       194            pop AR2
-0270 20A506     195       jb           BTN_STATE, main_update
-0273 30A5FD     196       jnb          BTN_STATE, $
-0276 0202B5     197       ljmp    conf_soakTemp
-0279            198   main_update:
-0279            199            ; update time and ** temperature display here
-0279 C0E0       200            push   acc
-027B 7409       200            mov    a,  #9
-027D 14         200            dec    a
-027E 1200BF     200            lcall  ?LCD_cursor_2 ; Select column and row
-0281 D0E0       200            pop    acc
-0283 C000       201            push ar0
-0285 A835       201            mov r0, minutes
-0287 1200C6     201            lcall ?LCD_printBCD
-028A D000       201            pop ar0
-028C C0E0       202            push   acc
-028E 740C       202            mov    a,  #12
-0290 14         202            dec    a
-0291 1200BF     202            lcall  ?LCD_cursor_2 ; Select column and row
-0294 D0E0       202            pop    acc
-0296 C000       203            push ar0
-0298 A834       203            mov r0, seconds
-029A 1200C6     203            lcall ?LCD_printBCD
-029D D000       203            pop ar0
-029F C0E0       204            push   acc
-02A1 740C       204            mov    a,  #12
-02A3 14         204            dec    a
-02A4 1200C1     204            lcall  ?LCD_cursor_1 ; Select column and row
-02A7 D0E0       204            pop    acc
-02A9 C000       205            push ar0
-02AB A839       205            mov r0, crtTemp
-02AD 1200C6     205            lcall ?LCD_printBCD
-02B0 D000       205            pop ar0                                                         ; where is the temperature coming from ??
-02B2 02024D     206       ljmp         main_button_start
-02B5            207   
-02B5            208   ;-------------------------------------;
-02B5            209   ; CONFIGURE: Soak Temperature              ;
-02B5            210   ;-------------------------------------;
-02B5            211   conf_soakTemp:
-02B5            212       ; change LCD screen to soak temperature interface
-02B5 C0E0       213            push   acc
-02B7 7401       213            mov    a,  #1
-02B9 14         213            dec    a
-02BA 1200C1     213            lcall  ?LCD_cursor_1 ; Select column and row
-02BD D0E0       213            pop    acc
-02BF C083       214            push   dph
-02C1 C082       214            push   dpl
-02C3 C0E0       214            push   acc
-02C5 9000FE     214            mov    dptr, #msg_soakTemp
-02C8 1200B4     214            lcall  ?LCD_print
-02CB D0E0       214            pop    acc
-02CD D082       214            pop    dpl
-02CF D083       214            pop    dph
-02D1 C0E0       215            push   acc
-02D3 7401       215            mov    a,  #1
-02D5 14         215            dec    a
-02D6 1200BF     215            lcall  ?LCD_cursor_2 ; Select column and row
-02D9 D0E0       215            pop    acc
-02DB            215   
-02DB C083       216            push   dph
-02DD C082       216            push   dpl
-02DF C0E0       216            push   acc
-02E1 900142     216            mov    dptr, #msg_temp
-02E4 1200B4     216            lcall  ?LCD_print
-02E7 D0E0       216            pop    acc
-02E9 D082       216            pop    dpl
-02EB D083       216            pop    dph
-02ED            217   conf_soakTemp_update:
-02ED C0E0       218            push   acc
-02EF 7407       218            mov    a,  #7
-02F1 14         218            dec    a
-02F2 1200BF     218            lcall  ?LCD_cursor_2 ; Select column and row
-02F5 D0E0       218            pop    acc
-02F7 E530       219            mov     a, soakTemp
-02F9 75F064     219       mov          b, #100
-02FC 84         219       div          ab                              ; result is in a, remainder is in b
-02FD C0E0       219            push   acc
-02FF 7407       219            mov    a,  #7
-0301 14         219            dec    a
-0302 1200BF     219            lcall  ?LCD_cursor_2 ; Select column and row
-0305 D0E0       219            pop    acc
-0307 2430       219       add          a, #0x30
-0309 F9         219       mov          R1, a
-030A C0E0       219            push acc
-030C E9         219            mov a, R1
-030D 12007E     219            lcall ?LCD_write
-0310 D0E0       219            pop acc
-0312 E5F0       219       mov          a, b
-0314 75F00A     219       mov          b, #10
-0317 84         219       div          ab
-0318 2430       219       add          a, #0x30
-031A F9         219       mov          R1, a
-031B C0E0       219            push   acc
-031D 7408       219            mov    a,  #8
-031F 14         219            dec    a
-0320 1200BF     219            lcall  ?LCD_cursor_2 ; Select column and row
-0323 D0E0       219            pop    acc
-0325 C0E0       219            push acc
-0327 E9         219            mov a, R1
-0328 12007E     219            lcall ?LCD_write
-032B D0E0       219            pop acc
-032D C0E0       219            push   acc
-032F 7409       219            mov    a,  #9
-0331 14         219            dec    a
-0332 1200BF     219            lcall  ?LCD_cursor_2 ; Select column and row
-0335 D0E0       219            pop    acc
-0337 E5F0       219       mov          a, b
-0339 2430       219       add          a, #0x30
-033B F5F0       219       mov          b, a
-033D C0E0       219            push acc
-033F E5F0       219            mov a, b
-0341 12007E     219            lcall ?LCD_write
-0344 D0E0       219            pop acc                                         ; display soak temperature on LCD
-0346            220   
-0346            221   
-0346            222   conf_soakTemp_button_up:
-0346 20A615     223       jb           BTN_UP, conf_soakTemp_button_down
-0349 C002       224            push AR2
-034B 7A32       224            mov R2, #DEBOUNCE
-034D 120039     224            lcall ?sleep
-0350 D002       224            pop AR2
-0352 20A609     225       jb           BTN_UP, conf_soakTemp_button_down
-0355 30A6FD     226       jnb          BTN_UP, $
-0358            227   
-0358            228   
-0358            229       ; increment soak temp (((FIXME)))
-0358 E530       230            mov     a, soakTemp
-035A 2401       230       add          a, #0x01
-035C F530       230       mov          soakTemp, a
-035E            231   
-035E            232   
-035E            233   conf_soakTemp_button_down:
-035E 20A715     234       jb           BTN_DOWN, conf_soakTemp_button_state
-0361 C002       235            push AR2
-0363 7A32       235            mov R2, #DEBOUNCE
-0365 120039     235            lcall ?sleep
-0368 D002       235            pop AR2
-036A 20A709     236       jb           BTN_DOWN, conf_soakTemp_button_state
-036D 30A7FD     237       jnb          BTN_DOWN, $
-0370            238       ; decrement soak temp (((FIXME)))
-0370 E530       239            mov     a, soakTemp
-0372 24FF       239            add             a, #0xFF
-0374 F530       239       mov          soakTemp, a
-0376            240   
-0376            241   conf_soakTemp_button_state:
-0376 20A512     242       jb           BTN_STATE, conf_soakTemp_j
-0379 C002       243            push AR2
-037B 7A32       243            mov R2, #DEBOUNCE
-037D 120039     243            lcall ?sleep
-0380 D002       243            pop AR2
-0382 20A506     244       jb           BTN_STATE, conf_soakTemp_j
-0385 30A5FD     245       jnb          BTN_STATE, $
-0388 02038E     246       ljmp         conf_soakTime
-038B            247   conf_soakTemp_j:
-038B 0202ED     248            ljmp conf_soakTemp_update
-038E            249   
-038E            250   ;-------------------------------------;
-038E            251   ; CONFIGURE: Soak Time                     ;
-038E            252   ;-------------------------------------;
-038E            253   conf_soakTime:
-038E            254            ; **Update LCD Screen
-038E C0E0       255            push   acc
-0390 7401       255            mov    a,  #1
-0392 14         255            dec    a
-0393 1200C1     255            lcall  ?LCD_cursor_1 ; Select column and row
-0396 D0E0       255            pop    acc
-0398 C083       256            push   dph
-039A C082       256            push   dpl
-039C C0E0       256            push   acc
-039E 90010F     256            mov    dptr, #msg_soakTime
-03A1 1200B4     256            lcall  ?LCD_print
-03A4 D0E0       256            pop    acc
-03A6 D082       256            pop    dpl
-03A8 D083       256            pop    dph
-03AA C0E0       257            push   acc
-03AC 7401       257            mov    a,  #1
-03AE 14         257            dec    a
-03AF 1200BF     257            lcall  ?LCD_cursor_2 ; Select column and row
-03B2 D0E0       257            pop    acc
-03B4            257   
-03B4 C083       258            push   dph
-03B6 C082       258            push   dpl
-03B8 C0E0       258            push   acc
-03BA 900153     258            mov    dptr, #msg_time
-03BD 1200B4     258            lcall  ?LCD_print
-03C0 D0E0       258            pop    acc
-03C2 D082       258            pop    dpl
-03C4 D083       258            pop    dph
-03C6            259   conf_soakTime_update:
-03C6 E531       260            mov     a, soakTime
-03C8 75F03C     260       mov          b, #60
-03CB 84         260       div          ab                              ; minutes are in a, seconds are in b
-03CC            260   
-03CC AAF0       260            mov             R2, b
-03CE            260   
-03CE 75F00A     260       mov          b, #10
-03D1 84         260       div          ab                              ; result is in a, remainder is in b
-03D2 C0E0       260            push   acc
-03D4 7406       260            mov    a,  #6
-03D6 14         260            dec    a
-03D7 1200BF     260            lcall  ?LCD_cursor_2 ; Select column and row
-03DA D0E0       260            pop    acc
-03DC 2430       260       add          a, #0x30
-03DE FB         260       mov          R3, a
-03DF C0E0       260            push acc
-03E1 EB         260            mov a, R3
-03E2 12007E     260            lcall ?LCD_write
-03E5 D0E0       260            pop acc
-03E7            260   
-03E7 C0E0       260            push   acc
-03E9 7407       260            mov    a,  #7
-03EB 14         260            dec    a
-03EC 1200BF     260            lcall  ?LCD_cursor_2 ; Select column and row
-03EF D0E0       260            pop    acc
-03F1 E5F0       260       mov          a, b
-03F3 2430       260       add          a, #0x30
-03F5 F5F0       260       mov          b, a
-03F7 C0E0       260            push acc
-03F9 E5F0       260            mov a, b
-03FB 12007E     260            lcall ?LCD_write
-03FE D0E0       260            pop acc
-0400            260   
-0400 75F00A     260       mov          b, #10
-0403 EA         260       mov          a, R2
-0404 84         260       div          ab
-0405 C0E0       260            push   acc
-0407 7409       260            mov    a,  #9
-0409 14         260            dec    a
-040A 1200BF     260            lcall  ?LCD_cursor_2 ; Select column and row
-040D D0E0       260            pop    acc
-040F 2430       260       add          a, #0x30
-0411 FB         260       mov          R3, a
-0412 C0E0       260            push acc
-0414 EB         260            mov a, R3
-0415 12007E     260            lcall ?LCD_write
-0418 D0E0       260            pop acc
-041A            260   
-041A C0E0       260            push   acc
-041C 740A       260            mov    a,  #10
-041E 14         260            dec    a
-041F 1200BF     260            lcall  ?LCD_cursor_2 ; Select column and row
-0422 D0E0       260            pop    acc
-0424 E5F0       260       mov          a, b
-0426 2430       260       add          a, #0x30
-0428 F5F0       260       mov          b, a
-042A C0E0       260            push acc
-042C E5F0       260            mov a, b
-042E 12007E     260            lcall ?LCD_write
-0431 D0E0       260            pop acc                                                         ; soakTime is a variable for seconds, convert into minutes and seconds here
-0433            261   
-0433            262   conf_soakTime_button_up:
-0433 20A612     263       jb           BTN_UP, conf_soakTime_button_down
-0436 C002       264            push AR2
-0438 7A32       264            mov R2, #DEBOUNCE
-043A 120039     264            lcall ?sleep
-043D D002       264            pop AR2
-043F 20A606     265            jb              BTN_UP, conf_soakTime_button_down
-0442 30A6FD     266            jnb     BTN_UP, $
-0445 12063E     267       lcall        inc_soak_time
-0448            268   
-0448            269   conf_soakTime_button_down:
-0448 20A712     270       jb           BTN_DOWN, conf_soakTime_button_state
-044B C002       271            push AR2
-044D 7A32       271            mov R2, #DEBOUNCE
-044F 120039     271            lcall ?sleep
-0452 D002       271            pop AR2
-0454 20A706     272            jb              BTN_DOWN, conf_soakTime_button_state
-0457 30A7FD     273            jnb     BTN_DOWN, $
-045A 120645     274       lcall        dec_soak_time
-045D            275   
-045D            276   conf_soakTime_button_state:
-045D 20A512     277       jb           BTN_STATE, conf_soakTime_j
-0460 C002       278            push AR2
-0462 7A32       278            mov R2, #DEBOUNCE
-0464 120039     278            lcall ?sleep
-0467 D002       278            pop AR2
-0469 20A506     279            jb              BTN_STATE, conf_soakTime_j
-046C 30A5FD     280            jnb     BTN_STATE, $
-046F 020475     281       ljmp         conf_reflowTemp
-0472            282   
-0472            283   conf_soakTime_j:
-0472 0203C6     284            ljmp conf_soakTime_update
-0475            285   
-0475            286   ;-------------------------------------;
-0475            287   ; CONFIGURE: Reflow Temperature            ;
-0475            288   ;-------------------------------------;
-0475            289   conf_reflowTemp:
-0475            290       ; **Update LCD Screen
-0475 C0E0       291            push   acc
-0477 7401       291            mov    a,  #1
-0479 14         291            dec    a
-047A 1200C1     291            lcall  ?LCD_cursor_1 ; Select column and row
-047D D0E0       291            pop    acc
-047F C083       292            push   dph
-0481 C082       292            push   dpl
-0483 C0E0       292            push   acc
-0485 900120     292            mov    dptr, #msg_reflowTemp
-0488 1200B4     292            lcall  ?LCD_print
-048B D0E0       292            pop    acc
-048D D082       292            pop    dpl
-048F D083       292            pop    dph
-0491 C0E0       293            push   acc
-0493 7401       293            mov    a,  #1
-0495 14         293            dec    a
-0496 1200BF     293            lcall  ?LCD_cursor_2 ; Select column and row
-0499 D0E0       293            pop    acc
-049B C083       294            push   dph
-049D C082       294            push   dpl
-049F C0E0       294            push   acc
-04A1 900142     294            mov    dptr, #msg_temp
-04A4 1200B4     294            lcall  ?LCD_print
-04A7 D0E0       294            pop    acc
-04A9 D082       294            pop    dpl
-04AB D083       294            pop    dph
-04AD            295   conf_reflowTemp_update:
-04AD C0E0       296            push   acc
-04AF 7407       296            mov    a,  #7
-04B1 14         296            dec    a
-04B2 1200BF     296            lcall  ?LCD_cursor_2 ; Select column and row
-04B5 D0E0       296            pop    acc
-04B7 E532       297            mov     a, reflowTemp
-04B9 75F064     297       mov          b, #100
-04BC 84         297       div          ab                              ; result is in a, remainder is in b
-04BD C0E0       297            push   acc
-04BF 7407       297            mov    a,  #7
-04C1 14         297            dec    a
-04C2 1200BF     297            lcall  ?LCD_cursor_2 ; Select column and row
-04C5 D0E0       297            pop    acc
-04C7 2430       297       add          a, #0x30
-04C9 F9         297       mov          R1, a
-04CA C0E0       297            push acc
-04CC E9         297            mov a, R1
-04CD 12007E     297            lcall ?LCD_write
-04D0 D0E0       297            pop acc
-04D2 E5F0       297       mov          a, b
-04D4 75F00A     297       mov          b, #10
-04D7 84         297       div          ab
-04D8 2430       297       add          a, #0x30
-04DA F9         297       mov          R1, a
-04DB C0E0       297            push   acc
-04DD 7408       297            mov    a,  #8
-04DF 14         297            dec    a
-04E0 1200BF     297            lcall  ?LCD_cursor_2 ; Select column and row
-04E3 D0E0       297            pop    acc
-04E5 C0E0       297            push acc
-04E7 E9         297            mov a, R1
-04E8 12007E     297            lcall ?LCD_write
-04EB D0E0       297            pop acc
-04ED C0E0       297            push   acc
-04EF 7409       297            mov    a,  #9
-04F1 14         297            dec    a
-04F2 1200BF     297            lcall  ?LCD_cursor_2 ; Select column and row
-04F5 D0E0       297            pop    acc
-04F7 E5F0       297       mov          a, b
-04F9 2430       297       add          a, #0x30
-04FB F5F0       297       mov          b, a
-04FD C0E0       297            push acc
-04FF E5F0       297            mov a, b
-0501 12007E     297            lcall ?LCD_write
-0504 D0E0       297            pop acc
-0506            298   
-0506            299   
-0506            300   conf_reflowTemp_button_up:
-0506 20A615     301       jb           BTN_UP, conf_reflowTemp_button_down
-0509 C002       302            push AR2
-050B 7A32       302            mov R2, #DEBOUNCE
-050D 120039     302            lcall ?sleep
-0510 D002       302            pop AR2
-0512 20A609     303            jb              BTN_UP, conf_reflowTemp_button_down
-0515 30A6FD     304            jnb     BTN_UP, $
-0518            305   
-0518 E532       306            mov     a, reflowTemp
-051A 2401       306       add          a, #0x01
-051C F532       306       mov          reflowTemp, a
-051E            307   
-051E            308   conf_reflowTemp_button_down:
-051E 20A715     309       jb           BTN_DOWN, conf_reflowTemp_button_state
-0521 C002       310            push AR2
-0523 7A32       310            mov R2, #DEBOUNCE
-0525 120039     310            lcall ?sleep
-0528 D002       310            pop AR2
-052A 20A709     311            jb              BTN_DOWN, conf_reflowTemp_button_state
-052D 30A7FD     312            jnb     BTN_DOWN, $
-0530            313   
-0530 E532       314            mov     a, reflowTemp
-0532 24FF       314            add             a, #0xFF
-0534 F532       314       mov          reflowTemp, a
-0536            315   
-0536            316   conf_reflowTemp_button_state:
-0536 20A512     317       jb           BTN_STATE, conf_reflowTemp_j
-0539 C002       318            push AR2
-053B 7A32       318            mov R2, #DEBOUNCE
-053D 120039     318            lcall ?sleep
-0540 D002       318            pop AR2
-0542 20A506     319            jb              BTN_STATE, conf_reflowTemp_j
-0545 30A5FD     320            jnb     BTN_STATE, $
-0548 02054E     321       ljmp         conf_reflowTime
-054B            322   
-054B            323   conf_reflowTemp_j:
-054B 0204AD     324            ljmp    conf_reflowTemp_update
-054E            325   
-054E            326   
-054E            327   ;-------------------------------------;
-054E            328   ; CONFIGURE: Reflow Time                           ;
-054E            329   ;-------------------------------------;
-054E            330   conf_reflowTime:
-054E            331       ; **Update LCD Screen
-054E C0E0       332            push   acc
-0550 7401       332            mov    a,  #1
-0552 14         332            dec    a
-0553 1200C1     332            lcall  ?LCD_cursor_1 ; Select column and row
-0556 D0E0       332            pop    acc
-0558 C083       333            push   dph
-055A C082       333            push   dpl
-055C C0E0       333            push   acc
-055E 900131     333            mov    dptr, #msg_reflowTime
-0561 1200B4     333            lcall  ?LCD_print
-0564 D0E0       333            pop    acc
-0566 D082       333            pop    dpl
-0568 D083       333            pop    dph
-056A C0E0       334            push   acc
-056C 7401       334            mov    a,  #1
-056E 14         334            dec    a
-056F 1200BF     334            lcall  ?LCD_cursor_2 ; Select column and row
-0572 D0E0       334            pop    acc
-0574 C083       335            push   dph
-0576 C082       335            push   dpl
-0578 C0E0       335            push   acc
-057A 900153     335            mov    dptr, #msg_time
-057D 1200B4     335            lcall  ?LCD_print
-0580 D0E0       335            pop    acc
-0582 D082       335            pop    dpl
-0584 D083       335            pop    dph
-0586            336   conf_reflowTime_update:
-0586 E533       337            mov     a, reflowTime
-0588 75F03C     337       mov          b, #60
-058B 84         337       div          ab                              ; minutes are in a, seconds are in b
-058C            337   
-058C AAF0       337            mov             R2, b
-058E            337   
-058E 75F00A     337       mov          b, #10
-0591 84         337       div          ab                              ; result is in a, remainder is in b
-0592 C0E0       337            push   acc
-0594 7406       337            mov    a,  #6
-0596 14         337            dec    a
-0597 1200BF     337            lcall  ?LCD_cursor_2 ; Select column and row
-059A D0E0       337            pop    acc
-059C 2430       337       add          a, #0x30
-059E FB         337       mov          R3, a
-059F C0E0       337            push acc
-05A1 EB         337            mov a, R3
-05A2 12007E     337            lcall ?LCD_write
-05A5 D0E0       337            pop acc
-05A7            337   
-05A7 C0E0       337            push   acc
-05A9 7407       337            mov    a,  #7
-05AB 14         337            dec    a
-05AC 1200BF     337            lcall  ?LCD_cursor_2 ; Select column and row
-05AF D0E0       337            pop    acc
-05B1 E5F0       337       mov          a, b
-05B3 2430       337       add          a, #0x30
-05B5 F5F0       337       mov          b, a
-05B7 C0E0       337            push acc
-05B9 E5F0       337            mov a, b
-05BB 12007E     337            lcall ?LCD_write
-05BE D0E0       337            pop acc
-05C0            337   
-05C0 75F00A     337       mov          b, #10
-05C3 EA         337       mov          a, R2
-05C4 84         337       div          ab
-05C5 C0E0       337            push   acc
-05C7 7409       337            mov    a,  #9
-05C9 14         337            dec    a
-05CA 1200BF     337            lcall  ?LCD_cursor_2 ; Select column and row
-05CD D0E0       337            pop    acc
-05CF 2430       337       add          a, #0x30
-05D1 FB         337       mov          R3, a
-05D2 C0E0       337            push acc
-05D4 EB         337            mov a, R3
-05D5 12007E     337            lcall ?LCD_write
-05D8 D0E0       337            pop acc
-05DA            337   
-05DA C0E0       337            push   acc
-05DC 740A       337            mov    a,  #10
-05DE 14         337            dec    a
-05DF 1200BF     337            lcall  ?LCD_cursor_2 ; Select column and row
-05E2 D0E0       337            pop    acc
-05E4 E5F0       337       mov          a, b
-05E6 2430       337       add          a, #0x30
-05E8 F5F0       337       mov          b, a
-05EA C0E0       337            push acc
-05EC E5F0       337            mov a, b
-05EE 12007E     337            lcall ?LCD_write
-05F1 D0E0       337            pop acc
-05F3            338   
-05F3            339   conf_reflowTime_button_up:
-05F3 20A612     340       jb           BTN_UP, conf_reflowTime_button_down
-05F6 C002       341            push AR2
-05F8 7A32       341            mov R2, #DEBOUNCE
-05FA 120039     341            lcall ?sleep
-05FD D002       341            pop AR2
-05FF 20A606     342            jb              BTN_UP, conf_reflowTime_button_down
-0602 30A6FD     343            jnb     BTN_UP, $
-0605 12064C     344       lcall        inc_reflow_time
-0608            345   
-0608            346   conf_reflowTime_button_down:
-0608 20A712     347       jb           BTN_DOWN, conf_reflowTime_button_state
-060B C002       348            push AR2
-060D 7A32       348            mov R2, #DEBOUNCE
-060F 120039     348            lcall ?sleep
-0612 D002       348            pop AR2
-0614 20A706     349            jb              BTN_DOWN, conf_reflowTime_button_state
-0617 30A7FD     350            jnb     BTN_DOWN, $
-061A 120653     351       lcall        dec_reflow_time
-061D            352   
-061D            353   conf_reflowTime_button_state:
-061D 20A512     354       jb           BTN_STATE, conf_reflowTime_j
-0620 C002       355            push AR2
-0622 7A32       355            mov R2, #DEBOUNCE
-0624 120039     355            lcall ?sleep
-0627 D002       355            pop AR2
-0629 20A506     356            jb              BTN_STATE, conf_reflowTime_j
-062C 30A5FD     357            jnb     BTN_STATE, $
-062F 020202     358       ljmp         main
-0632            359   
-0632            360   conf_reflowTime_j:
-0632 020586     361            ljmp conf_reflowTime_update
-0635            362   
-0635            363   ;------------------------------;
-0635            364   ;                FUNCTION CALLS                  ;
-0635            365   ;------------------------------;
-0635            366   inc_soak_temp:
-0635 E530       367            mov     a, soakTemp
-0637 2401       368       add          a, #0x01
-0639 D4         369       da           a
-063A F530       370       mov          soakTemp, a
-063C            371       ; ** other stuffs
-063C 22         372            ret
-063D            373   
-063D            374   dec_soak_temp:
-063D            375            ; ** insert function hereeee
-063D 22         376            ret
-063E            377   
-063E            378   ; increment soak time by 5 seconds
-063E            379   inc_soak_time:
-063E E531       380            mov     a, soakTime
-0640 2405       381       add          a, #0x05
-0642 F531       382       mov          soakTime, a
-0644 22         383            ret
-0645            384   
-0645            385   ; decrement soak time by 5 seconds
-0645            386   dec_soak_time:
-0645 E531       387            mov             a, soakTime
-0647 24FB       388       add          a, #0xFB
-0649 F531       389       mov          soakTime, a
-064B 22         390            ret
-064C            391   
-064C            392   inc_reflow_time:
-064C E533       393       mov          a, reflowTime
-064E 2405       394       add          a, #0x05
-0650 F533       395       mov          reflowTime, a
-0652 22         396            ret
-0653            397   
-0653            398   dec_reflow_time:
-0653 E533       399            mov     a, reflowTime
-0655 24FB       400       add          a, #0xFB
-0657 F533       401       mov          reflowTime, a
-0659 22         402            ret
-065A            403   
-065A            404   END
+0186             89   ; -------------------------;
+0186             90   ; Initialize Timer 2        ;
+0186             91   ; -------------------------;
+0186             92   T2_init:
+0186 75C800      93       mov          T2CON,          #0
+0189 75CBA9      94       mov          RCAP2H, #high(T2_RELOAD)
+018C 75CA9A      95       mov          RCAP2L, #low(T2_RELOAD)
+018F E4          96       clr          a
+0190 F536        97       mov          countms+0, a
+0192 F537        98       mov          countms+1, a
+0194 D2AD        99       setb         ET2  ; Enable timer 2 interrupt
+0196 D2CA       100       setb         TR2  ; Enable timer 2
+0198 22         101       ret
+0199            102   
+0199            103   ;---------------------------------;
+0199            104   ; ISR for timer 2                 ;
+0199            105   ;---------------------------------;
+0199            106   T2_ISR:
+0199 C2CF       107       clr          TF2
+019B C0E0       108       push         acc
+019D C0D0       109       push         psw
+019F C001       110       push         AR1
+01A1 0536       111       inc          countms+0
+01A3 E536       112       mov          a,     countms+0
+01A5 7002       113       jnz          T2_ISR_incDone
+01A7 0537       114       inc          countms+1
+01A9            115   T2_ISR_incDone:
+01A9            116            ; Check if half second has passed
+01A9 E536       117       mov     a,  countms+0
+01AB B4E826     118       cjne    a,  #low(TIME_RATE),    T2_ISR_return
+01AE E537       119       mov     a,  countms+1
+01B0 B40321     120       cjne    a,  #high(TIME_RATE),   T2_ISR_return
+01B3            121       ; Let the main program know half second had passed
+01B3 D200       122       setb         seconds_f
+01B5            123       ; reset 16 bit ms counter
+01B5 E4         124       clr          a
+01B6 F536       125       mov          countms+0,     a
+01B8 F537       126       mov          countms+1,     a
+01BA            127       ; Increment seconds
+01BA E534       128       mov     a,   seconds
+01BC 2401       129       add     a,   #0x01
+01BE            130       ; BCD Conversion
+01BE D4         131       da       a
+01BF F534       132       mov     seconds,    a
+01C1 C3         133       clr     c
+01C2            134       ; increment minutes when seconds -> 60
+01C2 9460       135       subb    a,          #0x60
+01C4 6002       136       jz       T2_ISR_minutes
+01C6 800C       137       sjmp         T2_ISR_return
+01C8            138   T2_ISR_minutes:
+01C8 E535       139       mov     a,          minutes
+01CA 2401       140       add     a,          #0x01
+01CC D4         141       da       a
+01CD F535       142       mov     minutes,    a
+01CF 753400     143       mov     seconds,    #0x00
+01D2 8000       144       sjmp    T2_ISR_return
+01D4            145   T2_ISR_return:
+01D4 D001       146       pop          AR1
+01D6 D0D0       147       pop          psw
+01D8 D0E0       148       pop          acc
+01DA 32         149       reti
+01DB            150   
+01DB            151   ;-----------------------------;
+01DB            152   ;        MAIN PROGRAM                  ;
+01DB            153   ;-----------------------------;
+01DB            154   setup:
+01DB 75817F     155       mov     SP,     #0x7F
+01DE 75C100     156       mov     PMOD,   #0
+01E1 120186     157       lcall   T2_init
+01E4 D2AF       158       setb    EA
+01E6 120088     159       lcall   LCD_config
+01E9            160   
+01E9 C201       161       clr      ongoing_f
+01EB D200       162       setb    seconds_f                                            ; may not need this..
+01ED 753400     163       mov     seconds,    #0x00                            ; initialize variables
+01F0 753500     164       mov     minutes,    #0x00
+01F3 753000     165       mov          soakTemp,       #0x00
+01F6 753100     166       mov          soakTime,       #0x00
+01F9 753200     167            mov             reflowTemp, #0x00
+01FC 753300     168       mov          reflowTime, #0x00
+01FF 753900     169            mov     crtTemp,        #0x00   ;temporary for testing purposes
+0202            170   main:
+0202            171       ; MAIN MENU LOOP
+0202            172       ; CHECK: [START], [STATE]
+0202            173       ; [START] - start the reflow program
+0202 C0E0       174            push   acc
+0204 7401       174            mov    a,  #1
+0206 14         174            dec    a
+0207 1200C1     174            lcall  ?LCD_cursor_1 ; Select column and row
+020A D0E0       174            pop    acc
+020C C083       175            push   dph
+020E C082       175            push   dpl
+0210 C0E0       175            push   acc
+0212 9000DC     175            mov    dptr, #msg_main_top
+0215 1200B4     175            lcall  ?LCD_print
+0218 D0E0       175            pop    acc
+021A D082       175            pop    dpl
+021C D083       175            pop    dph
+021E C0E0       176            push   acc
+0220 7401       176            mov    a,  #1
+0222 14         176            dec    a
+0223 1200BF     176            lcall  ?LCD_cursor_2 ; Select column and row
+0226 D0E0       176            pop    acc
+0228            176   
+0228 C083       177            push   dph
+022A C082       177            push   dpl
+022C C0E0       177            push   acc
+022E 9000ED     177            mov    dptr, #msg_main_btm
+0231 1200B4     177            lcall  ?LCD_print
+0234 D0E0       177            pop    acc
+0236 D082       177            pop    dpl
+0238 D083       177            pop    dph
+023A C0E0       178            push   acc
+023C 740F       178            mov    a,  #15
+023E 14         178            dec    a
+023F 1200C1     178            lcall  ?LCD_cursor_1 ; Select column and row
+0242 D0E0       178            pop    acc
+0244 C0E0       179            push acc
+0246 74DF       179            mov a, #0xDF
+0248 12007E     179            lcall ?LCD_write
+024B D0E0       179            pop acc
+024D            180   main_button_start:
+024D 20A411     181       jb           BTN_START, main_button_state
+0250 C002       182            push AR2
+0252 7A32       182            mov R2, #DEBOUNCE
+0254 12002E     182            lcall ?sleep
+0257 D002       182            pop AR2
+0259 20A405     183       jb           BTN_START, main_button_state
+025C 30A4FD     184       jnb          BTN_START, $
+025F D201       185       setb         ongoing_f
+0261            186       ; **PUT WHAT HAPPENS IF YOU PRESS START HERE LMAO HELP ME LORD (whatever goes here has to connect to main_update and check for stop button)
+0261            187   main_button_state:
+0261 200115     188            jb              ongoing_f, main_update                                  ; skip checking for state if process has started
+0264            189       ; [STATE] - configure reflow program
+0264 20A512     190       jb           BTN_STATE, main_update
+0267 C002       191            push AR2
+0269 7A32       191            mov R2, #DEBOUNCE
+026B 12002E     191            lcall ?sleep
+026E D002       191            pop AR2
+0270 20A506     192       jb           BTN_STATE, main_update
+0273 30A5FD     193       jnb          BTN_STATE, $
+0276 0202B5     194       ljmp    conf_soakTemp
+0279            195   main_update:
+0279            196            ; update time and ** temperature display here
+0279 C0E0       197            push   acc
+027B 7409       197            mov    a,  #9
+027D 14         197            dec    a
+027E 1200BF     197            lcall  ?LCD_cursor_2 ; Select column and row
+0281 D0E0       197            pop    acc
+0283 C000       198            push ar0
+0285 A835       198            mov r0, minutes
+0287 1200C6     198            lcall ?LCD_printBCD
+028A D000       198            pop ar0
+028C C0E0       199            push   acc
+028E 740C       199            mov    a,  #12
+0290 14         199            dec    a
+0291 1200BF     199            lcall  ?LCD_cursor_2 ; Select column and row
+0294 D0E0       199            pop    acc
+0296 C000       200            push ar0
+0298 A834       200            mov r0, seconds
+029A 1200C6     200            lcall ?LCD_printBCD
+029D D000       200            pop ar0
+029F C0E0       201            push   acc
+02A1 740C       201            mov    a,  #12
+02A3 14         201            dec    a
+02A4 1200C1     201            lcall  ?LCD_cursor_1 ; Select column and row
+02A7 D0E0       201            pop    acc
+02A9 C000       202            push ar0
+02AB A839       202            mov r0, crtTemp
+02AD 1200C6     202            lcall ?LCD_printBCD
+02B0 D000       202            pop ar0                                                         ; where is the temperature coming from ??
+02B2 02024D     203       ljmp         main_button_start
+02B5            204   
+02B5            205   ;-------------------------------------;
+02B5            206   ; CONFIGURE: Soak Temperature              ;
+02B5            207   ;-------------------------------------;
+02B5            208   conf_soakTemp:
+02B5            209       ; change LCD screen to soak temperature interface
+02B5 C0E0       210            push   acc
+02B7 7401       210            mov    a,  #1
+02B9 14         210            dec    a
+02BA 1200C1     210            lcall  ?LCD_cursor_1 ; Select column and row
+02BD D0E0       210            pop    acc
+02BF C083       211            push   dph
+02C1 C082       211            push   dpl
+02C3 C0E0       211            push   acc
+02C5 9000FE     211            mov    dptr, #msg_soakTemp
+02C8 1200B4     211            lcall  ?LCD_print
+02CB D0E0       211            pop    acc
+02CD D082       211            pop    dpl
+02CF D083       211            pop    dph
+02D1 C0E0       212            push   acc
+02D3 7401       212            mov    a,  #1
+02D5 14         212            dec    a
+02D6 1200BF     212            lcall  ?LCD_cursor_2 ; Select column and row
+02D9 D0E0       212            pop    acc
+02DB            212   
+02DB C083       213            push   dph
+02DD C082       213            push   dpl
+02DF C0E0       213            push   acc
+02E1 900142     213            mov    dptr, #msg_temp
+02E4 1200B4     213            lcall  ?LCD_print
+02E7 D0E0       213            pop    acc
+02E9 D082       213            pop    dpl
+02EB D083       213            pop    dph
+02ED            214   conf_soakTemp_update:
+02ED C0E0       215            push   acc
+02EF 7407       215            mov    a,  #7
+02F1 14         215            dec    a
+02F2 1200BF     215            lcall  ?LCD_cursor_2 ; Select column and row
+02F5 D0E0       215            pop    acc
+02F7 E530       216            mov     a, soakTemp
+02F9 75F064     216       mov          b, #100
+02FC 84         216       div          ab                              ; result is in a, remainder is in b
+02FD C0E0       216            push   acc
+02FF 7407       216            mov    a,  #7
+0301 14         216            dec    a
+0302 1200BF     216            lcall  ?LCD_cursor_2 ; Select column and row
+0305 D0E0       216            pop    acc
+0307 2430       216       add          a, #0x30
+0309 F9         216       mov          R1, a
+030A C0E0       216            push acc
+030C E9         216            mov a, R1
+030D 12007E     216            lcall ?LCD_write
+0310 D0E0       216            pop acc
+0312 E5F0       216       mov          a, b
+0314 75F00A     216       mov          b, #10
+0317 84         216       div          ab
+0318 2430       216       add          a, #0x30
+031A F9         216       mov          R1, a
+031B C0E0       216            push   acc
+031D 7408       216            mov    a,  #8
+031F 14         216            dec    a
+0320 1200BF     216            lcall  ?LCD_cursor_2 ; Select column and row
+0323 D0E0       216            pop    acc
+0325 C0E0       216            push acc
+0327 E9         216            mov a, R1
+0328 12007E     216            lcall ?LCD_write
+032B D0E0       216            pop acc
+032D C0E0       216            push   acc
+032F 7409       216            mov    a,  #9
+0331 14         216            dec    a
+0332 1200BF     216            lcall  ?LCD_cursor_2 ; Select column and row
+0335 D0E0       216            pop    acc
+0337 E5F0       216       mov          a, b
+0339 2430       216       add          a, #0x30
+033B F5F0       216       mov          b, a
+033D C0E0       216            push acc
+033F E5F0       216            mov a, b
+0341 12007E     216            lcall ?LCD_write
+0344 D0E0       216            pop acc                                         ; display soak temperature on LCD
+0346            217   
+0346            218   
+0346            219   conf_soakTemp_button_up:
+0346 20A615     220       jb           BTN_UP, conf_soakTemp_button_down
+0349 C002       221            push AR2
+034B 7A32       221            mov R2, #DEBOUNCE
+034D 12002E     221            lcall ?sleep
+0350 D002       221            pop AR2
+0352 20A609     222       jb           BTN_UP, conf_soakTemp_button_down
+0355 30A6FD     223       jnb          BTN_UP, $
+0358            224   
+0358            225   
+0358            226       ; increment soak temp (((FIXME)))
+0358 E530       227            mov     a, soakTemp
+035A 2401       227       add          a, #0x01
+035C F530       227       mov          soakTemp, a
+035E            228   
+035E            229   
+035E            230   conf_soakTemp_button_down:
+035E 20A715     231       jb           BTN_DOWN, conf_soakTemp_button_state
+0361 C002       232            push AR2
+0363 7A32       232            mov R2, #DEBOUNCE
+0365 12002E     232            lcall ?sleep
+0368 D002       232            pop AR2
+036A 20A709     233       jb           BTN_DOWN, conf_soakTemp_button_state
+036D 30A7FD     234       jnb          BTN_DOWN, $
+0370            235       ; decrement soak temp (((FIXME)))
+0370 E530       236            mov     a, soakTemp
+0372 24FF       236            add             a, #0xFF
+0374 F530       236       mov          soakTemp, a
+0376            237   
+0376            238   conf_soakTemp_button_state:
+0376 20A512     239       jb           BTN_STATE, conf_soakTemp_j
+0379 C002       240            push AR2
+037B 7A32       240            mov R2, #DEBOUNCE
+037D 12002E     240            lcall ?sleep
+0380 D002       240            pop AR2
+0382 20A506     241       jb           BTN_STATE, conf_soakTemp_j
+0385 30A5FD     242       jnb          BTN_STATE, $
+0388 02038E     243       ljmp         conf_soakTime
+038B            244   conf_soakTemp_j:
+038B 0202ED     245            ljmp conf_soakTemp_update
+038E            246   
+038E            247   ;-------------------------------------;
+038E            248   ; CONFIGURE: Soak Time                     ;
+038E            249   ;-------------------------------------;
+038E            250   conf_soakTime:
+038E            251            ; **Update LCD Screen
+038E C0E0       252            push   acc
+0390 7401       252            mov    a,  #1
+0392 14         252            dec    a
+0393 1200C1     252            lcall  ?LCD_cursor_1 ; Select column and row
+0396 D0E0       252            pop    acc
+0398 C083       253            push   dph
+039A C082       253            push   dpl
+039C C0E0       253            push   acc
+039E 90010F     253            mov    dptr, #msg_soakTime
+03A1 1200B4     253            lcall  ?LCD_print
+03A4 D0E0       253            pop    acc
+03A6 D082       253            pop    dpl
+03A8 D083       253            pop    dph
+03AA C0E0       254            push   acc
+03AC 7401       254            mov    a,  #1
+03AE 14         254            dec    a
+03AF 1200BF     254            lcall  ?LCD_cursor_2 ; Select column and row
+03B2 D0E0       254            pop    acc
+03B4            254   
+03B4 C083       255            push   dph
+03B6 C082       255            push   dpl
+03B8 C0E0       255            push   acc
+03BA 900153     255            mov    dptr, #msg_time
+03BD 1200B4     255            lcall  ?LCD_print
+03C0 D0E0       255            pop    acc
+03C2 D082       255            pop    dpl
+03C4 D083       255            pop    dph
+03C6            256   conf_soakTime_update:
+03C6 E531       257            mov     a, soakTime
+03C8 75F03C     257       mov          b, #60
+03CB 84         257       div          ab                              ; minutes are in a, seconds are in b
+03CC            257   
+03CC AAF0       257            mov             R2, b
+03CE            257   
+03CE 75F00A     257       mov          b, #10
+03D1 84         257       div          ab                              ; result is in a, remainder is in b
+03D2 C0E0       257            push   acc
+03D4 7406       257            mov    a,  #6
+03D6 14         257            dec    a
+03D7 1200BF     257            lcall  ?LCD_cursor_2 ; Select column and row
+03DA D0E0       257            pop    acc
+03DC 2430       257       add          a, #0x30
+03DE FB         257       mov          R3, a
+03DF C0E0       257            push acc
+03E1 EB         257            mov a, R3
+03E2 12007E     257            lcall ?LCD_write
+03E5 D0E0       257            pop acc
+03E7            257   
+03E7 C0E0       257            push   acc
+03E9 7407       257            mov    a,  #7
+03EB 14         257            dec    a
+03EC 1200BF     257            lcall  ?LCD_cursor_2 ; Select column and row
+03EF D0E0       257            pop    acc
+03F1 E5F0       257       mov          a, b
+03F3 2430       257       add          a, #0x30
+03F5 F5F0       257       mov          b, a
+03F7 C0E0       257            push acc
+03F9 E5F0       257            mov a, b
+03FB 12007E     257            lcall ?LCD_write
+03FE D0E0       257            pop acc
+0400            257   
+0400 75F00A     257       mov          b, #10
+0403 EA         257       mov          a, R2
+0404 84         257       div          ab
+0405 C0E0       257            push   acc
+0407 7409       257            mov    a,  #9
+0409 14         257            dec    a
+040A 1200BF     257            lcall  ?LCD_cursor_2 ; Select column and row
+040D D0E0       257            pop    acc
+040F 2430       257       add          a, #0x30
+0411 FB         257       mov          R3, a
+0412 C0E0       257            push acc
+0414 EB         257            mov a, R3
+0415 12007E     257            lcall ?LCD_write
+0418 D0E0       257            pop acc
+041A            257   
+041A C0E0       257            push   acc
+041C 740A       257            mov    a,  #10
+041E 14         257            dec    a
+041F 1200BF     257            lcall  ?LCD_cursor_2 ; Select column and row
+0422 D0E0       257            pop    acc
+0424 E5F0       257       mov          a, b
+0426 2430       257       add          a, #0x30
+0428 F5F0       257       mov          b, a
+042A C0E0       257            push acc
+042C E5F0       257            mov a, b
+042E 12007E     257            lcall ?LCD_write
+0431 D0E0       257            pop acc                                                         ; soakTime is a variable for seconds, convert into minutes and seconds here
+0433            258   
+0433            259   conf_soakTime_button_up:
+0433 20A612     260       jb           BTN_UP, conf_soakTime_button_down
+0436 C002       261            push AR2
+0438 7A32       261            mov R2, #DEBOUNCE
+043A 12002E     261            lcall ?sleep
+043D D002       261            pop AR2
+043F 20A606     262            jb              BTN_UP, conf_soakTime_button_down
+0442 30A6FD     263            jnb     BTN_UP, $
+0445 12063E     264       lcall        inc_soak_time
+0448            265   
+0448            266   conf_soakTime_button_down:
+0448 20A712     267       jb           BTN_DOWN, conf_soakTime_button_state
+044B C002       268            push AR2
+044D 7A32       268            mov R2, #DEBOUNCE
+044F 12002E     268            lcall ?sleep
+0452 D002       268            pop AR2
+0454 20A706     269            jb              BTN_DOWN, conf_soakTime_button_state
+0457 30A7FD     270            jnb     BTN_DOWN, $
+045A 120645     271       lcall        dec_soak_time
+045D            272   
+045D            273   conf_soakTime_button_state:
+045D 20A512     274       jb           BTN_STATE, conf_soakTime_j
+0460 C002       275            push AR2
+0462 7A32       275            mov R2, #DEBOUNCE
+0464 12002E     275            lcall ?sleep
+0467 D002       275            pop AR2
+0469 20A506     276            jb              BTN_STATE, conf_soakTime_j
+046C 30A5FD     277            jnb     BTN_STATE, $
+046F 020475     278       ljmp         conf_reflowTemp
+0472            279   
+0472            280   conf_soakTime_j:
+0472 0203C6     281            ljmp conf_soakTime_update
+0475            282   
+0475            283   ;-------------------------------------;
+0475            284   ; CONFIGURE: Reflow Temperature            ;
+0475            285   ;-------------------------------------;
+0475            286   conf_reflowTemp:
+0475            287       ; **Update LCD Screen
+0475 C0E0       288            push   acc
+0477 7401       288            mov    a,  #1
+0479 14         288            dec    a
+047A 1200C1     288            lcall  ?LCD_cursor_1 ; Select column and row
+047D D0E0       288            pop    acc
+047F C083       289            push   dph
+0481 C082       289            push   dpl
+0483 C0E0       289            push   acc
+0485 900120     289            mov    dptr, #msg_reflowTemp
+0488 1200B4     289            lcall  ?LCD_print
+048B D0E0       289            pop    acc
+048D D082       289            pop    dpl
+048F D083       289            pop    dph
+0491 C0E0       290            push   acc
+0493 7401       290            mov    a,  #1
+0495 14         290            dec    a
+0496 1200BF     290            lcall  ?LCD_cursor_2 ; Select column and row
+0499 D0E0       290            pop    acc
+049B C083       291            push   dph
+049D C082       291            push   dpl
+049F C0E0       291            push   acc
+04A1 900142     291            mov    dptr, #msg_temp
+04A4 1200B4     291            lcall  ?LCD_print
+04A7 D0E0       291            pop    acc
+04A9 D082       291            pop    dpl
+04AB D083       291            pop    dph
+04AD            292   conf_reflowTemp_update:
+04AD C0E0       293            push   acc
+04AF 7407       293            mov    a,  #7
+04B1 14         293            dec    a
+04B2 1200BF     293            lcall  ?LCD_cursor_2 ; Select column and row
+04B5 D0E0       293            pop    acc
+04B7 E532       294            mov     a, reflowTemp
+04B9 75F064     294       mov          b, #100
+04BC 84         294       div          ab                              ; result is in a, remainder is in b
+04BD C0E0       294            push   acc
+04BF 7407       294            mov    a,  #7
+04C1 14         294            dec    a
+04C2 1200BF     294            lcall  ?LCD_cursor_2 ; Select column and row
+04C5 D0E0       294            pop    acc
+04C7 2430       294       add          a, #0x30
+04C9 F9         294       mov          R1, a
+04CA C0E0       294            push acc
+04CC E9         294            mov a, R1
+04CD 12007E     294            lcall ?LCD_write
+04D0 D0E0       294            pop acc
+04D2 E5F0       294       mov          a, b
+04D4 75F00A     294       mov          b, #10
+04D7 84         294       div          ab
+04D8 2430       294       add          a, #0x30
+04DA F9         294       mov          R1, a
+04DB C0E0       294            push   acc
+04DD 7408       294            mov    a,  #8
+04DF 14         294            dec    a
+04E0 1200BF     294            lcall  ?LCD_cursor_2 ; Select column and row
+04E3 D0E0       294            pop    acc
+04E5 C0E0       294            push acc
+04E7 E9         294            mov a, R1
+04E8 12007E     294            lcall ?LCD_write
+04EB D0E0       294            pop acc
+04ED C0E0       294            push   acc
+04EF 7409       294            mov    a,  #9
+04F1 14         294            dec    a
+04F2 1200BF     294            lcall  ?LCD_cursor_2 ; Select column and row
+04F5 D0E0       294            pop    acc
+04F7 E5F0       294       mov          a, b
+04F9 2430       294       add          a, #0x30
+04FB F5F0       294       mov          b, a
+04FD C0E0       294            push acc
+04FF E5F0       294            mov a, b
+0501 12007E     294            lcall ?LCD_write
+0504 D0E0       294            pop acc
+0506            295   
+0506            296   
+0506            297   conf_reflowTemp_button_up:
+0506 20A615     298       jb           BTN_UP, conf_reflowTemp_button_down
+0509 C002       299            push AR2
+050B 7A32       299            mov R2, #DEBOUNCE
+050D 12002E     299            lcall ?sleep
+0510 D002       299            pop AR2
+0512 20A609     300            jb              BTN_UP, conf_reflowTemp_button_down
+0515 30A6FD     301            jnb     BTN_UP, $
+0518            302   
+0518 E532       303            mov     a, reflowTemp
+051A 2401       303       add          a, #0x01
+051C F532       303       mov          reflowTemp, a
+051E            304   
+051E            305   conf_reflowTemp_button_down:
+051E 20A715     306       jb           BTN_DOWN, conf_reflowTemp_button_state
+0521 C002       307            push AR2
+0523 7A32       307            mov R2, #DEBOUNCE
+0525 12002E     307            lcall ?sleep
+0528 D002       307            pop AR2
+052A 20A709     308            jb              BTN_DOWN, conf_reflowTemp_button_state
+052D 30A7FD     309            jnb     BTN_DOWN, $
+0530            310   
+0530 E532       311            mov     a, reflowTemp
+0532 24FF       311            add             a, #0xFF
+0534 F532       311       mov          reflowTemp, a
+0536            312   
+0536            313   conf_reflowTemp_button_state:
+0536 20A512     314       jb           BTN_STATE, conf_reflowTemp_j
+0539 C002       315            push AR2
+053B 7A32       315            mov R2, #DEBOUNCE
+053D 12002E     315            lcall ?sleep
+0540 D002       315            pop AR2
+0542 20A506     316            jb              BTN_STATE, conf_reflowTemp_j
+0545 30A5FD     317            jnb     BTN_STATE, $
+0548 02054E     318       ljmp         conf_reflowTime
+054B            319   
+054B            320   conf_reflowTemp_j:
+054B 0204AD     321            ljmp    conf_reflowTemp_update
+054E            322   
+054E            323   
+054E            324   ;-------------------------------------;
+054E            325   ; CONFIGURE: Reflow Time                           ;
+054E            326   ;-------------------------------------;
+054E            327   conf_reflowTime:
+054E            328       ; **Update LCD Screen
+054E C0E0       329            push   acc
+0550 7401       329            mov    a,  #1
+0552 14         329            dec    a
+0553 1200C1     329            lcall  ?LCD_cursor_1 ; Select column and row
+0556 D0E0       329            pop    acc
+0558 C083       330            push   dph
+055A C082       330            push   dpl
+055C C0E0       330            push   acc
+055E 900131     330            mov    dptr, #msg_reflowTime
+0561 1200B4     330            lcall  ?LCD_print
+0564 D0E0       330            pop    acc
+0566 D082       330            pop    dpl
+0568 D083       330            pop    dph
+056A C0E0       331            push   acc
+056C 7401       331            mov    a,  #1
+056E 14         331            dec    a
+056F 1200BF     331            lcall  ?LCD_cursor_2 ; Select column and row
+0572 D0E0       331            pop    acc
+0574 C083       332            push   dph
+0576 C082       332            push   dpl
+0578 C0E0       332            push   acc
+057A 900153     332            mov    dptr, #msg_time
+057D 1200B4     332            lcall  ?LCD_print
+0580 D0E0       332            pop    acc
+0582 D082       332            pop    dpl
+0584 D083       332            pop    dph
+0586            333   conf_reflowTime_update:
+0586 E533       334            mov     a, reflowTime
+0588 75F03C     334       mov          b, #60
+058B 84         334       div          ab                              ; minutes are in a, seconds are in b
+058C            334   
+058C AAF0       334            mov             R2, b
+058E            334   
+058E 75F00A     334       mov          b, #10
+0591 84         334       div          ab                              ; result is in a, remainder is in b
+0592 C0E0       334            push   acc
+0594 7406       334            mov    a,  #6
+0596 14         334            dec    a
+0597 1200BF     334            lcall  ?LCD_cursor_2 ; Select column and row
+059A D0E0       334            pop    acc
+059C 2430       334       add          a, #0x30
+059E FB         334       mov          R3, a
+059F C0E0       334            push acc
+05A1 EB         334            mov a, R3
+05A2 12007E     334            lcall ?LCD_write
+05A5 D0E0       334            pop acc
+05A7            334   
+05A7 C0E0       334            push   acc
+05A9 7407       334            mov    a,  #7
+05AB 14         334            dec    a
+05AC 1200BF     334            lcall  ?LCD_cursor_2 ; Select column and row
+05AF D0E0       334            pop    acc
+05B1 E5F0       334       mov          a, b
+05B3 2430       334       add          a, #0x30
+05B5 F5F0       334       mov          b, a
+05B7 C0E0       334            push acc
+05B9 E5F0       334            mov a, b
+05BB 12007E     334            lcall ?LCD_write
+05BE D0E0       334            pop acc
+05C0            334   
+05C0 75F00A     334       mov          b, #10
+05C3 EA         334       mov          a, R2
+05C4 84         334       div          ab
+05C5 C0E0       334            push   acc
+05C7 7409       334            mov    a,  #9
+05C9 14         334            dec    a
+05CA 1200BF     334            lcall  ?LCD_cursor_2 ; Select column and row
+05CD D0E0       334            pop    acc
+05CF 2430       334       add          a, #0x30
+05D1 FB         334       mov          R3, a
+05D2 C0E0       334            push acc
+05D4 EB         334            mov a, R3
+05D5 12007E     334            lcall ?LCD_write
+05D8 D0E0       334            pop acc
+05DA            334   
+05DA C0E0       334            push   acc
+05DC 740A       334            mov    a,  #10
+05DE 14         334            dec    a
+05DF 1200BF     334            lcall  ?LCD_cursor_2 ; Select column and row
+05E2 D0E0       334            pop    acc
+05E4 E5F0       334       mov          a, b
+05E6 2430       334       add          a, #0x30
+05E8 F5F0       334       mov          b, a
+05EA C0E0       334            push acc
+05EC E5F0       334            mov a, b
+05EE 12007E     334            lcall ?LCD_write
+05F1 D0E0       334            pop acc
+05F3            335   
+05F3            336   conf_reflowTime_button_up:
+05F3 20A612     337       jb           BTN_UP, conf_reflowTime_button_down
+05F6 C002       338            push AR2
+05F8 7A32       338            mov R2, #DEBOUNCE
+05FA 12002E     338            lcall ?sleep
+05FD D002       338            pop AR2
+05FF 20A606     339            jb              BTN_UP, conf_reflowTime_button_down
+0602 30A6FD     340            jnb     BTN_UP, $
+0605 12064C     341       lcall        inc_reflow_time
+0608            342   
+0608            343   conf_reflowTime_button_down:
+0608 20A712     344       jb           BTN_DOWN, conf_reflowTime_button_state
+060B C002       345            push AR2
+060D 7A32       345            mov R2, #DEBOUNCE
+060F 12002E     345            lcall ?sleep
+0612 D002       345            pop AR2
+0614 20A706     346            jb              BTN_DOWN, conf_reflowTime_button_state
+0617 30A7FD     347            jnb     BTN_DOWN, $
+061A 120653     348       lcall        dec_reflow_time
+061D            349   
+061D            350   conf_reflowTime_button_state:
+061D 20A512     351       jb           BTN_STATE, conf_reflowTime_j
+0620 C002       352            push AR2
+0622 7A32       352            mov R2, #DEBOUNCE
+0624 12002E     352            lcall ?sleep
+0627 D002       352            pop AR2
+0629 20A506     353            jb              BTN_STATE, conf_reflowTime_j
+062C 30A5FD     354            jnb     BTN_STATE, $
+062F 020202     355       ljmp         main
+0632            356   
+0632            357   conf_reflowTime_j:
+0632 020586     358            ljmp conf_reflowTime_update
+0635            359   
+0635            360   ;------------------------------;
+0635            361   ;                FUNCTION CALLS                  ;
+0635            362   ;------------------------------;
+0635            363   inc_soak_temp:
+0635 E530       364            mov     a, soakTemp
+0637 2401       365       add          a, #0x01
+0639 D4         366       da           a
+063A F530       367       mov          soakTemp, a
+063C            368       ; ** other stuffs
+063C 22         369            ret
+063D            370   
+063D            371   dec_soak_temp:
+063D            372            ; ** insert function hereeee
+063D 22         373            ret
+063E            374   
+063E            375   ; increment soak time by 5 seconds
+063E            376   inc_soak_time:
+063E E531       377            mov     a, soakTime
+0640 2405       378       add          a, #0x05
+0642 F531       379       mov          soakTime, a
+0644 22         380            ret
+0645            381   
+0645            382   ; decrement soak time by 5 seconds
+0645            383   dec_soak_time:
+0645 E531       384            mov             a, soakTime
+0647 24FB       385       add          a, #0xFB
+0649 F531       386       mov          soakTime, a
+064B 22         387            ret
+064C            388   
+064C            389   inc_reflow_time:
+064C E533       390       mov          a, reflowTime
+064E 2405       391       add          a, #0x05
+0650 F533       392       mov          reflowTime, a
+0652 22         393            ret
+0653            394   
+0653            395   dec_reflow_time:
+0653 E533       396            mov     a, reflowTime
+0655 24FB       397       add          a, #0xFB
+0657 F533       398       mov          reflowTime, a
+0659 22         399            ret
+065A            400   
+065A            401   END
