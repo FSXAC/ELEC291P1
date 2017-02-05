@@ -23,7 +23,6 @@ $MODLP52
 $LIST
 $include(LCD_4bit.inc)
 
-
 ; Preprocessor constants
 CLK             equ     22118400
 T0_RATE         equ     4096
@@ -33,13 +32,14 @@ T2_RELOAD       equ     (65536-(CLK/T2_RATE))
 DEBOUNCE        equ     50
 TIME_RATE       equ     1000
 
-LCD_RS equ P1.2
-LCD_RW equ P1.3
-LCD_E  equ P1.4
-LCD_D4 equ P3.2
-LCD_D5 equ P3.3
-LCD_D6 equ P3.4
-LCD_D7 equ P3.5
+; LCD pins
+LCD_RS          equ     P1.2
+LCD_RW          equ     P1.3
+LCD_E           equ     P1.4
+LCD_D4          equ     P3.2
+LCD_D5          equ     P3.3
+LCD_D6          equ     P3.4
+LCD_D7          equ     P3.5
 
 
 ; States
@@ -49,7 +49,7 @@ RAMP2PEAK		equ     3
 REFLOW			equ     4
 COOLING			equ     5
 
-; BUTTONS PINs
+; BUTTONS PINS
 BTN_START   	equ 	P2.4
 BTN_STATE	    equ 	P2.5
 BTN_UP	        equ 	P2.6
@@ -83,6 +83,7 @@ msg_time:	        db '     --:--     >', 0
 msg_state1:         db '   RampToSoak   ', 0
 msg_fsm:            db '  --- C  --:--  ', 0
 
+<<<<<<< HEAD
 
 	
   
@@ -167,6 +168,8 @@ Print_Temp MAC
 ENDMAC
   
 
+=======
+>>>>>>> origin/lucy
 ; -------------------------;
 ; Initialize Timer 2	   ;
 ; -------------------------;
@@ -240,10 +243,10 @@ setup:
     lcall   LCD_4BIT
 
     clr	    ongoing_f
-    setb    seconds_f						; may not need this.. 
+    setb    seconds_f						; may not need this..
     mov     seconds,    #0x00   			; initialize variables
-    mov     minutes,    #0x00 				
-    mov		soakTemp, 	#0x00				
+    mov     minutes,    #0x00
+    mov		soakTemp, 	#0x00
     mov		soakTime, 	#0x00
 	mov		reflowTemp, #0x00
     mov		reflowTime, #0x00
@@ -266,7 +269,7 @@ main_button_start:
     setb	ongoing_f
     ; **PUT WHAT HAPPENS IF YOU PRESS START HERE LMAO HELP ME LORD (whatever goes here has to connect to main_update and check for stop button)
 main_button_state:
-	jb		ongoing_f, main_update					; skip checking for state if process has started 
+	jb		ongoing_f, main_update					; skip checking for state if process has started
     ; [STATE] - configure reflow program
     jb 		BTN_STATE, main_update
     sleep(#DEBOUNCE)
@@ -280,22 +283,21 @@ main_update:
     LCD_cursor(2, 12)
     Display_BCD(seconds)
     LCD_cursor(1, 12)
-    Display_BCD(crtTemp)							; where is the temperature coming from ?? 
+    Display_BCD(crtTemp)							; where is the temperature coming from ??
     ljmp 	main_button_start
 
 ;-------------------------------------;
 ; CONFIGURE: Soak Temperature 		  ;
 ;-------------------------------------;
 conf_soakTemp:
-    ; change LCD screen to soak temperature interface 
+    ; change LCD screen to soak temperature interface
     LCD_cursor(1, 1)
-    LCD_print(#msg_soakTemp)				
+    LCD_print(#msg_soakTemp)
 	LCD_cursor(2, 1)
     LCD_print(#msg_temp)
 conf_soakTemp_update:
-    LCD_cursor(2, 7)				
+    LCD_cursor(2, 7)
 	Print_Temp(soakTemp)					; display soak temperature on LCD
-
 
 conf_soakTemp_button_up:
     jb 		BTN_UP, conf_soakTemp_button_down
@@ -303,10 +305,8 @@ conf_soakTemp_button_up:
     jb 		BTN_UP, conf_soakTemp_button_down
     jnb 	BTN_UP, $
 
-
     ; increment soak temp (((FIXME)))
 	Increment_variable(soakTemp)
-
 
 conf_soakTemp_button_down:
     jb 		BTN_DOWN, conf_soakTemp_button_state
@@ -331,12 +331,12 @@ conf_soakTemp_j:
 conf_soakTime:
 	; **Update LCD Screen
     LCD_cursor(1, 1)
-    LCD_print(#msg_soakTime)				
+    LCD_print(#msg_soakTime)
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_soakTime_update:
     Print_Time(soakTime)							; soakTime is a variable for seconds, convert into minutes and seconds here
-     
+
 conf_soakTime_button_up:
     jb 		BTN_UP, conf_soakTime_button_down
 	sleep(#DEBOUNCE)
@@ -357,7 +357,7 @@ conf_soakTime_button_state:
 	jb 		BTN_STATE, conf_soakTime_j
 	jnb 	BTN_STATE, $
     ljmp 	conf_reflowTemp
- 
+
 conf_soakTime_j:
 	ljmp conf_soakTime_update
 
@@ -367,11 +367,11 @@ conf_soakTime_j:
 conf_reflowTemp:
     ; **Update LCD Screen
     LCD_cursor(1, 1)
-    LCD_print(#msg_reflowTemp)				
+    LCD_print(#msg_reflowTemp)
 	LCD_cursor(2, 1)
     LCD_print(#msg_temp)
 conf_reflowTemp_update:
-    LCD_cursor(2, 7)				
+    LCD_cursor(2, 7)
 	Print_Temp(reflowTemp)
 
 
@@ -380,7 +380,7 @@ conf_reflowTemp_button_up:
 	sleep(#DEBOUNCE)
 	jb 		BTN_UP, conf_reflowTemp_button_down
 	jnb 	BTN_UP, $
-   
+
 	Increment_variable(reflowTemp)
 
 conf_reflowTemp_button_down:
@@ -388,7 +388,7 @@ conf_reflowTemp_button_down:
 	sleep(#DEBOUNCE)
 	jb 		BTN_DOWN, conf_reflowTemp_button_state
 	jnb 	BTN_DOWN, $
-    
+
 	Decrement_variable(reflowTemp)
 
 conf_reflowTemp_button_state:
@@ -408,7 +408,7 @@ conf_reflowTemp_j:
 conf_reflowTime:
     ; **Update LCD Screen
     LCD_cursor(1, 1)
-    LCD_print(#msg_reflowTime)				
+    LCD_print(#msg_reflowTime)
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_reflowTime_update:
@@ -456,10 +456,10 @@ dec_soak_temp:
 ; increment soak time by 5 seconds
 inc_soak_time:
 	mov 	a, soakTime
-    add		a, #0x05			
+    add		a, #0x05
     mov		soakTime, a
 	ret
-      
+
 ; decrement soak time by 5 seconds
 dec_soak_time:
 	mov		a, soakTime
@@ -469,15 +469,13 @@ dec_soak_time:
 
 inc_reflow_time:
     mov 	a, reflowTime
-    add		a, #0x05			
+    add		a, #0x05
     mov		reflowTime, a
 	ret
 
 dec_reflow_time:
 	mov 	a, reflowTime
-    add		a, #0xFB			
+    add		a, #0xFB
     mov		reflowTime, a
 	ret
-
 END
-
