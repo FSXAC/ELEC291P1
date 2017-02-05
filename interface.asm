@@ -23,6 +23,7 @@ $MODLP52
 $LIST
 $include(macros.inc)
 $include(LCD_4bit.inc)
+$include(math32.inc)
 
 ; Preprocessor constants
 CLK             equ     22118400
@@ -218,6 +219,51 @@ ADC_comm_loop:
     ret
 
 ;-----------------------------;
+; Get number from ADC         ;
+;-----------------------------;
+ADC_get:
+    push    ACC
+    push    AR0
+    push    AR1
+    clr     ADC_CE
+
+    ; starting bit is set to 1
+    mov     R0,     #0x01
+    lcall   ADC_comm
+
+    ; read channel 0 and save to result
+    ; read lower 2 bits of upper byte: ------XX --------
+    mov     R0,         #0x80
+    lcall   ADC_comm
+    mov     a,          R1
+    anl     a,          #0x03
+    mov     result+1,   a
+
+    ; read lower byte: -------- XXXXXXXX
+    mov     R0,         #0x55   ; random command
+    lcall   ADC_comm
+    mov     result,     R1
+    setb    ADC_CE
+
+    ; delay
+    ; sleep(#50)
+
+    ; convert result into BCD using math32
+    mov     x,      result
+    mov     x+1,    result+1
+    mov     x+2,    #0x00
+    mov     x+3,    #0x00
+    lcall   hex2bcd
+    mov     result,     bcd
+    mov     result+1,   bcd+1
+
+    ; restore registers
+    pop     AR1
+    pop     AR0
+    pop     ACC
+    ret
+
+;-----------------------------;
 ;	MAIN PROGRAM		      ;
 ;-----------------------------;
 setup:
@@ -238,7 +284,7 @@ setup:
 
     ; Variables declaration
     clr	    ongoing_flag
-    setb    seconds_flag						; may not need this..
+    setb    seconds_flag					; may not need this..
     mov     seconds,    #0x00   			; initialize variables
     mov     minutes,    #0x00
     mov		soakTemp, 	#0x00
@@ -274,6 +320,9 @@ main_button_state:
     jnb 	BTN_STATE, $
     ljmp    conf_soakTemp
 main_update:
+    ; read ADC via SPI -> result
+    lcall   ADC_get
+
 	; update time and ** temperature display here
     LCD_cursor(2, 9)
     LCD_printBCD(minutes)
