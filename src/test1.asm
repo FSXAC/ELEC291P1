@@ -22,6 +22,7 @@ $NOLIST
 $MODLP52
 $LIST
 
+$include(macros.inc)
 $include(LCD_4bit.inc)
 
 
@@ -77,10 +78,14 @@ dseg at 0x30
     countms:    ds  2
     state:      ds  1
     crtTemp:	ds	1			; temperature of oven
+    perCntr:	ds  1 ; counter to count period in PWM
+	ovenPower:	ds  1 ; currnet power of the oven, number between 0 and 10
+
 bseg
     seconds_flag: 	dbit 1
     ongoing_flag:	dbit 1			;only check for buttons when the process has not started (JK just realized we might not need this..)
-
+    oven_enabled:	dbit 1
+    
 cseg
 ; LCD SCREEN
 ;                     	1234567890123456
@@ -97,24 +102,27 @@ msg_time:	        db '     --:--     >', 0
 ; -------------------------;
 ; Increment Macro		   ;
 ; -------------------------;
-Increment_variable MAC
-  	mov 	a, %0
-    add		a, #0x01
-    mov 	%0, a
-ENDMAC
+Increment_variable mac
+    mov     a,      %0
+    add     a,      #0x01
+    mov     %0,     a
+endmac
 ; -------------------------;
 ; Decrement Macro		   ;
 ; -------------------------;
-Decrement_variable MAC
-  	mov 	a, %0
-	add		a, #0xFF
-    mov 	%0, a
-ENDMAC
+Decrement_variable mac
+    mov     a,      %0
+    add	    a,      #0xFF
+    mov     %0,     a
+endmac
 
 ; -------------------------;
 ; Print Time Macro		   ;		; does this even work like this? QQ
 ; -------------------------;
-Print_Time MAC
+Print_Time mac
+    push    ACC
+    push    AR2
+    push    AR3
 	mov 	a, %0
     mov 	b, #60
     div		ab				; minutes are in a, seconds are in b
@@ -147,12 +155,17 @@ Print_Time MAC
     add		a, #0x30
     mov		b, a
     Display_Char(b)
-ENDMAC
+    pop     AR2
+    pop     AR3
+    pop     ACC
+endmac
 
 ; -------------------------;
 ; Print Temp Macro		   ;
 ; -------------------------;
-Print_Temp MAC
+Print_Temp mac
+    push    ACC
+    push    AR1
 	mov 	a, %0
     mov 	b, #100
     div		ab				; result is in a, remainder is in b
@@ -172,8 +185,9 @@ Print_Temp MAC
     add		a, #0x30
     mov		b, a
     Display_Char(b)
-ENDMAC
-
+    pop     AR1
+    pop     ACC
+endmac
 
 ; -------------------------;
 ; Initialize Timer 2	   ;
@@ -201,6 +215,10 @@ T2_ISR:
     mov 	a,     countms+0
     jnz 	T2_ISR_incDone
     inc 	countms+1
+
+    ; PWM
+    lcall   PWM_oven
+
 T2_ISR_incDone:
 	; Check if half second has passed
     mov     a,  countms+0
@@ -230,12 +248,61 @@ T2_ISR_minutes:
     da 	    a
     mov     minutes,    a
     mov     seconds,    #0x00
-    sjmp    T2_ISR_return
+
+    ; CHANGED
+    ; reset minute to 0 when minutes -> 60
+    clr     c
+    subb    a,          #0x60
+    jnz     T2_ISR_return
+    mov     minutes,    #0x00
+
 T2_ISR_return:
     pop 	AR1
     pop 	psw
     pop 	acc
     reti
+
+;---------------------------------;
+; Pulse Width Modulation		  ;
+; Power: [#0-#10]				  ;
+; Period: #10					  ;
+; Occurs roughly every half sec.  ;
+;---------------------------------;
+PWM_oven:
+    push    ACC
+    mov     a,              perCntr
+    jnb     oven_enabled,   PWM_oven_on
+    ; toaster is now off, check to see if toaster should be turned on
+    cjne    a,  ovenPower,  PWM_cont
+    ; if power 10, then never turn off (corner case)
+    mov     a,  ovenPower
+    cjne    a,  #10,    PWM_corner1false
+    ljmp    PWM_corner1true
+PWM_corner1false:
+    setb    SSR
+PWM_corner1true:
+    setb    oven_enabled
+    ljmp    PWM_cont
+PWM_oven_on:
+    ; toaster is now on, check to see if toaster should be turned off
+    cjne    a,  #10,    PWM_cont
+    ; if power 0, then never turn on (corner case)
+    mov     a,  ovenPower
+    cjne    a,  #0,     PWM_corner2false
+    ljmp    PWM_corner2true
+PWM_corner2false:
+    clr     SSR
+PWM_corner2true:
+    clr     oven_enabled
+    clr     a
+    mov     perCntr,    a
+    sjmp    PWM_return
+PWM_cont:
+    inc     perCntr
+    sjmp    PWM_return
+PWM_return:
+    pop     ACC
+    ret
 
 ;-----------------------------;
 ;	MAIN PROGRAM		      ;

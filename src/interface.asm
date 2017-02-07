@@ -138,7 +138,7 @@ T2_ISR:
     inc 	countms+1
 
     ; PWM
-    ;lcall   PWM_oven
+    lcall   PWM_oven
 
 T2_ISR_incDone:
 	; Check if half second has passed
