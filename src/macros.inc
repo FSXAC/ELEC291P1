@@ -98,7 +98,7 @@ L1: djnz    R0,     L1 ; 3 cycles->3*45.21123ns*166=22.51519us
 increment_var mac
     push    ACC
     mov     a,      %0
-    add     a,      #0x00
+    add     a,      #0x01
     mov     %0,     a
     pop     ACC
 endmac

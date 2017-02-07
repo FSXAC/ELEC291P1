@@ -138,7 +138,7 @@ T2_ISR:
     inc 	countms+1
 
     ; PWM
-    lcall   PWM_oven
+    ;lcall   PWM_oven
 
 T2_ISR_incDone:
 	; Check if half second has passed
@@ -336,8 +336,8 @@ setup:
 
     ; Initialize MCP3008 ADC
     setb    ADC_CE
-    lcall   ADC_init
-    lcall   SPI_init
+    ;lcall   ADC_init
+    ;lcall   SPI_init
 
     ; Variables declaration
     clr	    ongoing_flag
@@ -378,7 +378,7 @@ main_button_state:
     ljmp    conf_soakTemp
 main_update:
     ; read ADC via SPI -> result
-    lcall   ADC_get
+    ;lcall   ADC_get
 
     ; *** CONTINUE HERE
 
