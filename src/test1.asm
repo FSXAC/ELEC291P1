@@ -21,6 +21,7 @@ org 0x002B
 $NOLIST
 $MODLP52
 $LIST
+
 $include(LCD_4bit.inc)
 
 
@@ -207,7 +208,7 @@ T2_ISR_incDone:
     mov     a,  countms+1
     cjne    a,  #high(TIME_RATE),   T2_ISR_return
     ; Let the main program know half second had passed
-    setb 	seconds_f
+    setb 	seconds_flag
     ; reset 16 bit ms counter
     clr 	a
     mov 	countms+0,     a
@@ -274,7 +275,7 @@ main_button_start:
     sleep(#DEBOUNCE)
     jb 		BTN_START, main_button_state
     jnb 	BTN_START, $
-    setb	ongoing_f
+    setb	ongoing_flag
 
     ; **PUT WHAT HAPPENS IF YOU PRESS START HERE LMAO HELP ME LORD (whatever goes here has to connect to main_update and check for stop button)
 
