@@ -477,7 +477,7 @@ main_update:
     LCD_cursor(2, 12)
     Display_BCD(seconds)
     LCD_cursor(1, 12)
-    Display_BCD(crtTemp)							; where is the temperature coming from ??
+    Print_Temp(crtTemp)							; where is the temperature coming from ??
     ljmp 	main_button_start
 
 ;-------------------------------------;
