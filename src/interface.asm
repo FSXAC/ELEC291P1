@@ -411,7 +411,7 @@ conf_soakTemp_button_up:
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_soakTemp_button_down
     jnb 	BTN_UP, $
-	increment_BCD(soakTemp, #1)
+	increment_var(soakTemp)
 
 conf_soakTemp_button_down:
     ; [DOWN] decrement soak temperature by 1
@@ -419,7 +419,7 @@ conf_soakTemp_button_down:
     sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_soakTemp_button_state
     jnb 	BTN_DOWN, $
-    decrement_BCD(soakTemp, #1)
+    decrement_var(soakTemp)
 
 conf_soakTemp_button_state:
     ; [STATE] save this setting and move on
@@ -451,7 +451,7 @@ conf_soakTime_button_up:
 	sleep(#DEBOUNCE)
 	jb 		BTN_UP, conf_soakTime_button_down
 	jnb 	BTN_UP, $
-    increment_BCD(soakTime, #0x05)
+    lcall   inc_soak_time
 
 conf_soakTime_button_down:
     ; [DOWN] decrement soak time by 5
@@ -459,7 +459,7 @@ conf_soakTime_button_down:
 	sleep(#DEBOUNCE)
 	jb 		BTN_DOWN, conf_soakTime_button_state
 	jnb 	BTN_DOWN, $
-    decrement_BCD(soakTime, #0x05)
+    lcall   dec_soak_time
 
 conf_soakTime_button_state:
     ; [STATE] save soak time and move on
@@ -492,7 +492,7 @@ conf_reflowTemp_button_up:
 	sleep(#DEBOUNCE)
 	jb 		BTN_UP, conf_reflowTemp_button_down
 	jnb 	BTN_UP, $
-	increment_BCD(reflowTemp, #1)
+	increment_var(reflowTemp)
 
 conf_reflowTemp_button_down:
     ; [DOWN] decrement reflow tempreature by 1
@@ -500,7 +500,8 @@ conf_reflowTemp_button_down:
 	sleep(#DEBOUNCE)
 	jb 		BTN_DOWN, conf_reflowTemp_button_state
 	jnb 	BTN_DOWN, $
-	decrement_BCD(reflowTemp, #1)
+	; decrement_BCD(reflowTemp, #1)
+    decrement_var(reflowTemp)
 
 conf_reflowTemp_button_state:
     ; [STATE] save reflow temperature and move on
@@ -532,7 +533,8 @@ conf_reflowTime_button_up:
 	sleep(#DEBOUNCE)
 	jb 		BTN_UP, conf_reflowTime_button_down
 	jnb 	BTN_UP, $
-    increment_BCD(reflowTime, #0x05)
+    ; increment_BCD(reflowTime, #0x05)
+    lcall   inc_reflow_time
 
 conf_reflowTime_button_down:
     ; [UP]  decrease reflow time by 5 seconds
@@ -540,7 +542,8 @@ conf_reflowTime_button_down:
 	sleep(#DEBOUNCE)
 	jb 		BTN_DOWN, conf_reflowTime_button_state
 	jnb 	BTN_DOWN, $
-    decrement_BCD(reflowTime, #0x05)
+    ; decrement_var(reflowTime, #0x05)
+    lcall   dec_reflow_time
 
 conf_reflowTime_button_state:
     ; [STATE] save reflow time and move on
@@ -557,30 +560,30 @@ conf_reflowTime_j:
 ; 		FUNCTION CALLS		   ;
 ;------------------------------;
 ; increment soak time by 5 seconds
-; inc_soak_time:
-; 	mov 	a, soakTime
-;     add		a, #0x05
-;     mov		soakTime, a
-; 	ret
-;
-; ; decrement soak time by 5 seconds
-; dec_soak_time:
-; 	mov		a, soakTime
-;     add		a, #0xFB
-;     mov		soakTime, a
-; 	ret
-;
-; inc_reflow_time:
-;     mov 	a, reflowTime
-;     add		a, #0x05
-;     mov		reflowTime, a
-; 	ret
-;
-; dec_reflow_time:
-; 	mov 	a, reflowTime
-;     add		a, #0xFB
-;     mov		reflowTime, a
-; 	ret
+inc_soak_time:
+	mov 	a, soakTime
+    add		a, #0x05
+    mov		soakTime, a
+	ret
+
+; decrement soak time by 5 seconds
+dec_soak_time:
+	mov		a, soakTime
+    add		a, #0xFB
+    mov		soakTime, a
+	ret
+
+inc_reflow_time:
+    mov 	a, reflowTime
+    add		a, #0x05
+    mov		reflowTime, a
+	ret
+
+dec_reflow_time:
+	mov 	a, reflowTime
+    add		a, #0xFB
+    mov		reflowTime, a
+	ret
 
 ; === END OF PROGRAM ===
 END
