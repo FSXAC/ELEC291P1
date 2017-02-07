@@ -1,5 +1,5 @@
 ;LIT SOLDER OVEN CONTROLLER
-; AUTHOR:   SCOTT BEAULIEU (no contributions yet)
+; AUTHOR:   SCOTT BEAULIEU
 ;			GEOFF GOODWIN
 ;			MUCHEN HE
 ;			LARRY LIU
@@ -555,12 +555,12 @@ conf_reflowTime_button_state:
 
 conf_reflowTime_j:
 	ljmp    conf_reflowTime_update
-	
+
 ;TempConvert:
 ;	mov x+3, #0
 ;       mov x+2, #0
 ;	mov x+1, Result+1
-;	mov x+0, Result		
+;	mov x+0, Result
 ;	load_y (100)
 ;	lcall mul32 ;multiply by 100
 ;	lcall hex2bcd
