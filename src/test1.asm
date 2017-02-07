@@ -24,6 +24,7 @@ $LIST
 
 $include(macros.inc)
 $include(LCD_4bit.inc)
+$include(math32.inc)
 
 
 ; Preprocessor constants
@@ -31,6 +32,7 @@ CLK             equ     22118400
 BAUD            equ     115200
 T0_RATE         equ     4096
 T0_RELOAD       equ     ((65536-(CLK/4096)))
+T1_RELOAD       equ     (0x100-CLK/(16*BAUD))
 T2_RATE         equ     1000
 T2_RELOAD       equ     (65536-(CLK/T2_RATE))
 DEBOUNCE        equ     50
@@ -81,11 +83,20 @@ dseg at 0x30
     perCntr:	ds  1 ; counter to count period in PWM
 	ovenPower:	ds  1 ; currnet power of the oven, number between 0 and 10
 
+    ; for math32
+    result:         ds  2
+    bcd:            ds  5
+    x:              ds  4
+    y:              ds  4
+
 bseg
     seconds_flag: 	dbit 1
     ongoing_flag:	dbit 1			;only check for buttons when the process has not started (JK just realized we might not need this..)
     oven_enabled:	dbit 1
-    
+
+    ; for math32
+    mf:             dbit 1
+
 cseg
 ; LCD SCREEN
 ;                     	1234567890123456
@@ -305,6 +316,101 @@ PWM_return:
     ret
 
 ;-----------------------------;
+; Initialize SPI		      ;
+;-----------------------------;
+SPI_init:
+    ; debounce reset button
+    mov     R1,     #222
+    mov     R0,     #166
+    djnz    R0,     $
+    djnz    R1,     $-4
+    ; set timer
+    clr     TR1
+    anl     TMOD,   #0x0f
+    orl	    TMOD,   #0x20
+    orl	    PCON,   #0x80
+    mov	    TH1,    #T1_RELOAD
+    mov	    TL1,    #T1_RELOAD
+    setb    TR1
+    mov	    SCON,   #0x52
+    ret
+
+;-----------------------------;
+; Initialize comm to ADC      ;
+;-----------------------------;
+ADC_init:
+    setb    ADC_MISO
+    clr     ADC_SCLK
+    ret
+;-----------------------------;
+; Communicate with ADC        ;
+;-----------------------------;
+; send byte in R0, receive byte in R1
+ADC_comm:
+    push    ACC
+    mov     R1,     #0
+    mov     R2,     #8
+ADC_comm_loop:
+    mov     a,      R0
+    rlc     a
+    mov     R0,     a
+    mov     ADC_MOSI,   c
+    setb    ADC_SCLK
+    mov     c,      ADC_MISO
+    mov     a,      R1
+    rlc     a
+    mov     R1,     a
+    clr     ADC_SCLK
+    djnz    R2,     ADC_comm_loop
+    pop     ACC
+    ret
+
+;-----------------------------;
+; Get number from ADC         ;
+;-----------------------------;
+ADC_get:
+    push    ACC
+    push    AR0
+    push    AR1
+    clr     ADC_CE
+
+    ; starting bit is set to 1
+    mov     R0,     #0x01
+    lcall   ADC_comm
+
+    ; read channel 0 and save to result
+    ; read lower 2 bits of upper byte: ------XX --------
+    mov     R0,         #0x80
+    lcall   ADC_comm
+    mov     a,          R1
+    anl     a,          #0x03
+    mov     result+1,   a
+
+    ; read lower byte: -------- XXXXXXXX
+    mov     R0,         #0x55   ; random command
+    lcall   ADC_comm
+    mov     result,     R1
+    setb    ADC_CE
+
+    ; delay
+    ; sleep(#50)
+
+    ; convert result into BCD using math32
+    mov     x,      result
+    mov     x+1,    result+1
+    mov     x+2,    #0x00
+    mov     x+3,    #0x00
+    lcall   hex2bcd
+    mov     result,     bcd
+    mov     result+1,   bcd+1
+
+    ; restore registers
+    pop     AR1
+    pop     AR0
+    pop     ACC
+    ret
+
+;-----------------------------;
 ;	MAIN PROGRAM		      ;
 ;-----------------------------;
 setup:
@@ -317,6 +423,16 @@ setup:
 
     ; LCD setup
     lcall   LCD_4BIT
+
+    ; PWM setup
+    mov     ovenPower,      #0 ;choose initial power here (0-10)
+    setb    oven_enabled
+    mov     perCntr,        #10
+
+    ; Initialize MCP3008 ADC
+    setb    ADC_CE
+    lcall   ADC_init
+    lcall   SPI_init
 
     clr	    ongoing_flag
     setb    seconds_flag       				; may not need this..

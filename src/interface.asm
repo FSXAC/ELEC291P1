@@ -336,8 +336,8 @@ setup:
 
     ; Initialize MCP3008 ADC
     setb    ADC_CE
-    ;lcall   ADC_init
-    ;lcall   SPI_init
+    lcall   ADC_init
+    lcall   SPI_init
 
     ; Variables declaration
     clr	    ongoing_flag
