@@ -6,7 +6,7 @@ cseg
 ;---------------------------------;
 ; Wait 40 microseconds            ;
 ;---------------------------------;
-Wait40uSec:
+sleep40us:
 	push AR0
 	mov R0, #177
 L0:
@@ -21,7 +21,7 @@ L0:
 ;---------------------------------;
 LCD_pulse:
 	setb LCD_E
-	lcall Wait40uSec
+	lcall 5
 	clr LCD_E
     ret
 
@@ -39,7 +39,7 @@ LCD_byte:
 	mov c, ACC.4
 	mov LCD_D4, c
     lcall LCD_pulse
-    lcall Wait40uSec
+    lcall sleep40us
 	; Write low 4 bits next
 	mov c, ACC.3
 	mov LCD_D7, c
@@ -55,24 +55,22 @@ LCD_byte:
 ;---------------------------------;
 ; Write data to LCD               ;
 ;---------------------------------;
-WriteData mac
+LCD_write mac
 	mov a, %0
-	lcall ?WriteData
+	lcall ?LCD_write
 endmac
-
-?WriteData:
+?LCD_write:
 	setb LCD_RS
 	ljmp LCD_byte
 
 ;---------------------------------;
 ; Write command to LCD            ;
 ;---------------------------------;
-WriteCommand mac
+LCD_cmd mac
 	mov a, %0
-	lcall ?WriteCommand
+	lcall ?LCD_cmd
 endmac
-
-?WriteCommand:
+?LCD_cmd:
 	clr LCD_RS
 	ljmp LCD_byte
 
@@ -89,14 +87,14 @@ LCD_4BIT:
 	; Wait_Milli_Seconds(#40)
 
 	; First make sure the LCD is in 8-bit mode and then change to 4-bit mode
-	WriteCommand(#0x33)
-	WriteCommand(#0x33)
-	WriteCommand(#0x32) ; change to 4-bit mode
+	LCD_cmd(#0x33)
+	LCD_cmd(#0x33)
+	LCD_cmd(#0x32) ; change to 4-bit mode
 
 	; Configure the LCD
-	WriteCommand(#0x28)
-	WriteCommand(#0x0c)
-	WriteCommand(#0x01) ;  Clear screen command (takes some time)
+	LCD_cmd(#0x28)
+	LCD_cmd(#0x0c)
+	LCD_cmd(#0x01) ;  Clear screen command (takes some time)
 
     ;Wait for the clear screen command to finish.
 	sleep(#2)
@@ -115,12 +113,11 @@ LCD_print mac
 	pop dpl
 	pop dph
 endmac
-
 ?Send_Constant_String:
     clr a
     movc a, @a+dptr
     jz ?Send_Constant_String_Done
-    lcall ?WriteData
+    lcall ?LCD_write
     inc dptr
     sjmp ?Send_Constant_String
 ?Send_Constant_String_Done:
@@ -140,10 +137,10 @@ Scroll_display mac
 	clr c
 	subb a, %1
 	jz ?next
-	WriteCommand(#0x14)
+	LCD_cmd(#0x14)
 	Send_Constant_String(%2)
 	Wait_Milli_Seconds(#50)
-;	WriteCommand(#0x01)
+;	LCD_cmd(#0x01)
 ;	Wait_Milli_Seconds(#2)
 	inc R1
 	sjmp ?scroll
@@ -168,40 +165,39 @@ endmac
 	orl a, #01000000B
 ?Set_Cursor_1:
 	orl a, #10000000B
-	ljmp ?WriteCommand ; Select column and row
+	ljmp ?LCD_cmd ; Select column and row
 
 ;---------------------------------;
 ; Display a BCD number in the LCD ;
 ;---------------------------------;
-Display_BCD mac
+LCD_printBCD mac
 	push ar0
 	mov r0, %0
-	lcall ?Display_BCD
+	lcall ?LCD_printBCD
 	pop ar0
 endmac
-
-?Display_BCD:
+?LCD_printBCD:
 	push acc
 	; Write most significant digit
 	mov a, r0
 	swap a
 	anl a, #0fh
 	orl a, #30h
-	lcall ?WriteData
+	lcall ?LCD_write
 	; write least significant digit
 	mov a, r0
 	anl a, #0fh
 	orl a, #30h
-	lcall ?WriteData
+	lcall ?LCD_write
 	pop acc
 	ret
 
 ;------------------------------------;
 ; Display a char in the LCD          ;
 ;------------------------------------;
-Display_char mac
+LCD_printChar mac
 	push acc
 	mov a, %0
-	lcall ?WriteData
+	lcall ?LCD_write
 	pop acc
 endmac

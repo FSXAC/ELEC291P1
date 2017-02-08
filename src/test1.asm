@@ -145,13 +145,13 @@ LCD_printTime mac
     LCD_cursor(2, 6)
     add		a, #0x30
     mov		R3, a
-    Display_Char(R3)
+    LCD_printChar(R3)
 
     LCD_cursor(2, 7)
     mov		a, b
     add		a, #0x30
     mov		b, a
-    Display_Char(b)
+    LCD_printChar(b)
 
     mov		b, #10
     mov		a, R2
@@ -159,13 +159,13 @@ LCD_printTime mac
     LCD_cursor(2, 9)
     add		a, #0x30
     mov		R3, a
-    Display_Char(R3)
+    LCD_printChar(R3)
 
     LCD_cursor(2, 10)
     mov		a, b
     add		a, #0x30
     mov		b, a
-    Display_Char(b)
+    LCD_printChar(b)
     pop     AR2
     pop     AR3
     pop     ACC
@@ -183,19 +183,19 @@ LCD_printTemp mac
     LCD_cursor(2, 7)
     add		a, #0x30
     mov		R1, a
-    Display_Char(R1)
+    LCD_printChar(R1)
     mov		a, b
     mov		b, #10
     div		ab
     add		a, #0x30
     mov		R1, a
     LCD_cursor(2, 8)
-    Display_Char(R1)
+    LCD_printChar(R1)
     LCD_cursor(2, 9)
     mov		a, b
     add		a, #0x30
     mov		b, a
-    Display_Char(b)
+    LCD_printChar(b)
     pop     AR1
     pop     ACC
 endmac
@@ -451,7 +451,7 @@ main:
     LCD_cursor(2, 1)
     LCD_print(#msg_main_btm)
     LCD_cursor(1, 15)
-    Display_char(#0xDF)
+    LCD_printChar(#0xDF)
 main_button_start:
     ; [START] - start the reflow program
     jb 		BTN_START, main_button_state
@@ -473,9 +473,9 @@ main_button_state:
 main_update:
 	; update time and ** temperature display here
     LCD_cursor(2, 9)
-    Display_BCD(minutes)
+    LCD_printBCD(minutes)
     LCD_cursor(2, 12)
-    Display_BCD(seconds)
+    LCD_printBCD(seconds)
     LCD_cursor(1, 12)
     LCD_printTemp(crtTemp)							; where is the temperature coming from ??
     ljmp 	main_button_start
