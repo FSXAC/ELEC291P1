@@ -113,7 +113,7 @@ msg_time:	        db '     --:--     >', 0
 ; -------------------------;
 ; Increment Macro		   ;
 ; -------------------------;
-Increment_variable mac
+increment mac
     mov     a,      %0
     add     a,      #0x01
     mov     %0,     a
@@ -121,7 +121,7 @@ endmac
 ; -------------------------;
 ; Decrement Macro		   ;
 ; -------------------------;
-Decrement_variable mac
+decrement mac
     mov     a,      %0
     add	    a,      #0xFF
     mov     %0,     a
@@ -130,7 +130,7 @@ endmac
 ; -------------------------;
 ; Print Time Macro		   ;		; does this even work like this? QQ
 ; -------------------------;
-Print_Time mac
+LCD_printTime mac
     push    ACC
     push    AR2
     push    AR3
@@ -174,7 +174,7 @@ endmac
 ; -------------------------;
 ; Print Temp Macro		   ;
 ; -------------------------;
-Print_Temp mac
+LCD_printTemp mac
     push    ACC
     push    AR1
 	mov 	a, %0
@@ -477,7 +477,7 @@ main_update:
     LCD_cursor(2, 12)
     Display_BCD(seconds)
     LCD_cursor(1, 12)
-    Print_Temp(crtTemp)							; where is the temperature coming from ??
+    LCD_printTemp(crtTemp)							; where is the temperature coming from ??
     ljmp 	main_button_start
 
 ;-------------------------------------;
@@ -492,7 +492,7 @@ conf_soakTemp:
     LCD_print(#msg_temp)
 conf_soakTemp_update:
     LCD_cursor(2, 7)
-	Print_Temp(soakTemp)					; display soak temperature on LCD
+	LCD_printTemp(soakTemp)					; display soak temperature on LCD
 
 conf_soakTemp_button_up:
     ; [UP] increment soak temperature by 1
@@ -500,7 +500,7 @@ conf_soakTemp_button_up:
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_soakTemp_button_down
     jnb 	BTN_UP, $
-	Increment_variable(soakTemp)
+	increment(soakTemp)
 
 conf_soakTemp_button_down:
     ; [DOWN] decrement soak temperature by 1
@@ -508,7 +508,7 @@ conf_soakTemp_button_down:
     sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_soakTemp_button_state
     jnb 	BTN_DOWN, $
-    Decrement_variable(soakTemp)
+    decrement(soakTemp)
 
 conf_soakTemp_button_state:
     ; [STATE] save this setting and move on
@@ -531,7 +531,7 @@ conf_soakTime:
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_soakTime_update:
-    Print_Time(soakTime)							; soakTime is a variable for seconds, convert into minutes and seconds here
+    LCD_printTime(soakTime) ; soakTime is a variable for seconds, convert into minutes and seconds here
 
 conf_soakTime_button_up:
     ; [UP] increment soak time by 5
@@ -572,7 +572,7 @@ conf_reflowTemp:
     LCD_print(#msg_temp)
 conf_reflowTemp_update:
     LCD_cursor(2, 7)
-	Print_Temp(reflowTemp)
+	LCD_printTemp(reflowTemp)
 
 conf_reflowTemp_button_up:
     ; [UP]  increment reflow tempreature by 1
@@ -580,7 +580,7 @@ conf_reflowTemp_button_up:
 	sleep(#DEBOUNCE)
 	jb 		BTN_UP, conf_reflowTemp_button_down
 	jnb 	BTN_UP, $
-	Increment_variable(reflowTemp)
+	increment(reflowTemp)
 
 conf_reflowTemp_button_down:
     ; [DOWN] decrement reflow tempreature by 1
@@ -588,7 +588,7 @@ conf_reflowTemp_button_down:
 	sleep(#DEBOUNCE)
 	jb 		BTN_DOWN, conf_reflowTemp_button_state
 	jnb 	BTN_DOWN, $
-	Decrement_variable(reflowTemp)
+	decrement(reflowTemp)
 
 conf_reflowTemp_button_state:
     ; [STATE] save reflow temperature and move on
@@ -613,7 +613,7 @@ conf_reflowTime:
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_reflowTime_update:
-    Print_Time(reflowTime)
+    LCD_printTime(reflowTime)
 
 conf_reflowTime_button_up:
     ; [UP]  increase reflow time by 5 seconds
@@ -640,23 +640,11 @@ conf_reflowTime_button_state:
     ljmp 	main
 
 conf_reflowTime_j:
-	ljmp conf_reflowTime_update
+	ljmp   conf_reflowTime_update
 
 ;------------------------------;
-; 		FUNCTION CALLS			;
+; 		FUNCTION CALLS		   ;
 ;------------------------------;
-inc_soak_temp:
-	mov 	a, soakTemp
-    add		a, #0x01
-    da		a
-    mov		soakTemp, a
-    ; ** other stuffs
-	ret
-
-dec_soak_temp:
-	; ** insert function hereeee
-	ret
-
 ; increment soak time by 5 seconds
 inc_soak_time:
 	mov 	a, soakTime
