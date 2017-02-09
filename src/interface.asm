@@ -58,6 +58,12 @@ ADC_MOSI    equ     P2.1
 ADC_MISO    equ     P2.2
 ADC_SCLK    equ     P2.3
 
+; pins for shift register
+LED_DATA    equ     P0.0
+LED_LATCH   equ     P0.1
+LED_CLK     equ     P0.2
+LED_CLR     equ     P0.3
+
 ; SSR / oven control pin
 SSR         equ     P3.7
 

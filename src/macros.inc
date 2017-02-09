@@ -229,3 +229,36 @@ endmac
 ;     push    AR1
 ;     push    ACC
 ; endmac
+
+barLED mac
+    push    ACC
+    push    AR0
+    mov     R0,     %0
+    mov     a,      #8
+    subb    a,      R0
+    lcall   ?barLED
+    pop     AR0
+    pop     ACC
+endmac
+?barLED:
+    clr     LED_CLR
+    clr     LED_CLK
+    clr     LED_LATCH
+    setb    LED_DATA
+    setb    LED_CLR
+barLED_1:
+    cpl     LED_CLK
+    cpl     LED_CLK
+    djnz    R0, barLED_1
+
+    mov     R0, a
+    ; inc     R0
+    clr     LED_DATA
+    jz      barLED_end
+barLED_2:
+    cpl     LED_CLK
+    cpl     LED_CLK
+    djnz    R0, barLED_2
+barLED_end:
+    setb    LED_LATCH
+    ret
