@@ -153,8 +153,8 @@ LM: mov b, #0;
     lcall LM_converter
     clr LM_TH
  	LCD_cursor(2, 7)
- 	LCD_printBCD(bcd+1); display on the LCD
- 	LCD_printBCD(bcd+0); display on the LCD
+    ;LCD_printBCD(bcd+1); display on the LCD
+ 	;LCD_printBCD(bcd+0); display on the LCD
  	Send_BCD(bcd+1) ;
     Send_BCD(bcd+0) ;
 	
@@ -173,6 +173,7 @@ Th: mov b, #1 ; connect thermocouple to chanel1
     lcall hex2bcd
  	Send_BCD(bcd+1) ;
     Send_BCD(bcd+0) ;
+   
     mov a, #'\r' 
     lcall putchar
     mov a, #'\n'
@@ -198,13 +199,14 @@ LM_converter:
     lcall sub32
     lcall hex2bcd
     ret
+    
 Th_converter:
     mov x+3, #0 ; Load 32-bit �y� with value from ADC
     mov x+2, #0
     mov x+1, R7
     mov x+0, R6
-    load_y(100)
-    lcall mul32
+    load_y(2)
+    lcall div32
     ret
     ;lcall hex2bcd
 
