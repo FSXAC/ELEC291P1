@@ -400,7 +400,7 @@ conf_soakTemp:
     LCD_print(#msg_temp)
 conf_soakTemp_update:
     LCD_cursor(2, 7)
-	LCD_printTemp(soakTemp)					; display soak temperature on LCD
+	LCD_printTemp(soakTemp, 2, 7)					; display soak temperature on LCD
 
 conf_soakTemp_button_up:
     ; [UP] increment soak temperature by 1
@@ -439,7 +439,7 @@ conf_soakTime:
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_soakTime_update:
-    LCD_printTime(soakTime) ; soakTime is a variable for seconds, convert into minutes and seconds here
+    LCD_printTime(soakTime, 2, 6) ; soakTime is a variable for seconds, convert into minutes and seconds here
 
 conf_soakTime_button_up:
     ; [UP] increment soak time by 5
@@ -480,7 +480,7 @@ conf_reflowTemp:
     LCD_print(#msg_temp)
 conf_reflowTemp_update:
     LCD_cursor(2, 7)
-	LCD_printTemp(reflowTemp)
+	LCD_printTemp(reflowTemp, 2, 7)
 
 conf_reflowTemp_button_up:
     ; [UP]  increment reflow tempreature by 1
@@ -521,7 +521,7 @@ conf_reflowTime:
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_reflowTime_update:
-    LCD_printTime(reflowTime)
+    LCD_printTime(reflowTime, 2, 6)
 
 conf_reflowTime_button_up:
     ; [UP]  increase reflow time by 5 seconds
