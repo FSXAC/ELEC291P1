@@ -81,7 +81,9 @@ dseg at 0x30
     crtTemp:	ds	1			; temperature of oven
     perCntr:	ds  1 ; counter to count period in PWM
 	ovenPower:	ds  1 ; currnet power of the oven, number between 0 and 10
-
+	soakTime_sec:	ds 1
+	power:		ds  1
+	
     ; for math32
     result:         ds  2
     bcd:            ds  5
@@ -92,6 +94,7 @@ bseg
     seconds_flag: 	dbit 1
     ongoing_flag:	dbit 1			;only check for buttons when the process has not started (JK just realized we might not need this..)
     oven_enabled:	dbit 1
+	reset_timer_f:	dbit 1
 
     ; for math32
     mf:             dbit 1
@@ -107,6 +110,12 @@ msg_reflowTemp:	    db 'REFLOW TEMP:   <', 0
 msg_reflowTime:	    db 'REFLOW TIME:   <', 0
 msg_temp:	        db '      --- C    >', 0
 msg_time:	        db '     --:--     >', 0
+msg_state1:         db ' S: RampToSoak  ', 0
+msg_state2:         db ' S: PreheatSoak ', 0
+msg_state3:			db ' S: RampToPeak  ', 0
+msg_state4:         db ' S: Reflow      ', 0
+msg_state5:         db ' S: Cooling     ', 0
+msg_fsm:            db '  --- C  --:--  ', 0
 
 ; -------------------------;
 ; Initialize Timer 2	   ;
@@ -150,6 +159,15 @@ T2_ISR_incDone:
     clr 	a
     mov 	countms+0,     a
     mov 	countms+1,     a
+
+    ; Increment timer if not resetting
+    jnb reset_timer_f, timer_start
+	;reset soaktime
+    mov soakTime_sec, #0x00
+    ; Increment soaktime timer
+timer_start:
+	increment(soakTime_sec)
+	
     ; Increment seconds
     mov     a,   seconds
     add     a,   #0x01
@@ -367,6 +385,9 @@ main_button_start:
     jb 		BTN_START, main_button_state
     jnb 	BTN_START, $
     setb	ongoing_flag
+	
+	mov		a, #RAMP2SOAK
+	ljmp 	forever
 
     ; **PUT WHAT HAPPENS IF YOU PRESS START HERE LMAO HELP ME LORD (whatever goes here has to connect to main_update and check for stop button)
 
@@ -384,8 +405,7 @@ main_update:
     LCD_printBCD(minutes)
     LCD_cursor(2, 12)
     LCD_printBCD(seconds)
-    LCD_cursor(1, 12)
-    LCD_printTemp(crtTemp)							; where is the temperature coming from ??
+    LCD_printTemp(crtTemp, 1, 12)							; where is the temperature coming from ??
     ljmp 	main_button_start
 
 ;-------------------------------------;
@@ -400,7 +420,7 @@ conf_soakTemp:
     LCD_print(#msg_temp)
 conf_soakTemp_update:
     LCD_cursor(2, 7)
-	LCD_printTemp(soakTemp)					; display soak temperature on LCD
+	LCD_printTemp(soakTemp, 2, 7)					; display soak temperature on LCD
 
 conf_soakTemp_button_up:
     ; [UP] increment soak temperature by 1
@@ -439,7 +459,7 @@ conf_soakTime:
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_soakTime_update:
-    LCD_printTime(soakTime) ; soakTime is a variable for seconds, convert into minutes and seconds here
+    LCD_printTime(soakTime, 2, 6) ; soakTime is a variable for seconds, convert into minutes and seconds here
 
 conf_soakTime_button_up:
     ; [UP] increment soak time by 5
@@ -480,7 +500,7 @@ conf_reflowTemp:
     LCD_print(#msg_temp)
 conf_reflowTemp_update:
     LCD_cursor(2, 7)
-	LCD_printTemp(reflowTemp)
+	LCD_printTemp(reflowTemp, 2, 7)
 
 conf_reflowTemp_button_up:
     ; [UP]  increment reflow tempreature by 1
@@ -521,7 +541,7 @@ conf_reflowTime:
 	LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_reflowTime_update:
-    LCD_printTime(reflowTime)
+    LCD_printTime(reflowTime, 2, 6)
 
 conf_reflowTime_button_up:
     ; [UP]  increase reflow time by 5 seconds
@@ -578,5 +598,119 @@ dec_reflow_time:
     add		a, #0xFB
     mov		reflowTime, a
 	ret
+	
+	
+;-------------------------------------------
+; END OF INTERFACE // BEGIN FSM
+;-------------------------------------------
+forever: 
+	ljmp	fsm_state1
+
+fsm_state2_j:
+	ljmp fsm_state2
+fsm_state1:
+    cjne    a,  #RAMP2SOAK,  fsm_state2_j
+
+    ; display on LCD
+    LCD_cursor(1, 1)
+    LCD_print(#msg_state1)
+    LCD_cursor(2, 1)
+    LCD_print(#msg_fsm)
+    LCD_printTemp(soakTemp, 2, 3)
+	LCD_printTime(soakTime_sec, 2, 10)
+
+
+    mov     power,        #10 ; (Geoff pls change this line of code to fit)
+    ;mov     soakTime_sec, #0
+    ;mov     soakTime_min, #0
+    mov     a,          #150
+    clr     c
+    subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
+    jnc     fsm_state1_done
+    mov     state, #2
+    setb    reset_timer_f; reset the timer before jummp to state2
+    ; ***here set the beeper ()
+fsm_state1_done:
+    ljmp    forever ; here should it be state1? FIXME
+
+fsm_state2:
+    cjne    a,  #PREHEAT_SOAK, fsm_state3
+
+    LCD_cursor(1, 1)
+    LCD_print(#msg_state2)
+    ; display the current state, all other display will keep the same
+    mov power,        #2
+    mov a, soaktime  ; our soaktime has to be
+    clr c
+    subb a, soakTime_sec
+    jnc fsm_state2_done
+    mov state, #3
+    setb reset_timer_f
+    ;***set the beeper
+fsm_state2_done:
+    ljmp forever
+    ; this portion will change depends on the whether we gonna use min or not
+
+
+fsm_state3:
+   cjne    a,  #RAMP2PEAK,  fsm_state4
+   LCD_cursor(1, 1)
+   LCD_print(#msg_state3)
+   ; display the current state, all other display will keep the same
+
+   mov     power,        #10  ; (Geoff pls change this line of code to fit)
+   ;mov     soakTime_sec, #0
+   ;mov     soakTime_min, #0
+   mov     a,          #220
+   clr     c
+   subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
+   jnc     fsm_state3_done
+   mov     state, #4
+   setb    reset_timer_f; reset the timer before jummp to state2
+   ; ***here set the beeper ()
+fsm_state3_done:
+   ljmp    forever ; here should it be state1? FIXME
+
+
+fsm_state4:
+   cjne    a,  #REFLOW, fsm_state5
+   LCD_cursor(1, 1)
+   LCD_print(#msg_state4)
+   ; display the current state, all other display will keep the same
+   mov power,        #2
+   mov a, soaktime  ; our soaktime has to be
+   clr c
+   subb a, soakTime_sec
+   jnc fsm_state4_done
+   mov state, #5
+   setb reset_timer_f
+   ; ***set the beeper
+fsm_state4_done:
+   ljmp forever
+   
+   
+main_button_start_j:
+	ljmp main_button_start
+
+fsm_state5:
+    cjne    a,  #RAMP2SOAK,  main_button_start_j
+
+    LCD_cursor(1, 1)
+    LCD_print(#msg_state5)
+
+    mov     power,        #0 ; (Geoff pls change this line of code to fit)
+    ;mov     soakTime_sec, #0
+    ;mov     soakTime_min, #0
+Three_beeper:
+    mov     a,          #60
+    clr     c
+    subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
+    jnc     fsm_state5_done
+    mov     state, #0
+    setb    reset_timer_f; reset the timer before jummp to state2
+     ;*** here set *six*  beepers  ()
+fsm_state5_done:
+    ljmp forever
+
 
 END

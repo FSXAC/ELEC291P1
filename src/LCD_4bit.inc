@@ -21,7 +21,7 @@ L0:
 ;---------------------------------;
 LCD_pulse:
 	setb LCD_E
-	lcall 5
+	lcall sleep40us
 	clr LCD_E
     ret
 
@@ -217,12 +217,12 @@ LCD_printTime mac
 
     mov 	b, #10
     div		ab				; result is in a, remainder is in b
-    LCD_cursor(2, 6)
+    LCD_cursor(%1, %2)
     add		a, #0x30
     mov		R3, a
     LCD_printChar(R3)
 
-    LCD_cursor(2, 7)
+    LCD_cursor(%1, %2+1)
     mov		a, b
     add		a, #0x30
     mov		b, a
@@ -231,12 +231,12 @@ LCD_printTime mac
     mov		b, #10
     mov		a, R2
     div		ab
-    LCD_cursor(2, 9)
+    LCD_cursor(%1, %2+3)
     add		a, #0x30
     mov		R3, a
     LCD_printChar(R3)
 
-    LCD_cursor(2, 10)
+    LCD_cursor(%1, %2+4)
     mov		a, b
     add		a, #0x30
     mov		b, a
@@ -255,7 +255,7 @@ LCD_printTemp mac
 	mov 	a, %0
     mov 	b, #100
     div		ab				; result is in a, remainder is in b
-    LCD_cursor(2, 7)
+    LCD_cursor(%1, %2)
     add		a, #0x30
     mov		R1, a
     LCD_printChar(R1)
@@ -264,9 +264,9 @@ LCD_printTemp mac
     div		ab
     add		a, #0x30
     mov		R1, a
-    LCD_cursor(2, 8)
+    LCD_cursor(%1, %2+1)
     LCD_printChar(R1)
-    LCD_cursor(2, 9)
+    LCD_cursor(%1, %2+2)
     mov		a, b
     add		a, #0x30
     mov		b, a
