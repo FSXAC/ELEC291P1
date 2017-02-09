@@ -248,10 +248,7 @@ display:
     ;Display_BCD(bcd+1)
     Display_BCD(bcd+0)
     ret
-
-
-
-
+    
 MainProgram:
     lcall LCD_4BIT
     mov SP, #7FH ; Set the stack pointer to the begining of idata
