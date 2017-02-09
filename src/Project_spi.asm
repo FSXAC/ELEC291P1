@@ -1,4 +1,4 @@
-﻿$MODLP52
+$MODLP52
 org 0000H
    ljmp MainProgram
 
@@ -146,8 +146,12 @@ LM: mov b, #0;
     lcall _Read_ADC_Channel
     lcall LM_converter
     clr LM_TH
-    lcall display
-
+ 	Set_Cursor(2, 7)
+ 	display_BCD(bcd+1); display on the LCD
+ 	display_BCD(bcd+0); display on the LCD
+ 	Send_BCD(bcd+1) ;
+    Send_BCD(bcd+0) ;
+	
     mov a, #'\r' 
     lcall putchar
     mov a, #'\n'
@@ -160,7 +164,16 @@ Th: mov b, #1 ; connect thermocouple to chanel1
     lcall _Read_ADC_Channel ; Read from the SPI
     lcall Th_converter ; convert ADC TO actual value
     setb LM_TH
+    lcall hex2bcd
+ 	Send_BCD(bcd+1) ;
+    Send_BCD(bcd+0) ;
+    mov a, #'\r' 
+    lcall putchar
+    mov a, #'\n'
+    lcall putchar; display our value - final temperature
+
     ljmp SendVoltage		
+	
 Send_Done:
 
     ; add it up
@@ -176,9 +189,9 @@ LM_converter:
     load_y(1023)
     lcall div32
     load_y(273)
-    lcLll sub32
+    lcall sub32
     lcall hex2bcd
-    
+    ret
 Th_converter:
     mov x+3, #0 ; Load 32-bit �y� with value from ADC
     mov x+2, #0
@@ -186,6 +199,7 @@ Th_converter:
     mov x+0, R6
     load_y(100)
     lcall mul32
+    ret
     ;lcall hex2bcd
 
 ;-----------------------------------
@@ -250,17 +264,20 @@ display:
     ret
     
 MainProgram:
-    lcall LCD_4BIT
+    ;lcall LCD_4BIT
     mov SP, #7FH ; Set the stack pointer to the begining of idata
     mov PMOD, #0 ; Configure all ports in bidirectional mode
+    lcall LCD_4BIT
     Set_Cursor(1, 1)
     Send_Constant_String(#Initial_Message)
 
     lcall InitSerialPort
     ;mov DPTR, #Hello_World
     ;lcall SendString
+	
+	
     clr LM_TH ; set the flag to low initially
-    lcall SendVoltage
+    ljmp SendVoltage
     ;lcall display
 
 END
