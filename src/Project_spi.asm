@@ -31,14 +31,19 @@ MY_MOSI EQU P2.1
 MY_MISO EQU P2.2
 MY_SCLK EQU P2.3
 
+
+
 $NOLIST
 $include(math32.inc)
 $LIST
+$NOLIST
+$include(macros.inc)
+$LIST
+
 
 $NOLIST
 $include(LCD_4bit.inc)
 $LIST
-
 
 VLED EQU 207 ; Measured (with multimeter) LED voltage x 100
 DSEG ; Tell assembler we are about to define variables
@@ -268,7 +273,7 @@ MainProgram:
     ;lcall LCD_4BIT
     mov SP, #7FH ; Set the stack pointer to the begining of idata
     mov PMOD, #0 ; Configure all ports in bidirectional mode
-    lcall LCD_4BIT
+    lcall LCD_init
     LCD_cursor(1, 1)
     LCD_print (#Initial_Message)
 
