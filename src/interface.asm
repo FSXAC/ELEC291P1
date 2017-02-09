@@ -380,16 +380,22 @@ main:
     LCD_printChar(#0xDF)
 main_button_start:
     ; [START] - start the reflow program
+    ;check for start button only if the process has not started yet
     jb		ongoing_flag, main_update
     jb 		BTN_START, main_button_state
     sleep(#DEBOUNCE)
     jb 		BTN_START, main_button_state
     jnb 	BTN_START, $
+    ; set ongoing_flag to prevent buttons from working during operation
     setb	ongoing_flag
-	
+    
+	; clear the reset flag so timer can start counting up
 	clr		reset_timer_f
+	; reset the soaktime timer to be 0
 	mov		soakTime_sec, #0x00
+	; set as FSM State 1
 	mov		a, #RAMP2SOAK
+	; go to FSM forever loop
 	ljmp 	forever
 
     ; **PUT WHAT HAPPENS IF YOU PRESS START HERE LMAO HELP ME LORD (whatever goes here has to connect to main_update and check for stop button)
@@ -402,21 +408,24 @@ main_button_state:
     jb 		BTN_STATE, main_update
     jnb 	BTN_STATE, $
     ljmp    conf_soakTemp
-    
+
+; just a jump statement because too many lines of code in between    
 fsm_update_j:
 	ljmp fsm_update
 
 main_update:
 	; update time and ** temperature display here
 	jb		ongoing_flag, fsm_update_j
+	; update main screen values
     LCD_cursor(2, 9)
     LCD_printBCD(minutes)
     LCD_cursor(2, 12)
     LCD_printBCD(seconds)
     LCD_printTemp(crtTemp, 1, 12)							; where is the temperature coming from ??
     ljmp 	main_button_start
-
+; update fsm values
 fsm_update:
+	LCD_printTemp(crtTemp, 2, 3)
 	LCD_printTime(soakTime_sec, 2, 9)
 	ljmp forever
 ;-------------------------------------;
