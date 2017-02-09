@@ -16,31 +16,12 @@ L0:
 	pop AR0
     ret
 
-;===WAIT []ms===
-; sleep mac
-; 	push AR2
-; 	mov R2, %0
-; 	lcall ?sleep
-; 	pop AR2
-; endmac
-; ?sleep:
-; 	push AR0
-; 	push AR1
-; L3: mov R1, #45
-; L2: mov R0, #166
-; L1: djnz R0, L1 ; 3 cycles->3*45.21123ns*166=22.51519us
-;     djnz R1, L2 ; 22.51519us*45=1.013ms
-;     djnz R2, L3 ; number of millisecons to wait passed in R2
-;     pop AR1
-;     pop AR0
-;     ret
-
 ;---------------------------------;
 ; Toggles the 'E' pin in the LCD  ;
 ;---------------------------------;
 LCD_pulse:
 	setb LCD_E
-	lcall sleep40us
+	lcall 5
 	clr LCD_E
     ret
 
@@ -96,13 +77,20 @@ endmac
 ;---------------------------------;
 ; Configure LCD in 4-bit mode     ;
 ;---------------------------------;
-LCD_config:
+LCD_init:
 	clr LCD_E   ; Resting state of LCD's enable pin is zero
 	clr LCD_RW  ; We are only writing to the LCD in this program
+
+	; After power on, let the LCD start up before initializing
+	; NOTE: the preprogrammed power-on delay of 16 ms on the AT89LP52
+	; seems to be enough.  That is why this line is commented out.
+	; Wait_Milli_Seconds(#40)
+
 	; First make sure the LCD is in 8-bit mode and then change to 4-bit mode
 	LCD_cmd(#0x33)
 	LCD_cmd(#0x33)
 	LCD_cmd(#0x32) ; change to 4-bit mode
+
 	; Configure the LCD
 	LCD_cmd(#0x28)
 	LCD_cmd(#0x0c)
@@ -116,40 +104,68 @@ LCD_config:
 ; Send a constant string to LCD   ;
 ;---------------------------------;
 LCD_print mac
-	push   dph
-	push   dpl
-	push   acc
-	mov    dptr, %0
-	lcall  ?LCD_print
-	pop    acc
-	pop    dpl
-	pop    dph
+	push dph
+	push dpl
+	push acc
+	mov dptr, %0
+	lcall ?Send_Constant_String
+	pop acc
+	pop dpl
+	pop dph
 endmac
-?LCD_print:
-    clr     a
-    movc    a,  @a+dptr
-    jz      ?LCD_print_return
-    lcall   ?LCD_write
-    inc     dptr
-    sjmp    ?LCD_print
-?LCD_print_return:
+?Send_Constant_String:
+    clr a
+    movc a, @a+dptr
+    jz ?Send_Constant_String_Done
+    lcall ?LCD_write
+    inc dptr
+    sjmp ?Send_Constant_String
+?Send_Constant_String_Done:
     ret
+
+;---------------------------------;
+; Scroll display constant string  ;
+;---------------------------------;
+Scroll_display mac
+	push dph
+	push dpl
+	push acc
+	push AR1
+	mov R1, %0
+?scroll:
+	mov a, R1
+	clr c
+	subb a, %1
+	jz ?next
+	LCD_cmd(#0x14)
+	Send_Constant_String(%2)
+	Wait_Milli_Seconds(#50)
+;	LCD_cmd(#0x01)
+;	Wait_Milli_Seconds(#2)
+	inc R1
+	sjmp ?scroll
+?next:
+	pop AR1
+	pop acc
+	pop dpl
+	pop dph
+	endmac
 
 ;---------------------------------;
 ; Set LCD cursor at row, column   ;
 ;---------------------------------;
 LCD_cursor mac
-	push   acc
-	mov    a,  #%1
-	dec    a
-	lcall  ?LCD_cursor_%0 ; Select column and row
-	pop    acc
+	push acc
+	mov a, #%1
+	dec a
+	lcall ?Set_Cursor_%0 ; Select column and row
+	pop acc
 endmac
-?LCD_cursor_2:
-	orl    a,  #01000000B
-?LCD_cursor_1:
-	orl    a,  #10000000B
-	ljmp   ?LCD_cmd ; Select column and row
+?Set_Cursor_2:
+	orl a, #01000000B
+?Set_Cursor_1:
+	orl a, #10000000B
+	ljmp ?LCD_cmd ; Select column and row
 
 ;---------------------------------;
 ; Display a BCD number in the LCD ;
@@ -184,4 +200,77 @@ LCD_printChar mac
 	mov a, %0
 	lcall ?LCD_write
 	pop acc
+endmac
+
+; -------------------------;
+; Print Time Macro		   ;		; does this even work like this? QQ
+; -------------------------;
+LCD_printTime mac
+    push    ACC
+    push    AR2
+    push    AR3
+	mov 	a, %0
+    mov 	b, #60
+    div		ab				; minutes are in a, seconds are in b
+
+	mov		R2, b
+
+    mov 	b, #10
+    div		ab				; result is in a, remainder is in b
+    LCD_cursor(2, 6)
+    add		a, #0x30
+    mov		R3, a
+    LCD_printChar(R3)
+
+    LCD_cursor(2, 7)
+    mov		a, b
+    add		a, #0x30
+    mov		b, a
+    LCD_printChar(b)
+
+    mov		b, #10
+    mov		a, R2
+    div		ab
+    LCD_cursor(2, 9)
+    add		a, #0x30
+    mov		R3, a
+    LCD_printChar(R3)
+
+    LCD_cursor(2, 10)
+    mov		a, b
+    add		a, #0x30
+    mov		b, a
+    LCD_printChar(b)
+    pop     AR2
+    pop     AR3
+    pop     ACC
+endmac
+
+; -------------------------;
+; Print Temp Macro		   ;
+; -------------------------;
+LCD_printTemp mac
+    push    ACC
+    push    AR1
+	mov 	a, %0
+    mov 	b, #100
+    div		ab				; result is in a, remainder is in b
+    LCD_cursor(2, 7)
+    add		a, #0x30
+    mov		R1, a
+    LCD_printChar(R1)
+    mov		a, b
+    mov		b, #10
+    div		ab
+    add		a, #0x30
+    mov		R1, a
+    LCD_cursor(2, 8)
+    LCD_printChar(R1)
+    LCD_cursor(2, 9)
+    mov		a, b
+    add		a, #0x30
+    mov		b, a
+    LCD_printChar(b)
+    pop     AR1
+    pop     ACC
 endmac
