@@ -35,8 +35,10 @@ d2          equ     2
 d3          equ     3
 d4          equ     4
 
-; 7seg display      ABCDEFG
-O           equ     1111110
-P           equ     1100111
-E           equ     1001111
-N           equ     1110110
+; 7seg display
+; "datasheet": http://haneefputtur.com/7-segment-4-digit-led-display-sma420564-using-arduino.html
+;                   ABCDEFG.
+O           equ     11111100
+P           equ     11001110
+E           equ     10011110
+N           equ     11101100
