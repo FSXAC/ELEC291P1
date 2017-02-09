@@ -77,7 +77,7 @@ endmac
 ;---------------------------------;
 ; Configure LCD in 4-bit mode     ;
 ;---------------------------------;
-LCD_4BIT:
+LCD_init:
 	clr LCD_E   ; Resting state of LCD's enable pin is zero
 	clr LCD_RW  ; We are only writing to the LCD in this program
 
@@ -200,4 +200,77 @@ LCD_printChar mac
 	mov a, %0
 	lcall ?LCD_write
 	pop acc
+endmac
+
+; -------------------------;
+; Print Time Macro		   ;		; does this even work like this? QQ
+; -------------------------;
+LCD_printTime mac
+    push    ACC
+    push    AR2
+    push    AR3
+	mov 	a, %0
+    mov 	b, #60
+    div		ab				; minutes are in a, seconds are in b
+
+	mov		R2, b
+
+    mov 	b, #10
+    div		ab				; result is in a, remainder is in b
+    LCD_cursor(2, 6)
+    add		a, #0x30
+    mov		R3, a
+    LCD_printChar(R3)
+
+    LCD_cursor(2, 7)
+    mov		a, b
+    add		a, #0x30
+    mov		b, a
+    LCD_printChar(b)
+
+    mov		b, #10
+    mov		a, R2
+    div		ab
+    LCD_cursor(2, 9)
+    add		a, #0x30
+    mov		R3, a
+    LCD_printChar(R3)
+
+    LCD_cursor(2, 10)
+    mov		a, b
+    add		a, #0x30
+    mov		b, a
+    LCD_printChar(b)
+    pop     AR2
+    pop     AR3
+    pop     ACC
+endmac
+
+; -------------------------;
+; Print Temp Macro		   ;
+; -------------------------;
+LCD_printTemp mac
+    push    ACC
+    push    AR1
+	mov 	a, %0
+    mov 	b, #100
+    div		ab				; result is in a, remainder is in b
+    LCD_cursor(2, 7)
+    add		a, #0x30
+    mov		R1, a
+    LCD_printChar(R1)
+    mov		a, b
+    mov		b, #10
+    div		ab
+    add		a, #0x30
+    mov		R1, a
+    LCD_cursor(2, 8)
+    LCD_printChar(R1)
+    LCD_cursor(2, 9)
+    mov		a, b
+    add		a, #0x30
+    mov		b, a
+    LCD_printChar(b)
+    pop     AR1
+    pop     ACC
 endmac

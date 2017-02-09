@@ -17,6 +17,23 @@ L1: djnz    R0,     L1 ; 3 cycles->3*45.21123ns*166=22.51519us
     pop     AR0
     ret
 
+; -------------------------;
+; Increment Macro		   ;
+; -------------------------;
+increment mac
+    mov     a,      %0
+    add     a,      #0x01
+    mov     %0,     a
+endmac
+; -------------------------;
+; Decrement Macro		   ;
+; -------------------------;
+decrement mac
+    mov     a,      %0
+    add	    a,      #0xFF
+    mov     %0,     a
+endmac
+
 ;===SEND BCD VIA SPI===
 ; putBCD mac
 ;     push    AR0

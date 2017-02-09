@@ -1,5 +1,5 @@
 ;LIT SOLDER OVEN CONTROLLER
-; AUTHOR:   SCOTT BEAULIEU
+; AUTHORS:  SCOTT BEAULIEU
 ;			GEOFF GOODWIN
 ;			MUCHEN HE
 ;			LARRY LIU
@@ -25,7 +25,6 @@ $LIST
 $include(macros.inc)
 $include(LCD_4bit.inc)
 $include(math32.inc)
-
 
 ; Preprocessor constants
 CLK             equ     22118400
@@ -108,97 +107,6 @@ msg_reflowTemp:	    db 'REFLOW TEMP:   <', 0
 msg_reflowTime:	    db 'REFLOW TIME:   <', 0
 msg_temp:	        db '      --- C    >', 0
 msg_time:	        db '     --:--     >', 0
-
-
-; -------------------------;
-; Increment Macro		   ;
-; -------------------------;
-increment mac
-    mov     a,      %0
-    add     a,      #0x01
-    mov     %0,     a
-endmac
-; -------------------------;
-; Decrement Macro		   ;
-; -------------------------;
-decrement mac
-    mov     a,      %0
-    add	    a,      #0xFF
-    mov     %0,     a
-endmac
-
-; -------------------------;
-; Print Time Macro		   ;		; does this even work like this? QQ
-; -------------------------;
-LCD_printTime mac
-    push    ACC
-    push    AR2
-    push    AR3
-	mov 	a, %0
-    mov 	b, #60
-    div		ab				; minutes are in a, seconds are in b
-
-	mov		R2, b
-
-    mov 	b, #10
-    div		ab				; result is in a, remainder is in b
-    LCD_cursor(2, 6)
-    add		a, #0x30
-    mov		R3, a
-    LCD_printChar(R3)
-
-    LCD_cursor(2, 7)
-    mov		a, b
-    add		a, #0x30
-    mov		b, a
-    LCD_printChar(b)
-
-    mov		b, #10
-    mov		a, R2
-    div		ab
-    LCD_cursor(2, 9)
-    add		a, #0x30
-    mov		R3, a
-    LCD_printChar(R3)
-
-    LCD_cursor(2, 10)
-    mov		a, b
-    add		a, #0x30
-    mov		b, a
-    LCD_printChar(b)
-    pop     AR2
-    pop     AR3
-    pop     ACC
-endmac
-
-; -------------------------;
-; Print Temp Macro		   ;
-; -------------------------;
-LCD_printTemp mac
-    push    ACC
-    push    AR1
-	mov 	a, %0
-    mov 	b, #100
-    div		ab				; result is in a, remainder is in b
-    LCD_cursor(2, 7)
-    add		a, #0x30
-    mov		R1, a
-    LCD_printChar(R1)
-    mov		a, b
-    mov		b, #10
-    div		ab
-    add		a, #0x30
-    mov		R1, a
-    LCD_cursor(2, 8)
-    LCD_printChar(R1)
-    LCD_cursor(2, 9)
-    mov		a, b
-    add		a, #0x30
-    mov		b, a
-    LCD_printChar(b)
-    pop     AR1
-    pop     ACC
-endmac
 
 ; -------------------------;
 ; Initialize Timer 2	   ;
@@ -422,7 +330,7 @@ setup:
     setb    EA
 
     ; LCD setup
-    lcall   LCD_4BIT
+    lcall   LCD_init
 
     ; PWM setup
     mov     ovenPower,      #0 ;choose initial power here (0-10)
