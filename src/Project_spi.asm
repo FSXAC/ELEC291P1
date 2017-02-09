@@ -39,6 +39,7 @@ $NOLIST
 $include(LCD_4bit.inc)
 $LIST
 
+
 VLED EQU 207 ; Measured (with multimeter) LED voltage x 100
 DSEG ; Tell assembler we are about to define variables
 Vcc: ds 2 ; 16-bits are enough to store VCC x 100 (max is 525)
@@ -146,9 +147,9 @@ LM: mov b, #0;
     lcall _Read_ADC_Channel
     lcall LM_converter
     clr LM_TH
- 	Set_Cursor(2, 7)
- 	display_BCD(bcd+1); display on the LCD
- 	display_BCD(bcd+0); display on the LCD
+ 	LCD_cursor(2, 7)
+ 	LCD_printBCD(bcd+1); display on the LCD
+ 	LCD_printBCD(bcd+0); display on the LCD
  	Send_BCD(bcd+1) ;
     Send_BCD(bcd+0) ;
 	
@@ -255,12 +256,12 @@ Delay:
 ;display temperature
 ;------------------------------
 display:
-   Set_Cursor(2, 7)
-    ;Display_BCD(bcd+4)
-    ;Display_BCD(bcd+3)
-    ;Display_BCD(bcd+2)
-    ;Display_BCD(bcd+1)
-    Display_BCD(bcd+0)
+   LCD_cursor(2, 7)
+    ;LCD_printBCD(bcd+4)
+    ;LCD_printBCD(bcd+3)
+    ;LCD_printBCD(bcd+2)
+    ;LCD_printBCD(bcd+1)
+    LCD_printBCD(bcd+0)
     ret
     
 MainProgram:
@@ -268,8 +269,8 @@ MainProgram:
     mov SP, #7FH ; Set the stack pointer to the begining of idata
     mov PMOD, #0 ; Configure all ports in bidirectional mode
     lcall LCD_4BIT
-    Set_Cursor(1, 1)
-    Send_Constant_String(#Initial_Message)
+    LCD_cursor(1, 1)
+    LCD_print (#Initial_Message)
 
     lcall InitSerialPort
     ;mov DPTR, #Hello_World
