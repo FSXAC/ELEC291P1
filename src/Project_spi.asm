@@ -194,6 +194,15 @@ LM_converter:
     load_y(273)
     lcLll sub32
     lcall hex2bcd
+    
+Th_converter:
+    mov x+3, #0 ; Load 32-bit �y� with value from ADC
+    mov x+2, #0
+    mov x+1, R7
+    mov x+0, R6
+    load_y(100)
+    lcall mul32
+    ;lcall hex2bcd
 ;-------------------------------------------------
 ;calculation
 ;-------------------------------------------------
