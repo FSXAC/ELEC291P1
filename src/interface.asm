@@ -160,12 +160,7 @@ T2_ISR_incDone:
     mov 	countms+0,     a
     mov 	countms+1,     a
 
-    ; Increment timer if not resetting
-    jnb reset_timer_f, timer_start
-	;reset soaktime
-    mov soakTime_sec, #0x00
     ; Increment soaktime timer
-timer_start:
 	increment(soakTime_sec)
 	
     ; Increment seconds
@@ -643,12 +638,15 @@ fsm_state1:
     mov     power,        #10 ; (Geoff pls change this line of code to fit)
     ;mov     soakTime_sec, #0
     ;mov     soakTime_min, #0
-    mov     a,          #150
+    
+    ;soakTemp is the saved parameter from interface
+    mov     a,          soakTemp
     clr     c
-    subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
+    ;crtTemp is the temperature taken from oven (i think...)
+    subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
     jnc     fsm_state1_done
-    mov     state, #2
-    setb    reset_timer_f; reset the timer before jummp to state2
+    mov     state, #PREHEAT_SOAK
+    mov		soakTime_sec, #0x00	; reset the timer before jummp to state2
     ; ***here set the beeper ()
 fsm_state1_done:
     ljmp    forever ; here should it be state1? FIXME
