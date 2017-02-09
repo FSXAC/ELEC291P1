@@ -72,10 +72,11 @@ msg_reflowTemp:	    db 'REFLOW TEMP:   <', 0
 msg_reflowTime:	    db 'REFLOW TIME:   <', 0
 msg_temp:	        db '      --- C    >', 0
 msg_time:	        db '     --:--     >', 0
-msg_state1:         db '   RampToSoak   ', 0
-msg_state2          db '   PREHEAT_SOAK' 0
-msg_state2          db '   REFLOW' 0
-msg_state2          db '   COOLING' 0
+msg_state1:         db ' S: RampToSoak  ', 0
+msg_state2:         db ' S: PreheatSoak ', 0
+msg_state3:			db ' S: RampToPeak  ', 0
+msg_state4:         db ' S: Reflow      ', 0
+msg_state5:         db ' S: Cooling     ', 0
 msg_fsm:            db '  --- C  --:--  ', 0
 
 ; -------------------------;
@@ -177,7 +178,7 @@ fsm_state1:
     jnc     fsm_state1_done
     mov     state, #2
     setb    reset_timer_f; reset the timer before jummp to state2
-    ; here set the beeper ()
+    ; ***here set the beeper ()
 fsm_state1_done:
     ljmp    forever ; here should it be state1? FIXME
 
@@ -194,7 +195,7 @@ fsm_state2:
     jnc fsm_state2_done
     mov state, #3
     setb reset_timer_f
-    ;set the beeper
+    ;***set the beeper
 fsm_state2_done:
     ljmp forever
     ; this portion will change depends on the whether we gonna use min or not
@@ -215,7 +216,7 @@ fsm_state3:
    jnc     fsm_state3_done
    mov     state, #4
    setb    reset_timer_f; reset the timer before jummp to state2
-   ; here set the beeper ()
+   ; ***here set the beeper ()
 fsm_state3_done:
    ljmp    forever ; here should it be state1? FIXME
 
@@ -232,7 +233,7 @@ fsm_state4:
    jnc fsm_state4_done
    mov state, #5
    setb reset_timer_f
-   ; set the beeper
+   ; ***set the beeper
 fsm_state4_done:
    ljmp forever
 
@@ -252,6 +253,6 @@ Three_beeper:
     jnc     fsm_state5_done
     mov     state, #0
     setb    reset_timer_f; reset the timer before jummp to state2
-     ; here set *six*  beepers  ()
+     ;*** here set *six*  beepers  ()
 fsm_state5_done:
     ljmp forever
