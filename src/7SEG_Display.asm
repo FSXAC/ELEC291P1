@@ -19,3 +19,9 @@ $MODLP52
 $LIST
 $include(macros.inc)
 $include(LCD_4bit.inc)
+
+; pins for shift register
+LED_DATA    equ     P0.0
+LED_LATCH   equ     P0.1
+LED_CLK     equ     P0.2
+LED_CLR     equ     P0.3
