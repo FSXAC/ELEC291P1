@@ -21,7 +21,7 @@ L0:
 ;---------------------------------;
 LCD_pulse:
 	setb LCD_E
-	lcall 5
+	lcall sleep40us
 	clr LCD_E
     ret
 
