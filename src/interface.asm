@@ -115,7 +115,7 @@ msg_state2:         db ' S: PreheatSoak ', 0
 msg_state3:			db ' S: RampToPeak  ', 0
 msg_state4:         db ' S: Reflow      ', 0
 msg_state5:         db ' S: Cooling     ', 0
-msg_fsm:            db '  --- C  --:--  ', 0
+msg_fsm:            db '  --- C --:--   ', 0
 
 ; -------------------------;
 ; Initialize Timer 2	   ;
@@ -380,12 +380,15 @@ main:
     LCD_printChar(#0xDF)
 main_button_start:
     ; [START] - start the reflow program
+    jb		ongoing_flag, main_update
     jb 		BTN_START, main_button_state
     sleep(#DEBOUNCE)
     jb 		BTN_START, main_button_state
     jnb 	BTN_START, $
     setb	ongoing_flag
 	
+	clr		reset_timer_f
+	mov		soakTime_sec, #0x00
 	mov		a, #RAMP2SOAK
 	ljmp 	forever
 
@@ -399,8 +402,13 @@ main_button_state:
     jb 		BTN_STATE, main_update
     jnb 	BTN_STATE, $
     ljmp    conf_soakTemp
+    
+fsm_update_j:
+	ljmp fsm_update
+
 main_update:
 	; update time and ** temperature display here
+	jb		ongoing_flag, fsm_update_j
     LCD_cursor(2, 9)
     LCD_printBCD(minutes)
     LCD_cursor(2, 12)
@@ -408,6 +416,9 @@ main_update:
     LCD_printTemp(crtTemp, 1, 12)							; where is the temperature coming from ??
     ljmp 	main_button_start
 
+fsm_update:
+	LCD_printTime(soakTime_sec, 2, 9)
+	ljmp forever
 ;-------------------------------------;
 ; CONFIGURE: Soak Temperature 		  ;
 ;-------------------------------------;
@@ -617,7 +628,7 @@ fsm_state1:
     LCD_cursor(2, 1)
     LCD_print(#msg_fsm)
     LCD_printTemp(soakTemp, 2, 3)
-	LCD_printTime(soakTime_sec, 2, 10)
+	LCD_printTime(soakTime_sec, 2, 9)
 
 
     mov     power,        #10 ; (Geoff pls change this line of code to fit)
