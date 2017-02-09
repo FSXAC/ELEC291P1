@@ -166,7 +166,7 @@ T2_ISR_incDone:
     mov soakTime_sec, #0x00
     ; Increment soaktime timer
 timer_start:
-	increment(soakTime)
+	increment(soakTime_sec)
 	
     ; Increment seconds
     mov     a,   seconds
