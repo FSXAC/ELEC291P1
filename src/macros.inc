@@ -230,6 +230,11 @@ endmac
 ;     push    ACC
 ; endmac
 
+;--------------------------;
+;		shift register	   ;
+;		macro			   ;
+;--------------------------;
+
 barLED mac
     push    ACC
     push    AR0
