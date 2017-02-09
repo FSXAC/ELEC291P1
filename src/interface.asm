@@ -160,12 +160,7 @@ T2_ISR_incDone:
     mov 	countms+0,     a
     mov 	countms+1,     a
 
-    ; Increment timer if not resetting
-    jnb reset_timer_f, timer_start
-	;reset soaktime
-    mov soakTime_sec, #0x00
     ; Increment soaktime timer
-timer_start:
 	increment(soakTime_sec)
 	
     ; Increment seconds
@@ -394,7 +389,7 @@ main_button_start:
 	; reset the soaktime timer to be 0
 	mov		soakTime_sec, #0x00
 	; set as FSM State 1
-	mov		a, #RAMP2SOAK
+	mov		state, #RAMP2SOAK
 	; go to FSM forever loop
 	ljmp 	forever
 
@@ -624,6 +619,7 @@ dec_reflow_time:
 ; END OF INTERFACE // BEGIN FSM
 ;-------------------------------------------
 forever: 
+	mov		a, state
 	ljmp	fsm_state1
 
 fsm_state2_j:
@@ -636,21 +632,27 @@ fsm_state1:
     LCD_print(#msg_state1)
     LCD_cursor(2, 1)
     LCD_print(#msg_fsm)
-    LCD_printTemp(soakTemp, 2, 3)
+fsm_state1_update:
+    LCD_printTemp(crtTemp, 2, 3)
 	LCD_printTime(soakTime_sec, 2, 9)
 
 
     mov     power,        #10 ; (Geoff pls change this line of code to fit)
     ;mov     soakTime_sec, #0
     ;mov     soakTime_min, #0
-    mov     a,          #150
+    
+    ;soakTemp is the saved parameter from interface
+    mov     a,          soakTemp
     clr     c
-    subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jnc     fsm_state1_done
-    mov     state, #2
-    setb    reset_timer_f; reset the timer before jummp to state2
+    ;crtTemp is the temperature taken from oven (i think...)
+    subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
+    jnz     fsm_state1_done
+    mov     state, #PREHEAT_SOAK
+    mov		soakTime_sec, #0x00	; reset the timer before jummp to state2
     ; ***here set the beeper ()
+    ljmp 	forever
 fsm_state1_done:
+	ljmp 	fsm_state1_update
     ljmp    forever ; here should it be state1? FIXME
 
 fsm_state2:
