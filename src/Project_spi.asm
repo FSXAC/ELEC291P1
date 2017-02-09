@@ -1,4 +1,4 @@
-$MODLP52
+﻿$MODLP52
 org 0000H
    ljmp MainProgram
 
@@ -141,42 +141,26 @@ DO_SPI_G_LOOP:
 ;send voltage to the serial port
 ;--------------------------------------------------
 SendVoltage:
-
-    lcall INIT_SPI
-    Forever:
-	clr CE_ADC
-	mov R0, #00000001B ; Start bit:1
-	lcall DO_SPI_G
-	mov R0, #10000000B ; Single ended, read channel 0
-	lcall DO_SPI_G
-	mov a, R1 ; R1 contains bits 8 and 9
-	anl a, #00000011B ; We need only the two least significant bits
-	mov Result+1, a ; Save result high.
-	mov R0, #55H ; It doesn't matter what we transmit...
-	lcall DO_SPI_G
-	mov Result, R1 ; R1 contains bits 0 to 7. Save result low.
-	setb CE_ADC
-	lcall Delay
-	;lcall calculation
-	lcall data_transformation
-	sjmp Forever
-    sjmp $ ; This is equivalent to 'forever: sjmp forever'
-
-    ;POP AR0
-    ;POP acc
-    ret
-    jnb LM_TH, Th
+    jnb LM_TH, Th ; jump to Th initially 
 LM: mov b, #0;
     lcall _Read_ADC_Channel
     lcall LM_converter
     clr LM_TH
-    ljmp Send_Done
+    lcall display
 
+    mov a, #'\r' 
+    lcall putchar
+    mov a, #'\n'
+    lcall putchar; display our value - final temperature
+
+    ljmp SendVoltage ; for our testing code, constanly track the temperature
+    
+	
 Th: mov b, #1 ; connect thermocouple to chanel1
     lcall _Read_ADC_Channel ; Read from the SPI
     lcall Th_converter ; convert ADC TO actual value
     setb LM_TH
-
+    ljmp SendVoltage		
 Send_Done:
 
     ; add it up
@@ -203,30 +187,6 @@ Th_converter:
     load_y(100)
     lcall mul32
     ;lcall hex2bcd
-;-------------------------------------------------
-;calculation
-;-------------------------------------------------
-; Measure the LED voltage. Used as reference to find VCC.
-calculation:
-		PUSH AR6
-		PUSH AR7
-
-    mov b, #7 ; VLED connected to input �7� of MCP3008 ADC
-    ;lcall Read_ADC_Channel ; Read voltage, returns 10-bits in [R6-R7]
-    lcall _Read_ADC_Channel
-    mov y+3, #0 ; Load 32-bit �y� with value from ADC
-    mov y+2, #0
-    mov y+1, R7
-    mov y+0, R6
-    load_x(VLED*1023) ; Macro to load �x� with constant
-    lcall div32 ; Divide �x� by �y�, the result is VCC in �x�
-    mov Vcc+1, x+1 ; Save calculated VCC high byte
-    mov Vcc+0, x+0 ; Save calculated VCC low byte
-
-    POP AR7
-    POP AR6
-
-    ret
 
 ;-----------------------------------
 ; chanel 6 mac
@@ -254,90 +214,7 @@ _Read_ADC_Channel:
 	mov a, R1
 	mov R6, a ; R1 contains bits 0 to 7. Save result low.
 	setb CE_ADC
-	ret
-
-
-
-;-----------------------------------------------------
-;data_transofrmation
-;-----------------------------------------------------
-data_transformation:
-	PUSH acc
-	;Load_x(Result) ; put result into X
-	;mov y+3, #0
-	;mov y+2, #0
-	;mov y+1, Vcc+1
-	;mov y+0, Vcc+0
-
-	;mov x+3, #0
-	;mov x+2, #0
-	;mov x+1, Result+1
-	;mov x, Result
-	;lcall mul32; result is stroed in X
-
-	;calculate the Voutput voltage
-    ;mov y+0, #low(1023)
-	;mov y+1, #high(1023)
-	;mov y+2, #0
-	;mov y+3, #0
-	;lcall div32
-	;result store in X
-
-	;mov x+1,Vcc
-	;mov x,Vcc
-
-	;Final_result 0
-	;Final_result 1
-	mov x+3, #0
-	mov x+2, #0
-	mov x+1, Result+1
-	mov x, Result
-
-	mov y+3, #0
-	mov y+2, #0
-	mov y+1, #high(5000)
-	mov y+0, #low(5000)
-
-	lcall mul32
-
-
-
-    mov y+3, #0
-	mov y+2, #0
-	mov y+1, #high(1023)
-	mov y+0, #low(1023)
-	lcall div32
-
-	lcall hex2bcd
-	; bcd has the value of ADC voltage
-	;lcall calculation
-
-
-	Send_BCD(bcd+1)
-	Send_BCD(bcd)
-
-    lcall bcd2hex
-    mov y+3, #0
-	mov y+2, #0
-	mov y+1, #high(2730)
-	mov y+0, #low(2730)
-	lcall sub32
-	mov y+3, #0
-	mov y+2, #0
-	mov y+1, #high(10)
-	mov y+0, #low(10)
-	lcall div32
-
-	lcall hex2bcd
-
-
-	lcall display
-
-	mov a, #'\r'
-	lcall putchar
-	mov a, #'\n'
-	lcall putchar
-	POP acc
+	lcall Delay
 	ret
 
 ;---------------------------------;
@@ -371,10 +248,7 @@ display:
     ;Display_BCD(bcd+1)
     Display_BCD(bcd+0)
     ret
-
-
-
-
+    
 MainProgram:
     lcall LCD_4BIT
     mov SP, #7FH ; Set the stack pointer to the begining of idata
