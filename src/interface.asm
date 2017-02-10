@@ -118,6 +118,33 @@ msg_state4:         db ' S: Reflow      ', 0
 msg_state5:         db ' S: Cooling     ', 0
 msg_fsm:            db '  --- C --:--   ', 0
 
+
+; -------------------------;
+; Initialize Timer 0	   ;
+; -------------------------;
+T0_init:
+    mov     a,      TMOD
+    anl     a,      #0xF0
+    orl     a,      #0x01
+    mov     TMOD,   a
+    mov     TH0,    #high(T0_RELOAD)
+    mov     TL0,    #low(T0_RELOAD)
+    ; Enable the timer and interrupts
+    setb    ET0
+    setb    TR0
+    ret
+
+;-----------------------------;
+; ISR for timer 0             ;
+;-----------------------------;
+T0_ISR:
+    clr     TR0
+    mov     TH0,    #high(T0_RELOAD)
+    mov     TL0,    #low(T0_RELOAD)
+    setb    TR0
+    cpl     P0.0
+    reti
+
 ; -------------------------;
 ; Initialize Timer 2	   ;
 ; -------------------------;
