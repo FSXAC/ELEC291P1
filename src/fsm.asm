@@ -54,12 +54,12 @@ dseg at 0x30
     countms:        ds  2
     state:          ds  1 ; current state of the controller
     crtTemp:	    ds	1			; temperature of oven
-    soakTime_sec    ds  1
-    soakTime_min    ds  1
+    soakTime_sec:   ds  1
+    soakTime_min:   ds  1
 bseg
-    seconds_f: 	dbit 1
-    ongoing_f:	dbit 1
-    reset_timer_f: dbit 1		;only check for buttons when the process has not started (JK just realized we might not need this..)
+    seconds_f: 	    dbit 1
+    ongoing_f:      dbit 1
+    reset_timer_f:  dbit 1		;only check for buttons when the process has not started (JK just realized we might not need this..)
     ;for every state to begin, the timer get reset
 cseg
 ; LCD SCREEN
@@ -72,11 +72,11 @@ msg_reflowTemp:	    db 'REFLOW TEMP:   <', 0
 msg_reflowTime:	    db 'REFLOW TIME:   <', 0
 msg_temp:	        db '      --- C    >', 0
 msg_time:	        db '     --:--     >', 0
-msg_state1:         db ' S: RampToSoak  ', 0
-msg_state2:         db ' S: PreheatSoak ', 0
-msg_state3:			db ' S: RampToPeak  ', 0
-msg_state4:         db ' S: Reflow      ', 0
-msg_state5:         db ' S: Cooling     ', 0
+msg_state1:         db '   RAMP TO SOAK ', 0
+msg_state2:         db '   PREHEAT SOAK ', 0
+msg_state3:         db '   RAMP TO PEAK ', 0
+msg_state4:         db '   REFLOW       ', 0
+msg_state5:         db '   COOLING      ', 0
 msg_fsm:            db '  --- C  --:--  ', 0
 
 ; -------------------------;

@@ -187,6 +187,10 @@ Th_converter:
     load_y(100)
     lcall mul32
     ;lcall hex2bcd
+    ;Send_BCD(bcd)
+    
+    ;mov DPTR, #New_Line
+    ;lcall SendString
 
 ;-----------------------------------
 ; chanel 6 mac
