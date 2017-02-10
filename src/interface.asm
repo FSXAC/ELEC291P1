@@ -86,10 +86,10 @@ dseg at 0x30
     power:		ds  1
 
     ; for math32
-    result:         ds  2
-    bcd:            ds  5
-    x:              ds  4
-    y:              ds  4
+    result:     ds  2
+    bcd:        ds  5
+    x:          ds  4
+    y:          ds  4
 
 bseg
     seconds_flag: 	dbit 1
@@ -118,7 +118,6 @@ msg_state4:         db ' S: Reflow      ', 0
 msg_state5:         db ' S: Cooling     ', 0
 msg_fsm:            db '  --- C --:--   ', 0
 
-
 ; -------------------------;
 ; Initialize Timer 0	   ;
 ; -------------------------;
@@ -131,7 +130,8 @@ T0_init:
     mov     TL0,    #low(T0_RELOAD)
     ; Enable the timer and interrupts
     setb    ET0
-    setb    TR0
+    ; Timer 0 do not start by default
+    ; setb    TR0
     ret
 
 ;-----------------------------;
@@ -367,6 +367,7 @@ setup:
     mov     PMOD,   #0
 
     ; Timer setup
+    lcall   T0_init
     lcall   T2_init
     setb    EA
 
@@ -383,9 +384,10 @@ setup:
     lcall   ADC_init
     lcall   SPI_init
 
+    ; initialize variables
     clr	    ongoing_flag
-    setb    seconds_flag       				; may not need this..
-    mov     seconds,    #0x00   			; initialize variables
+    setb    seconds_flag
+    mov     seconds,    #0x00
     mov     minutes,    #0x00
     mov		soakTemp, 	#0x00
     mov		soakTime, 	#0x00
@@ -449,7 +451,8 @@ main_fsm_update:
     ; update fsm values
     LCD_printTemp(crtTemp, 2, 3)
     LCD_printTime(soakTime_sec, 2, 9)
-    ljmp fsm
+    ljmp    fsm
+
 ;-------------------------------------;
 ; CONFIGURE: Soak Temperature 		  ;
 ;-------------------------------------;
@@ -714,9 +717,14 @@ fsm_state1_update:
     subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
 
     jnz     fsm_state1_done
+
+    ; temperature reached
     mov     state,          #PREHEAT_SOAK
     mov	    soakTime_sec,   #0x00   ; reset the timer before jummp to state2
-    ; ***here set the beeper ()
+
+    ; produces beeping noise
+    beep(1)
+
     ljmp 	fsm
 fsm_state1_done:
     ljmp 	fsm_state1_update ;<<< What is this?? INFINITE LOOP!
