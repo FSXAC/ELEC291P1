@@ -83,7 +83,7 @@ dseg at 0x30
 	ovenPower:	ds  1 ; currnet power of the oven, number between 0 and 10
 	soakTime_sec:	ds 1
 	power:		ds  1
-	
+
     ; for math32
     result:         ds  2
     bcd:            ds  5
@@ -162,7 +162,7 @@ T2_ISR_incDone:
 
     ; Increment soaktime timer
 	increment(soakTime_sec)
-	
+
     ; Increment seconds
     mov     a,   seconds
     add     a,   #0x01
@@ -383,7 +383,7 @@ main_button_start:
     jnb 	BTN_START, $
     ; set ongoing_flag to prevent buttons from working during operation
     setb	ongoing_flag
-    
+
 	; clear the reset flag so timer can start counting up
 	clr		reset_timer_f
 	; reset the soaktime timer to be 0
@@ -404,7 +404,7 @@ main_button_state:
     jnb 	BTN_STATE, $
     ljmp    conf_soakTemp
 
-; just a jump statement because too many lines of code in between    
+; just a jump statement because too many lines of code in between
 fsm_update_j:
 	ljmp fsm_update
 
@@ -416,7 +416,7 @@ main_update:
     LCD_printBCD(minutes)
     LCD_cursor(2, 12)
     LCD_printBCD(seconds)
-    LCD_printTemp(crtTemp, 1, 12)							; where is the temperature coming from ??
+    LCD_printTemp(crtTemp, 1, 12)	; where is the temperature coming from ??
     ljmp 	main_button_start
 ; update fsm values
 fsm_update:
@@ -613,12 +613,12 @@ dec_reflow_time:
     add		a, #0xFB
     mov		reflowTime, a
 	ret
-	
-	
+
+
 ;-------------------------------------------
 ; END OF INTERFACE // BEGIN FSM
 ;-------------------------------------------
-forever: 
+forever:
 	mov		a, state
 	ljmp	fsm_state1
 
@@ -640,7 +640,7 @@ fsm_state1_update:
     mov     power,        #10 ; (Geoff pls change this line of code to fit)
     ;mov     soakTime_sec, #0
     ;mov     soakTime_min, #0
-    
+
     ;soakTemp is the saved parameter from interface
     mov     a,          soakTemp
     clr     c
@@ -709,8 +709,8 @@ fsm_state4:
    ; ***set the beeper
 fsm_state4_done:
    ljmp forever
-   
-   
+
+
 main_button_start_j:
 	ljmp main_button_start
 

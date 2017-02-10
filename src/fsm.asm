@@ -1,3 +1,6 @@
+; ********* SINCE INTEGRATION TO INTERFACE.asm
+; ********* THIS FILE IS NOW DEPRECATED
+
 org 0x0000
     ljmp    setup
 ; org 0x000B
@@ -106,7 +109,7 @@ T2_ISR:
     jnz 	T2_ISR_incDone
     inc 	countms+1
 T2_ISR_incDone:
-	; Check if half second has passed
+    ; Check if half second has passed
     mov     a,  countms+0
     cjne    a,  #low(TIME_RATE),    T2_ISR_return
     mov     a,  countms+1
