@@ -103,7 +103,7 @@ bseg
 cseg
 ; LCD SCREEN
 ;                     	1234567890123456
-msg_main_top:  		db 'STATE:-  T=--- C', 0  ;State: 1-5
+msg_main_top:  		db 'STATE:-  T:--- C', 0  ;State: 1-5
 msg_main_btm: 		db '   TIME --:--   ', 0  ;elapsed time
 msg_soakTemp:       db 'SOAK TEMP:     <', 0
 msg_soakTime:       db 'SOAK TIME:     <', 0
@@ -111,12 +111,12 @@ msg_reflowTemp:	    db 'REFLOW TEMP:   <', 0
 msg_reflowTime:	    db 'REFLOW TIME:   <', 0
 msg_temp:	        db '      --- C    >', 0
 msg_time:	        db '     --:--     >', 0
-msg_state1:         db ' S: RampToSoak  ', 0
-msg_state2:         db ' S: PreheatSoak ', 0
-msg_state3:			db ' S: RampToPeak  ', 0
-msg_state4:         db ' S: Reflow      ', 0
-msg_state5:         db ' S: Cooling     ', 0
-msg_fsm:            db '  --- C --:--   ', 0
+msg_state1:         db 'S: RampToSoak   ', 0
+msg_state2:         db 'S: PreheatSoak  ', 0
+msg_state3:			db 'S: RampToPeak   ', 0
+msg_state4:         db 'S: Reflow       ', 0
+msg_state5:         db 'S: Cooling      ', 0
+msg_fsm:            db 'T: --- C --:--  ', 0
 
 ; -------------------------;
 ; Initialize Timer 0	   ;
@@ -715,7 +715,7 @@ fsm_state1_update:
     clr     c
     ;crtTemp is the temperature taken from oven (i think...)
     subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jnz     fsm_state1
+    jnc     fsm_state1_update
 
     ; temperature reached
     mov     state,          #PREHEAT_SOAK
@@ -727,59 +727,57 @@ fsm_state1_update:
 fsm_state2:
     LCD_cursor(1, 1)
     LCD_print(#msg_state2)
-    ; display the current state, all other display will keep the same
-    mov     power,      #2
-    mov     a,          soaktime  ; our soaktime has to be
+    mov     power,          #2
+fsm_state2_update:
+    LCD_printTemp(crtTemp, 2, 3)
+    LCD_printTime(soakTime_sec, 2, 9)
+
+    mov     a,              soaktime
     clr     c
-    subb    a,          soakTime_sec
-    jnc     fsm_state2_done
-    mov     state,      #3
+    subb    a,              soakTime_sec
+    jnc     fsm_state2_update
+
+    ; finished state 2
+    mov     state,          #3
     setb    reset_timer_f
-    ;***set the beeper
-fsm_state2_done:
-    ljmp    fsm
-    ; this portion will change depends on the whether we gonna use min or not
+    beep(1)
 
 fsm_state3:
-    ; display the current state, all other display will keep the same
     LCD_cursor(1, 1)
     LCD_print(#msg_state3)
-
-    mov     power,        #10  ; (Geoff pls change this line of code to fit)
-    ;mov     soakTime_sec, #0
-    ;mov     soakTime_min, #0
-    mov     a,          #220
+    mov     power,          #10
+fsm_state3_update:
+    LCD_printTemp(crtTemp, 2, 3)
+    LCD_printTime(soakTime_sec, 2, 9)
+    mov     a,          #220 ; make this a constant
     clr     c
     subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jnc     fsm_state3_done
+    jnc     fsm_state3_update
+
+    ; finished state 3
     mov     state,      #4
     setb    reset_timer_f; reset the timer before jummp to state2
-    ; ***here set the beeper ()
-fsm_state3_done:
-   ljmp    fsm ; here should it be state1? FIXME
+    beep(1)
 
 fsm_state4:
     LCD_cursor(1, 1)
     LCD_print(#msg_state4)
-    ; display the current state, all other display will keep the same
     mov power,        #2
+fsm_state4_update:
+    LCD_printTemp(crtTemp, 2, 3)
+    LCD_printTime(soakTime_sec, 2, 9)
     mov a, soaktime  ; our soaktime has to be
     clr c
     subb a, soakTime_sec
-    jnc fsm_state4_done
+    jnc fsm_state4_update
     mov state, #5
     setb reset_timer_f
-    ; ***set the beeper
-fsm_state4_done:
-   ljmp fsm
+    beep(1)
 
 fsm_state5:
     LCD_cursor(1, 1)
     LCD_print(#msg_state5)
-
-    mov     power,        #0 ; (Geoff pls change this line of code to fit)
-    ;mov     soakTime_sec, #0
-    ;mov     soakTime_min, #0
+    mov     power,        #0
 Three_beeper:
     mov     a,          #60
     clr     c
