@@ -618,14 +618,33 @@ dec_reflow_time:
 ; END OF INTERFACE // BEGIN FSM       ;
 ;-------------------------------------;
 fsm:
-    mov		a, state
-    ljmp	fsm_state1
+    ; find which state we are currently on
+    clr     c
+    mov     a,  state
+    subb    a,  #0x01
+    jnz     fsm_notState1
+    ljmp    fsm_state1
+fsm_notState1:
+    subb    a,  #0x01
+    jnz     fsm_notState2
+    ljmp    fsm_state2
+fsm_notState2:
+    subb    a,  #0x01
+    jnz     fsm_notState3
+    ljmp    fsm_state3
+fsm_notState3:
+    subb    a,  #0x01
+    jnz     fsm_notState4
+    ljmp    fsm_state4
+fsm_notState4:
+    subb    a,  #0x01
+    jnz     fsm_invalid
+    ljmp    fsm_state5
+fsm_invalid:
+    ; have some code for this exception (reset and return to main)
+    ljmp    setup
 
-fsm_state2_j:
-    ljmp fsm_state2
 fsm_state1:
-    cjne    a,  #RAMP2SOAK,  fsm_state2_j
-
     ; display on LCD
     LCD_cursor(1, 1)
     LCD_print(#msg_state1)
@@ -634,7 +653,6 @@ fsm_state1:
 fsm_state1_update:
     LCD_printTemp(crtTemp, 2, 3)
     LCD_printTime(soakTime_sec, 2, 9)
-
 
     mov     power,        #10 ; (Geoff pls change this line of code to fit)
     ;mov     soakTime_sec, #0
