@@ -80,9 +80,10 @@ dseg at 0x30
     state:      ds  1
     crtTemp:	ds	1			; temperature of oven
     perCntr:	ds  1 ; counter to count period in PWM
-	ovenPower:	ds  1 ; currnet power of the oven, number between 0 and 10
-	soakTime_sec:	ds 1
-	power:		ds  1
+    ovenPower:	ds  1 ; currnet power of the oven, number between 0 and 10
+    soakTime_sec:	ds 1
+    power:		ds  1
+
 
     ; for math32
     result:         ds  2
@@ -94,7 +95,7 @@ bseg
     seconds_flag: 	dbit 1
     ongoing_flag:	dbit 1			;only check for buttons when the process has not started (JK just realized we might not need this..)
     oven_enabled:	dbit 1
-	reset_timer_f:	dbit 1
+    reset_timer_f:	dbit 1
 
     ; for math32
     mf:             dbit 1
@@ -148,7 +149,7 @@ T2_ISR:
     lcall   PWM_oven
 
 T2_ISR_incDone:
-	; Check if half second has passed
+    ; Check if half second has passed
     mov     a,  countms+0
     cjne    a,  #low(TIME_RATE),    T2_ISR_return
     mov     a,  countms+1
@@ -161,7 +162,7 @@ T2_ISR_incDone:
     mov 	countms+1,     a
 
     ; Increment soaktime timer
-	increment(soakTime_sec)
+    increment(soakTime_sec)
 
     ; Increment seconds
     mov     a,   seconds
@@ -361,7 +362,7 @@ setup:
     mov     minutes,    #0x00
     mov		soakTemp, 	#0x00
     mov		soakTime, 	#0x00
-	mov		reflowTemp, #0x00
+    mov		reflowTemp, #0x00
     mov		reflowTime, #0x00
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
 main:
@@ -376,53 +377,52 @@ main:
 main_button_start:
     ; [START] - start the reflow program
     ;check for start button only if the process has not started yet
-    jb		ongoing_flag, main_update
-    jb 		BTN_START, main_button_state
+    jb      ongoing_flag,   main_update
+    jb 	    BTN_START,      main_button_state
     sleep(#DEBOUNCE)
-    jb 		BTN_START, main_button_state
-    jnb 	BTN_START, $
+    jb 	    BTN_START,      main_button_state
+    jnb     BTN_START,      $
     ; set ongoing_flag to prevent buttons from working during operation
     setb	ongoing_flag
 
-	; clear the reset flag so timer can start counting up
-	clr		reset_timer_f
-	; reset the soaktime timer to be 0
-	mov		soakTime_sec, #0x00
-	; set as FSM State 1
-	mov		state, #RAMP2SOAK
-	; go to FSM forever loop
-	ljmp 	forever
+    ; clear the reset flag so timer can start counting up
+    clr		reset_timer_f
 
-    ; **PUT WHAT HAPPENS IF YOU PRESS START HERE LMAO HELP ME LORD (whatever goes here has to connect to main_update and check for stop button)
+    ; reset the soaktime timer to be 0
+    mov		soakTime_sec, #0x00
+
+    ; set as FSM State 1
+    mov		state, #RAMP2SOAK
+
+    ; go to FSM fsm loop
+    ljmp 	fsm
 
 main_button_state:
     ; [STATE] - configure reflow program
-	jb		ongoing_flag, main_update	; skip checking for state if process has started
+    jb		ongoing_flag, main_update	; skip checking for state if process has started
     jb 		BTN_STATE, main_update
     sleep(#DEBOUNCE)
     jb 		BTN_STATE, main_update
     jnb 	BTN_STATE, $
     ljmp    conf_soakTemp
 
-; just a jump statement because too many lines of code in between
-fsm_update_j:
-	ljmp fsm_update
-
 main_update:
-	; update time and ** temperature display here
-	jb		ongoing_flag, fsm_update_j
-	; update main screen values
+    ; check if fsm is on, if it is, perform fsm tasks
+    jnb		  ongoing_flag, main_update_cont
+    ljmp    main_fsm_update
+main_update_cont:
+    ; update main screen values
     LCD_cursor(2, 9)
     LCD_printBCD(minutes)
     LCD_cursor(2, 12)
     LCD_printBCD(seconds)
     LCD_printTemp(crtTemp, 1, 12)	; where is the temperature coming from ??
     ljmp 	main_button_start
-; update fsm values
-fsm_update:
-	LCD_printTemp(crtTemp, 2, 3)
-	LCD_printTime(soakTime_sec, 2, 9)
-	ljmp forever
+main_fsm_update:
+    ; update fsm values
+    LCD_printTemp(crtTemp, 2, 3)
+    LCD_printTime(soakTime_sec, 2, 9)
+    ljmp fsm
 ;-------------------------------------;
 ; CONFIGURE: Soak Temperature 		  ;
 ;-------------------------------------;
@@ -431,11 +431,11 @@ conf_soakTemp:
     ; soak temperature interface
     LCD_cursor(1, 1)
     LCD_print(#msg_soakTemp)
-	LCD_cursor(2, 1)
+    LCD_cursor(2, 1)
     LCD_print(#msg_temp)
 conf_soakTemp_update:
     LCD_cursor(2, 7)
-	LCD_printTemp(soakTemp, 2, 7)					; display soak temperature on LCD
+    LCD_printTemp(soakTemp, 2, 7)					; display soak temperature on LCD
 
 conf_soakTemp_button_up:
     ; [UP] increment soak temperature by 1
@@ -443,7 +443,7 @@ conf_soakTemp_button_up:
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_soakTemp_button_down
     jnb 	BTN_UP, $
-	increment(soakTemp)
+    increment(soakTemp)
 
 conf_soakTemp_button_down:
     ; [DOWN] decrement soak temperature by 1
@@ -461,7 +461,7 @@ conf_soakTemp_button_state:
     jnb 	BTN_STATE, $
     ljmp 	conf_soakTime
 conf_soakTemp_j:
-	ljmp conf_soakTemp_update
+    ljmp conf_soakTemp_update
 
 ;-------------------------------------;
 ; CONFIGURE: Soak Time       		  ;
@@ -471,7 +471,7 @@ conf_soakTime:
     ; soak time interface
     LCD_cursor(1, 1)
     LCD_print(#msg_soakTime)
-	LCD_cursor(2, 1)
+    LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_soakTime_update:
     LCD_printTime(soakTime, 2, 6) ; soakTime is a variable for seconds, convert into minutes and seconds here
@@ -479,29 +479,29 @@ conf_soakTime_update:
 conf_soakTime_button_up:
     ; [UP] increment soak time by 5
     jb 		BTN_UP, conf_soakTime_button_down
-	sleep(#DEBOUNCE)
-	jb 		BTN_UP, conf_soakTime_button_down
-	jnb 	BTN_UP, $
+    sleep(#DEBOUNCE)
+    jb 		BTN_UP, conf_soakTime_button_down
+    jnb 	BTN_UP, $
     lcall 	inc_soak_time
 
 conf_soakTime_button_down:
     ; [DOWN] decrement soak time by 5
     jb 		BTN_DOWN, conf_soakTime_button_state
-	sleep(#DEBOUNCE)
-	jb 		BTN_DOWN, conf_soakTime_button_state
-	jnb 	BTN_DOWN, $
+    sleep(#DEBOUNCE)
+    jb 		BTN_DOWN, conf_soakTime_button_state
+    jnb 	BTN_DOWN, $
     lcall 	dec_soak_time
 
 conf_soakTime_button_state:
     ; [STATE] save soak time and move on
     jb 		BTN_STATE, conf_soakTime_j
-	sleep(#DEBOUNCE)
-	jb 		BTN_STATE, conf_soakTime_j
-	jnb 	BTN_STATE, $
+    sleep(#DEBOUNCE)
+    jb 		BTN_STATE, conf_soakTime_j
+    jnb 	BTN_STATE, $
     ljmp 	conf_reflowTemp
 
 conf_soakTime_j:
-	ljmp conf_soakTime_update
+    ljmp conf_soakTime_update
 
 ;-------------------------------------;
 ; CONFIGURE: Reflow Temperature		  ;
@@ -511,38 +511,38 @@ conf_reflowTemp:
     ; reflow temperature setting interface
     LCD_cursor(1, 1)
     LCD_print(#msg_reflowTemp)
-	LCD_cursor(2, 1)
+    LCD_cursor(2, 1)
     LCD_print(#msg_temp)
 conf_reflowTemp_update:
     LCD_cursor(2, 7)
-	LCD_printTemp(reflowTemp, 2, 7)
+    LCD_printTemp(reflowTemp, 2, 7)
 
 conf_reflowTemp_button_up:
     ; [UP]  increment reflow tempreature by 1
     jb 		BTN_UP, conf_reflowTemp_button_down
-	sleep(#DEBOUNCE)
-	jb 		BTN_UP, conf_reflowTemp_button_down
-	jnb 	BTN_UP, $
-	increment(reflowTemp)
+    sleep(#DEBOUNCE)
+    jb 		BTN_UP, conf_reflowTemp_button_down
+    jnb 	BTN_UP, $
+    increment(reflowTemp)
 
 conf_reflowTemp_button_down:
     ; [DOWN] decrement reflow tempreature by 1
     jb 		BTN_DOWN, conf_reflowTemp_button_state
-	sleep(#DEBOUNCE)
-	jb 		BTN_DOWN, conf_reflowTemp_button_state
-	jnb 	BTN_DOWN, $
-	decrement(reflowTemp)
+    sleep(#DEBOUNCE)
+    jb 		BTN_DOWN, conf_reflowTemp_button_state
+    jnb 	BTN_DOWN, $
+    decrement(reflowTemp)
 
 conf_reflowTemp_button_state:
     ; [STATE] save reflow temperature and move on
     jb 		BTN_STATE, conf_reflowTemp_j
-	sleep(#DEBOUNCE)
-	jb 		BTN_STATE, conf_reflowTemp_j
-	jnb 	BTN_STATE, $
+    sleep(#DEBOUNCE)
+    jb 		BTN_STATE, conf_reflowTemp_j
+    jnb 	BTN_STATE, $
     ljmp 	conf_reflowTime
 
 conf_reflowTemp_j:
-	ljmp	conf_reflowTemp_update
+    ljmp	conf_reflowTemp_update
 
 
 ;-------------------------------------;
@@ -553,7 +553,7 @@ conf_reflowTime:
     ; reflow time setting interface
     LCD_cursor(1, 1)
     LCD_print(#msg_reflowTime)
-	LCD_cursor(2, 1)
+    LCD_cursor(2, 1)
     LCD_print(#msg_time)
 conf_reflowTime_update:
     LCD_printTime(reflowTime, 2, 6)
@@ -561,69 +561,69 @@ conf_reflowTime_update:
 conf_reflowTime_button_up:
     ; [UP]  increase reflow time by 5 seconds
     jb 		BTN_UP, conf_reflowTime_button_down
-	sleep(#DEBOUNCE)
-	jb 		BTN_UP, conf_reflowTime_button_down
-	jnb 	BTN_UP, $
+    sleep(#DEBOUNCE)
+    jb 		BTN_UP, conf_reflowTime_button_down
+    jnb 	BTN_UP, $
     lcall 	inc_reflow_time
 
 conf_reflowTime_button_down:
     ; [DOWN]  decrease reflow time by 5 seconds
     jb 		BTN_DOWN, conf_reflowTime_button_state
-	sleep(#DEBOUNCE)
-	jb 		BTN_DOWN, conf_reflowTime_button_state
-	jnb 	BTN_DOWN, $
+    sleep(#DEBOUNCE)
+    jb 		BTN_DOWN, conf_reflowTime_button_state
+    jnb 	BTN_DOWN, $
     lcall 	dec_reflow_time
 
 conf_reflowTime_button_state:
     ; [STATE] save reflow time and move on
     jb 		BTN_STATE, conf_reflowTime_j
-	sleep(#DEBOUNCE)
-	jb 		BTN_STATE, conf_reflowTime_j
-	jnb 	BTN_STATE, $
+    sleep(#DEBOUNCE)
+    jb 		BTN_STATE, conf_reflowTime_j
+    jnb 	BTN_STATE, $
     ljmp 	main
 
 conf_reflowTime_j:
-	ljmp   conf_reflowTime_update
+    ljmp   conf_reflowTime_update
 
 ;------------------------------;
 ; 		FUNCTION CALLS		   ;
 ;------------------------------;
 ; increment soak time by 5 seconds
 inc_soak_time:
-	mov 	a, soakTime
+    mov 	a, soakTime
     add		a, #0x05
     mov		soakTime, a
-	ret
+    ret
 
 ; decrement soak time by 5 seconds
 dec_soak_time:
-	mov		a, soakTime
+    mov		a, soakTime
     add		a, #0xFB
     mov		soakTime, a
-	ret
+    ret
 
 inc_reflow_time:
     mov 	a, reflowTime
     add		a, #0x05
     mov		reflowTime, a
-	ret
+    ret
 
 dec_reflow_time:
-	mov 	a, reflowTime
+    mov 	a, reflowTime
     add		a, #0xFB
     mov		reflowTime, a
-	ret
+    ret
 
 
-;-------------------------------------------
-; END OF INTERFACE // BEGIN FSM
-;-------------------------------------------
-forever:
-	mov		a, state
-	ljmp	fsm_state1
+;-------------------------------------;
+; END OF INTERFACE // BEGIN FSM       ;
+;-------------------------------------;
+fsm:
+    mov		a, state
+    ljmp	fsm_state1
 
 fsm_state2_j:
-	ljmp fsm_state2
+    ljmp fsm_state2
 fsm_state1:
     cjne    a,  #RAMP2SOAK,  fsm_state2_j
 
@@ -634,7 +634,7 @@ fsm_state1:
     LCD_print(#msg_fsm)
 fsm_state1_update:
     LCD_printTemp(crtTemp, 2, 3)
-	LCD_printTime(soakTime_sec, 2, 9)
+    LCD_printTime(soakTime_sec, 2, 9)
 
 
     mov     power,        #10 ; (Geoff pls change this line of code to fit)
@@ -650,10 +650,10 @@ fsm_state1_update:
     mov     state, #PREHEAT_SOAK
     mov		soakTime_sec, #0x00	; reset the timer before jummp to state2
     ; ***here set the beeper ()
-    ljmp 	forever
+    ljmp 	fsm
 fsm_state1_done:
-	ljmp 	fsm_state1_update
-    ljmp    forever ; here should it be state1? FIXME
+    ljmp 	fsm_state1_update
+    ljmp    fsm ; here should it be state1? FIXME
 
 fsm_state2:
     cjne    a,  #PREHEAT_SOAK, fsm_state3
@@ -670,7 +670,7 @@ fsm_state2:
     setb reset_timer_f
     ;***set the beeper
 fsm_state2_done:
-    ljmp forever
+    ljmp fsm
     ; this portion will change depends on the whether we gonna use min or not
 
 
@@ -691,7 +691,7 @@ fsm_state3:
    setb    reset_timer_f; reset the timer before jummp to state2
    ; ***here set the beeper ()
 fsm_state3_done:
-   ljmp    forever ; here should it be state1? FIXME
+   ljmp    fsm ; here should it be state1? FIXME
 
 
 fsm_state4:
@@ -708,11 +708,12 @@ fsm_state4:
    setb reset_timer_f
    ; ***set the beeper
 fsm_state4_done:
-   ljmp forever
+   ljmp fsm
+
 
 
 main_button_start_j:
-	ljmp main_button_start
+    ljmp main_button_start
 
 fsm_state5:
     cjne    a,  #RAMP2SOAK,  main_button_start_j
@@ -732,7 +733,7 @@ Three_beeper:
     setb    reset_timer_f; reset the timer before jummp to state2
      ;*** here set *six*  beepers  ()
 fsm_state5_done:
-    ljmp forever
+    ljmp fsm
 
 
 END
