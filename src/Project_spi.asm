@@ -10,6 +10,7 @@ y:   ds 4
 bcd: ds 5
 Thertemp: ds 2
 LMtemp: ds 2
+Oven_temp: ds 2
 
 BSEG
 mf: dbit 1
@@ -157,12 +158,16 @@ LM: mov b, #0;
  	;LCD_printBCD(bcd+0); display on the LCD
  	Send_BCD(bcd+1) ;
     Send_BCD(bcd+0) ;
+	;lcall add_two_temp ; two temp 
+	lcall Switchline
 	
-    mov a, #'\r' 
-    lcall putchar
-    mov a, #'\n'
-    lcall putchar; display our value - final temperature
-
+	
+	lcall add_two_temp ; two temp 
+    Send_bcd(Oven_temp+1)             ;display the total temperature 
+	Send_bcd(Oven_temp+0)
+	
+	lcall Switchline
+	
     ljmp SendVoltage ; for our testing code, constanly track the temperature
     
 	
@@ -170,36 +175,38 @@ Th: mov b, #1 ; connect thermocouple to chanel1
     lcall _Read_ADC_Channel ; Read from the SPI
     lcall Th_converter ; convert ADC TO actual value
     setb LM_TH
-    lcall hex2bcd
+    ;;lcall hex2bcd
+    ;mov Thertemp+1,  bcd+1
+    ;mov Thertemp+0,  bcd+0
+   
  	Send_BCD(bcd+1) ;
     Send_BCD(bcd+0) ;
    
-    mov a, #'\r' 
-    lcall putchar
-    mov a, #'\n'
-    lcall putchar; display our value - final temperature
-
+	lcall Switchline
     ljmp SendVoltage		
 	
-Send_Done:
-
-    ; add it up
-
+;------------------------
+;Conver ADC LM_temp to BCD
+;------------------------
 LM_converter:
 
     mov x+3, #0 ; Load 32-bit �y� with value from ADC
     mov x+2, #0
     mov x+1, R7
     mov x+0, R6
-    load_y(491)
+    load_y(503)
     lcall mul32
     load_y(1023)
     lcall div32
     load_y(273)
     lcall sub32
-    lcall hex2bcd
+    lcall hex2bcd 
+    mov LMtemp+1,  bcd+1
+    mov LMtemp+0,  bcd+0    
     ret
-    
+;----------------------------
+; Conver ADC Ther_temp to BCD
+;----------------------------    
 Th_converter:
     mov x+3, #0 ; Load 32-bit �y� with value from ADC
     mov x+2, #0
@@ -207,9 +214,42 @@ Th_converter:
     mov x+0, R6
     load_y(2)
     lcall div32
+    lcall hex2bcd
+    mov Thertemp+1,  bcd+1
+    mov Thertemp+0,  bcd+0
+    ;lcall hex2bcd
     ret
     ;lcall hex2bcd
 
+;keep in hex
+;--------------------
+; ADD two temperature together for FSM
+;--------------------------------
+add_two_temp:
+   ;load_x(LMtemp)
+   ;load_y(Thertemp)
+   mov x+1,LMtemp+1
+   mov x+0,LMtemp+0   
+   ;-----------------
+   mov y+1, Thertemp+1
+   mov y+0, Thertemp+0 ;   
+   ;-----------------
+   lcall add32
+   mov Oven_temp+1,  x+1
+   mov Oven_temp+0,  x+0 
+   ;lcall hex2bcd
+   ret	
+   
+;---------   
+;Swithline
+;---------
+Switchline:
+	mov a, #'\r' 
+    lcall putchar
+    mov a, #'\n'
+    lcall putchar; display our value - final temperature
+	ret
+		
 ;-----------------------------------
 ; chanel 6 mac
 ;-----------------------------------
