@@ -658,82 +658,72 @@ fsm_state1_update:
     ;mov     soakTime_sec, #0
     ;mov     soakTime_min, #0
 
+    ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
     ;soakTemp is the saved parameter from interface
     mov     a,          soakTemp
     clr     c
     ;crtTemp is the temperature taken from oven (i think...)
     subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
+
     jnz     fsm_state1_done
-    mov     state, #PREHEAT_SOAK
-    mov		soakTime_sec, #0x00	; reset the timer before jummp to state2
+    mov     state,          #PREHEAT_SOAK
+    mov	    soakTime_sec,   #0x00   ; reset the timer before jummp to state2
     ; ***here set the beeper ()
     ljmp 	fsm
 fsm_state1_done:
-    ljmp 	fsm_state1_update
+    ljmp 	fsm_state1_update ;<<< What is this?? INFINITE LOOP!
     ljmp    fsm ; here should it be state1? FIXME
 
 fsm_state2:
-    cjne    a,  #PREHEAT_SOAK, fsm_state3
-
     LCD_cursor(1, 1)
     LCD_print(#msg_state2)
+    ; display the current state, all other display will keep the same
+    mov     power,      #2
+    mov     a,          soaktime  ; our soaktime has to be
+    clr     c
+    subb    a,          soakTime_sec
+    jnc     fsm_state2_done
+    mov     state,      #3
+    setb    reset_timer_f
+    ;***set the beeper
+fsm_state2_done:
+    ljmp    fsm
+    ; this portion will change depends on the whether we gonna use min or not
+
+fsm_state3:
+    ; display the current state, all other display will keep the same
+    LCD_cursor(1, 1)
+    LCD_print(#msg_state3)
+
+    mov     power,        #10  ; (Geoff pls change this line of code to fit)
+    ;mov     soakTime_sec, #0
+    ;mov     soakTime_min, #0
+    mov     a,          #220
+    clr     c
+    subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
+    jnc     fsm_state3_done
+    mov     state,      #4
+    setb    reset_timer_f; reset the timer before jummp to state2
+    ; ***here set the beeper ()
+fsm_state3_done:
+   ljmp    fsm ; here should it be state1? FIXME
+
+fsm_state4:
+    LCD_cursor(1, 1)
+    LCD_print(#msg_state4)
     ; display the current state, all other display will keep the same
     mov power,        #2
     mov a, soaktime  ; our soaktime has to be
     clr c
     subb a, soakTime_sec
-    jnc fsm_state2_done
-    mov state, #3
+    jnc fsm_state4_done
+    mov state, #5
     setb reset_timer_f
-    ;***set the beeper
-fsm_state2_done:
-    ljmp fsm
-    ; this portion will change depends on the whether we gonna use min or not
-
-
-fsm_state3:
-   cjne    a,  #RAMP2PEAK,  fsm_state4
-   LCD_cursor(1, 1)
-   LCD_print(#msg_state3)
-   ; display the current state, all other display will keep the same
-
-   mov     power,        #10  ; (Geoff pls change this line of code to fit)
-   ;mov     soakTime_sec, #0
-   ;mov     soakTime_min, #0
-   mov     a,          #220
-   clr     c
-   subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
-   jnc     fsm_state3_done
-   mov     state, #4
-   setb    reset_timer_f; reset the timer before jummp to state2
-   ; ***here set the beeper ()
-fsm_state3_done:
-   ljmp    fsm ; here should it be state1? FIXME
-
-
-fsm_state4:
-   cjne    a,  #REFLOW, fsm_state5
-   LCD_cursor(1, 1)
-   LCD_print(#msg_state4)
-   ; display the current state, all other display will keep the same
-   mov power,        #2
-   mov a, soaktime  ; our soaktime has to be
-   clr c
-   subb a, soakTime_sec
-   jnc fsm_state4_done
-   mov state, #5
-   setb reset_timer_f
-   ; ***set the beeper
+    ; ***set the beeper
 fsm_state4_done:
    ljmp fsm
 
-
-main_button_start_j:
-    ljmp main_button_start
-
 fsm_state5:
-    cjne    a,  #RAMP2SOAK,  main_button_start_j
-
     LCD_cursor(1, 1)
     LCD_print(#msg_state5)
 
