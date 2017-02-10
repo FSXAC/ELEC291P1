@@ -393,8 +393,8 @@ main_button_start:
     ; set as FSM State 1
     mov		state, #RAMP2SOAK
 
-    ; go to FSM forever loop
-    ljmp 	forever
+    ; go to FSM fsm loop
+    ljmp 	fsm
 
 main_button_state:
     ; [STATE] - configure reflow program
@@ -405,13 +405,11 @@ main_button_state:
     jnb 	BTN_STATE, $
     ljmp    conf_soakTemp
 
-; just a jump statement because too many lines of code in between
-fsm_update_j:
-    ljmp fsm_update
-
 main_update:
-    ; update time and ** temperature display here
-    jb		ongoing_flag, fsm_update_j
+    ; check if fsm is on, if it is, perform fsm tasks
+    jnb		ongoing_flag, main_update_cont
+    ljmp    main_fsm_update
+main_update_cont:
     ; update main screen values
     LCD_cursor(2, 9)
     LCD_printBCD(minutes)
@@ -419,11 +417,11 @@ main_update:
     LCD_printBCD(seconds)
     LCD_printTemp(crtTemp, 1, 12)	; where is the temperature coming from ??
     ljmp 	main_button_start
-fsm_update:
+main_fsm_update:
     ; update fsm values
     LCD_printTemp(crtTemp, 2, 3)
     LCD_printTime(soakTime_sec, 2, 9)
-    ljmp forever
+    ljmp fsm
 ;-------------------------------------;
 ; CONFIGURE: Soak Temperature 		  ;
 ;-------------------------------------;
@@ -619,7 +617,7 @@ dec_reflow_time:
 ;-------------------------------------;
 ; END OF INTERFACE // BEGIN FSM       ;
 ;-------------------------------------;
-forever:
+fsm:
     mov		a, state
     ljmp	fsm_state1
 
@@ -651,10 +649,10 @@ fsm_state1_update:
     mov     state, #PREHEAT_SOAK
     mov		soakTime_sec, #0x00	; reset the timer before jummp to state2
     ; ***here set the beeper ()
-    ljmp 	forever
+    ljmp 	fsm
 fsm_state1_done:
     ljmp 	fsm_state1_update
-    ljmp    forever ; here should it be state1? FIXME
+    ljmp    fsm ; here should it be state1? FIXME
 
 fsm_state2:
     cjne    a,  #PREHEAT_SOAK, fsm_state3
@@ -671,7 +669,7 @@ fsm_state2:
     setb reset_timer_f
     ;***set the beeper
 fsm_state2_done:
-    ljmp forever
+    ljmp fsm
     ; this portion will change depends on the whether we gonna use min or not
 
 
@@ -692,7 +690,7 @@ fsm_state3:
    setb    reset_timer_f; reset the timer before jummp to state2
    ; ***here set the beeper ()
 fsm_state3_done:
-   ljmp    forever ; here should it be state1? FIXME
+   ljmp    fsm ; here should it be state1? FIXME
 
 
 fsm_state4:
@@ -709,7 +707,7 @@ fsm_state4:
    setb reset_timer_f
    ; ***set the beeper
 fsm_state4_done:
-   ljmp forever
+   ljmp fsm
 
 
 main_button_start_j:
@@ -733,7 +731,7 @@ Three_beeper:
     setb    reset_timer_f; reset the timer before jummp to state2
      ;*** here set *six*  beepers  ()
 fsm_state5_done:
-    ljmp forever
+    ljmp fsm
 
 
 END
