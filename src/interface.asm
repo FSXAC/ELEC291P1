@@ -715,8 +715,7 @@ fsm_state1_update:
     clr     c
     ;crtTemp is the temperature taken from oven (i think...)
     subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
-
-    jnz     fsm_state1_done
+    jnz     fsm_state1
 
     ; temperature reached
     mov     state,          #PREHEAT_SOAK
@@ -724,11 +723,6 @@ fsm_state1_update:
 
     ; produces beeping noise
     beep(1)
-
-    ljmp 	fsm
-fsm_state1_done:
-    ljmp 	fsm_state1_update ;<<< What is this?? INFINITE LOOP!
-    ljmp    fsm ; here should it be state1? FIXME
 
 fsm_state2:
     LCD_cursor(1, 1)

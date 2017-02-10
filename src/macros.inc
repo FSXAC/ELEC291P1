@@ -41,5 +41,17 @@ endmac
 ;=== BEEPING MACRO===
 ; Current objective: just make a simple beep that might have delay on overall program
 beep mac
+	push	ACC
 
+	; param: mode of beeping
+	; [1] - Short single beep
+	; [2] - Long single beep
+	; [3] - 6 Intermediate beeps
+	clr 	c
+	mov 	a,		%0
+	dec		a
+	lcall	?beep_short
+	dec 	a
+	jz 		?
+	pop		ACC
 endmac
