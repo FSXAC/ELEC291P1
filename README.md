@@ -16,20 +16,27 @@ AT89LP52 Microcontroller
 - **Input**: ADC module, LM335, thermocouple, buttons
 - **Output**: Serial to PC (via USB), PWM SSR control, speaker, LCD, LED
 
-![](doc/Hardware.png "Hardware Layout")
+### System Configuration
+
+![system](doc/Hardware.png "Hardware Layout")
+
+### OPAMP Configuration
+
+![OPAMP](doc/opamp.jpg)
 
 ### Task 1: Circuit and Hardware Assembly
 
 - [x] Assemble OP AMP
 - [x] Attach OP AMP to thermocouple
-- [ ] Attach LM335 for temperature offset
+- [x] Attach LM335 for temperature offset
 - [ ] Attach sensors to ADC, attach ADC to microcontroller
 
 ## Software
 
 ### Task 1: Reflow FSM
 
-- [ ] Program reflow FSM shown in diagram on lecture slides
+- [x] Program reflow FSM shown in diagram on lecture slides
+- [x] Integrate FSM with interface
 - [ ] Test FSM
 - [ ] Add required sound and LCD outputs during each transition
 
@@ -44,9 +51,10 @@ AT89LP52 Microcontroller
 - [x] Update LCD Screen for each state
 - [x] Make marcos for incrementing and decrementing temperature
 - [ ] Program what happens when you press start while on the main screen
-- [ ] Make macros for setting time
-- [ ] Modify code for 3 digit temperature readings
-- [ ] Unit Test FSM
+- [x] Make macros for setting time
+- [x] Modify code for 3 digit temperature readings
+- [x] Unit test interface
+- [ ] Unit test FSM
 - [ ] Integration to main program
 
 ## Extra Features
