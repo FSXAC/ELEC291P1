@@ -12,8 +12,8 @@
 
 org 0x0000
     ljmp    setup
-;org 0x000B
-;    ljmp    T0_ISR
+org 0x000B
+    ljmp    T0_ISR
 org 0x002B
     ljmp    T2_ISR
 
@@ -27,30 +27,22 @@ $include(LCD_4bit.inc)
 $include(math32.inc)
 
 ; Preprocessor constants
-CLK             equ     22118400
-BAUD            equ     115200
-T0_RATE         equ     4096
-T0_RELOAD       equ     ((65536-(CLK/4096)))
-T1_RELOAD       equ     (0x100-CLK/(16*BAUD))
-T2_RATE         equ     1000
-T2_RELOAD       equ     (65536-(CLK/T2_RATE))
-DEBOUNCE        equ     50
-TIME_RATE       equ     1000
+CLK         equ     22118400
+BAUD        equ     115200
+T0_RELOAD   equ     ((65536-(CLK/4096)))
+T1_RELOAD   equ     (0x100-CLK/(16*BAUD))
+T2_RELOAD   equ     (65536-(CLK/1000))
+DEBOUNCE    equ     50
+TIME_RATE   equ     1000
 
 ; LCD PINS
-LCD_RS          equ     P1.2
-LCD_RW          equ     P1.3
-LCD_E           equ     P1.4
-LCD_D4          equ     P3.2
-LCD_D5          equ     P3.3
-LCD_D6          equ     P3.4
-LCD_D7          equ     P3.5
-
-; BUTTONS PINs
-BTN_START   	equ 	P2.4
-BTN_STATE	    equ 	P2.5
-BTN_UP	        equ 	P2.6
-BTN_DOWN	  	equ 	P2.7
+LCD_RS      equ     P1.2
+LCD_RW      equ     P1.3
+LCD_E       equ     P1.4
+LCD_D4      equ     P3.2
+LCD_D5      equ     P3.3
+LCD_D6      equ     P3.4
+LCD_D7      equ     P3.5
 
 ; ADC SPI PINS
 ADC_CE      equ     P2.0
@@ -58,8 +50,17 @@ ADC_MOSI    equ     P2.1
 ADC_MISO    equ     P2.2
 ADC_SCLK    equ     P2.3
 
+; BUTTONS PINs
+BTN_START   equ     P2.4
+BTN_STATE   equ     P2.5
+BTN_UP      equ     P2.6
+BTN_DOWN    equ     P2.7
+
 ; SSR / oven control pin
 SSR         equ     P3.7
+
+; SOUND
+SOUND       equ     P0.0
 
 ; States
 RAMP2SOAK		equ     1
@@ -661,7 +662,7 @@ fsm_notState4:
     cjne    a,  #COOLING,       fsm_invalud
     ljmp    fsm_state5
 fsm_invalid:
-    ; have some code for this exception (reset and return to main)
+    ; have some code for this exception (eg. reset and return to main)
     ljmp    setup
 
 fsm_state1:
