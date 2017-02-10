@@ -57,6 +57,28 @@ AT89LP52 Microcontroller
 - [ ] Unit test FSM
 - [ ] Integration to main program
 
+## Pin Assignment
+
+|  Pin | Assignment            |
+| ---: | --------------------- |
+| P0.0 | Buzzer Output         |
+| P0.1 | *unassigned*          |
+| P0.2 | *unassigned*          |
+| P0.3 | *unassigned*          |
+| P0.4 | *unassigned*          |
+| P0.5 | *unassigned*          |
+| P0.6 | *unassigned*          |
+| P0.7 | *unassigned*          |
+| P2.0 | ADC - CE              |
+| P2.1 | ADC - MOSI            |
+| P2.2 | ADC - MISO            |
+| P2.3 | ADC - SCLK            |
+| P2.4 | Button - Start / Stop |
+| P2.5 | Button - State        |
+| P2.6 | Button - Up           |
+| P2.7 | Button - Down         |
+| P3.7 | SSR Output            |
+
 ## Extra Features
 
 **Brainstorm**
