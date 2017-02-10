@@ -619,26 +619,46 @@ dec_reflow_time:
 ;-------------------------------------;
 fsm:
     ; find which state we are currently on
-    clr     c
+;     clr     c
+;     mov     a,  state
+;     subb    a,  #0x01
+;     jnz     fsm_notState1
+;     ljmp    fsm_state1
+; fsm_notState1:
+;     subb    a,  #0x01
+;     jnz     fsm_notState2
+;     ljmp    fsm_state2
+; fsm_notState2:
+;     subb    a,  #0x01
+;     jnz     fsm_notState3
+;     ljmp    fsm_state3
+; fsm_notState3:
+;     subb    a,  #0x01
+;     jnz     fsm_notState4
+;     ljmp    fsm_state4
+; fsm_notState4:
+;     subb    a,  #0x01
+;     jnz     fsm_invalid
+;     ljmp    fsm_state5
+; fsm_invalid:
+;     ; have some code for this exception (reset and return to main)
+;     ljmp    setup
+
+    ; find which state we are currently on
     mov     a,  state
-    subb    a,  #0x01
-    jnz     fsm_notState1
+    cjne    a,  #RAMP2SOAK,     fsm_notState1
     ljmp    fsm_state1
 fsm_notState1:
-    subb    a,  #0x01
-    jnz     fsm_notState2
+    cjne    a,  #PREHEAT_SOAK,  fsm_notState2
     ljmp    fsm_state2
 fsm_notState2:
-    subb    a,  #0x01
-    jnz     fsm_notState3
+    cjne    a,  #RAMP2PEAK,     fsm_notState3
     ljmp    fsm_state3
 fsm_notState3:
-    subb    a,  #0x01
-    jnz     fsm_notState4
+    cjne    a,  #REFLOW,        fsm_notState4
     ljmp    fsm_state4
 fsm_notState4:
-    subb    a,  #0x01
-    jnz     fsm_invalid
+    cjne    a,  #COOLING,       fsm_invalud
     ljmp    fsm_state5
 fsm_invalid:
     ; have some code for this exception (reset and return to main)
