@@ -724,7 +724,7 @@ fsm_state2:
 fsm_state2_done:
     ; finished state 2
     mov     state,          #3
-    setb    reset_timer_f
+    ; TODO reset counter !!! TODO
     beep(1)
     LCD_cursor(1, 1)
     LCD_print(#msg_state3)
@@ -740,7 +740,7 @@ fsm_state3:
 fsm_state3_done:
     ; finished state 3
     mov     state,      #4
-    setb    reset_timer_f
+    ; TODO reset counter !!! TODO
     beep(1)
     LCD_cursor(1, 1)
     LCD_print(#msg_state4)
@@ -754,7 +754,7 @@ fsm_state4:
     ljmp    fsm
 fsm_state4_done:
     mov     state,  #5
-    setb    reset_timer_f
+    ; TODO reset counter !!! TODO
     beep(1)
     LCD_cursor(1, 1)
     LCD_print(#msg_state5)
@@ -769,7 +769,7 @@ fsm_state5:
 
 fsm_state5_done:
     mov		state,		#0
-    setb    reset_timer_f
+    ; TODO reset counter !!! TODO
     beep(3)
     ljmp    fsm
 
