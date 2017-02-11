@@ -124,34 +124,6 @@ endmac
     ret
 
 ;---------------------------------;
-; Scroll display constant string  ;
-;---------------------------------;
-Scroll_display mac
-    push dph
-    push dpl
-    push acc
-    push AR1
-    mov R1, %0
-?scroll:
-    mov a, R1
-    clr c
-    subb a, %1
-    jz ?next
-    LCD_cmd(#0x14)
-    Send_Constant_String(%2)
-    Wait_Milli_Seconds(#50)
-;	LCD_cmd(#0x01)
-;	Wait_Milli_Seconds(#2)
-    inc R1
-    sjmp ?scroll
-?next:
-    pop AR1
-    pop acc
-    pop dpl
-    pop dph
-    endmac
-
-;---------------------------------;
 ; Set LCD cursor at row, column   ;
 ;---------------------------------;
 LCD_cursor mac

@@ -46,21 +46,28 @@ beep mac
 	; [1] - Short single beep
 	; [2] - Long single beep
 	; [else] - 6 Intermediate beeps
-	clr 	c
-	mov 	a,		%0
-	dec		a
-	jnz 	beep_not1
-	lcall	?beep_short
-	sjmp	beep_end
-beep_not1:
-	dec 	a
-	jnz		beep_not2
-	lcall	?beep_long
-	sjmp	beep_end
-beep_not2:
-	lcall	?beep_pulse
-beep_end:
+	mov 	a,		#%0
+	lcall	?beep
 	pop		ACC
 endmac
+?beep:
+	clr 	c
+	dec		a
+	jnz 	?beep_not1
+	sjmp	?beep_short
+?beep_not1:
+	dec 	a
+	jnz		?beep_not2
+	sjmp	?beep_long
+?beep_not2:
+	sjmp	?beep_pulse
+
 ?beep_short:
-	
+; 	; beep for 500ms
+; 	mov
+; 	setb	TR0
+
+?beep_long:
+?beep_pulse:
+
+?beep_end:
