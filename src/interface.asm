@@ -94,7 +94,6 @@ dseg at 0x30
 
 bseg
     seconds_flag: 	dbit 1
-    ongoing_flag:	dbit 1			;only check for buttons when the process has not started (JK just realized we might not need this..)
     oven_enabled:	dbit 1
     reset_timer_f:	dbit 1
 
@@ -386,7 +385,6 @@ setup:
     lcall   SPI_init
 
     ; initialize variables
-    clr	    ongoing_flag
     setb    seconds_flag
     mov     seconds,    #0x00
     mov     minutes,    #0x00
@@ -410,8 +408,6 @@ main_button_start:
     sleep(#DEBOUNCE)
     jb 	    BTN_START,      main_button_state
     jnb     BTN_START,      $
-    ; set ongoing_flag to prevent buttons from working during operation
-    setb	ongoing_flag
 
     ; clear the reset flag so timer can start counting up
     clr		reset_timer_f
@@ -685,7 +681,7 @@ fsm_notState3:
     cjne    a,  #REFLOW,        fsm_notState4
     ljmp    fsm_state4
 fsm_notState4:
-    cjne    a,  #COOLING,       fsm_invalud
+    cjne    a,  #COOLING,       fsm_invalid
     ljmp    fsm_state5
 fsm_invalid:
     ; have some code for this exception (eg. reset and return to main)
@@ -713,69 +709,68 @@ fsm_state1_done:
     ; produces beeping noise
     beep(1)
 
-fsm_state2:
+    ; update state 2 LCD screen
     LCD_cursor(1, 1)
     LCD_print(#msg_state2)
-    mov     power,          #2
-fsm_state2_update:
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
 
+fsm_state2:
+    mov     power,          #2
     mov     a,              soaktime
     clr     c
     subb    a,              soakTime_sec
-    jnc     fsm_state2_update
+    jc      fsm_state2_done
+    ljmp    fsm
 
+fsm_state2_done:
     ; finished state 2
     mov     state,          #3
     setb    reset_timer_f
     beep(1)
-
-fsm_state3:
     LCD_cursor(1, 1)
     LCD_print(#msg_state3)
-    mov     power,          #10
-fsm_state3_update:
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
+
+fsm_state3:
+    mov     power,      #10
     mov     a,          #220 ; make this a constant
     clr     c
     subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jnc     fsm_state3_update
+    jc      fsm_state3_done
+    ljmp    fsm
 
+fsm_state3_done:
     ; finished state 3
     mov     state,      #4
-    setb    reset_timer_f; reset the timer before jummp to state2
+    setb    reset_timer_f
     beep(1)
-
-fsm_state4:
     LCD_cursor(1, 1)
     LCD_print(#msg_state4)
+
+fsm_state4:
     mov     power,        #2
-fsm_state4_update:
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
     mov     a,      soaktime  ; our soaktime has to be
     clr     c
     subb    a,      soakTime_sec
-    jnc     fsm_state4_update
+    jc      fsm_state4_done
+    ljmp    fsm
+fsm_state4_done:
     mov     state,  #5
     setb    reset_timer_f
     beep(1)
-
-fsm_state5:
     LCD_cursor(1, 1)
     LCD_print(#msg_state5)
-    mov     power,        #0
+
+fsm_state5:
+    mov     power,      #0
     mov     a,          #60
     clr     c
     subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jnc     fsm_state5_done
-    mov     state, #0
-    setb    reset_timer_f; reset the timer before jummp to state2
-    beep(3)
+    jc      fsm_state5_done
+    ljmp    fsm
+
 fsm_state5_done:
-    ; !TODO after fsm is done, go to MAIN
+    mov		state,		#0
+    setb    reset_timer_f
+    beep(3)
     ljmp    fsm
 
 END
