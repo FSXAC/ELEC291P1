@@ -79,14 +79,14 @@ InitSerialPort:
     djnz R0, $   ; 3 cycles->3*45.21123ns*166=22.51519us
     djnz R1, $-4 ; 22.51519us*222=4.998ms
     ; Now we can safely proceed with the configuration
-	clr	TR1
-	anl	TMOD, #0x0f
-	orl	TMOD, #0x20
-	orl	PCON,#0x80
-	mov	TH1,#T1LOAD
-	mov	TL1,#T1LOAD
-	setb TR1
-	mov	SCON,#0x52
+    clr	TR1
+    anl	TMOD, #0x0f
+    orl	TMOD, #0x20
+    orl	PCON,#0x80
+    mov	TH1,#T1LOAD
+    mov	TL1,#T1LOAD
+    setb TR1
+    mov	SCON,#0x52
     ret
 
 ; Send a character using the serial port
@@ -141,26 +141,26 @@ DO_SPI_G_LOOP:
 ;send voltage to the serial port
 ;--------------------------------------------------
 SendVoltage:
-    jnb LM_TH, Th ; jump to Th initially 
+    jnb LM_TH, Th ; jump to Th initially
 LM: mov b, #0;
     lcall _Read_ADC_Channel
     lcall LM_converter
     clr LM_TH
     lcall display
 
-    mov a, #'\r' 
+    mov a, #'\r'
     lcall putchar
     mov a, #'\n'
     lcall putchar; display our value - final temperature
 
     ljmp SendVoltage ; for our testing code, constanly track the temperature
-    
-	
+
+
 Th: mov b, #1 ; connect thermocouple to chanel1
     lcall _Read_ADC_Channel ; Read from the SPI
     lcall Th_converter ; convert ADC TO actual value
     setb LM_TH
-    ljmp SendVoltage		
+    ljmp SendVoltage
 Send_Done:
 
     ; add it up
@@ -178,7 +178,7 @@ LM_converter:
     load_y(273)
     lcLll sub32
     lcall hex2bcd
-    
+
 Th_converter:
     mov x+3, #0 ; Load 32-bit �y� with value from ADC
     mov x+2, #0
@@ -201,46 +201,46 @@ lcall _Read_ADC_Channel
 ENDMAC
 
 _Read_ADC_Channel:
-	clr CE_ADC
-	mov R0, #00000001B ; Start bit:1
-	lcall DO_SPI_G
-	mov a, b
-	swap a
-	anl a, #0F0H
-	setb acc.7 ; Single mode (bit 7).
-	mov R0, a
-	lcall DO_SPI_G
-	mov a, R1 ; R1 contains bits 8 and 9
-	anl a, #00000011B ; We need only the two least significant bits
-	mov R7, a ; Save result high.
-	mov R0, #55H ; It doesn't matter what we transmit...
-	lcall DO_SPI_G
-	mov a, R1
-	mov R6, a ; R1 contains bits 0 to 7. Save result low.
-	setb CE_ADC
-	lcall Delay
-	ret
+    clr CE_ADC
+    mov R0, #00000001B ; Start bit:1
+    lcall DO_SPI_G
+    mov a, b
+    swap a
+    anl a, #0F0H
+    setb acc.7 ; Single mode (bit 7).
+    mov R0, a
+    lcall DO_SPI_G
+    mov a, R1 ; R1 contains bits 8 and 9
+    anl a, #00000011B ; We need only the two least significant bits
+    mov R7, a ; Save result high.
+    mov R0, #55H ; It doesn't matter what we transmit...
+    lcall DO_SPI_G
+    mov a, R1
+    mov R6, a ; R1 contains bits 0 to 7. Save result low.
+    setb CE_ADC
+    lcall Delay
+    ret
 
 ;---------------------------------;
 ; Wait for halfs
 ;---------------------------------;
 Delay:
-		PUSH AR0
-		PUSH AR1
-		PUSH AR2
+    PUSH AR0
+    PUSH AR1
+    PUSH AR2
 
-		MOV R2, #200
-	L3_1s: MOV R1, #160
-	L2_1s: MOV R0, #200
-	L1_1s: djnz R0, L1_1s ; 3*45.21123ns*400
+    MOV R2, #200
+L3_1s: MOV R1, #160
+L2_1s: MOV R0, #200
+L1_1s: djnz R0, L1_1s ; 3*45.21123ns*400
 
-		djnz R1, L2_1s ;
-		djnz R2, L3_1s ;
+    djnz R1, L2_1s ;
+    djnz R2, L3_1s ;
 
-		POP AR2
-		POP AR1
-		POP AR0
-		ret
+    POP AR2
+    POP AR1
+    POP AR0
+    ret
 ;-------------------------------
 ;display temperature
 ;------------------------------
@@ -252,7 +252,7 @@ display:
     ;Display_BCD(bcd+1)
     Display_BCD(bcd+0)
     ret
-    
+
 MainProgram:
     lcall LCD_4BIT
     mov SP, #7FH ; Set the stack pointer to the begining of idata

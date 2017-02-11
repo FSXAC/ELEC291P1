@@ -1,9 +1,9 @@
 ;===SLEEP===
 sleep mac
-	push   AR2
-	mov    R2,     %0
-	lcall  ?sleep
-	pop    AR2
+    push   AR2
+    mov    R2,     %0
+    lcall  ?sleep
+    pop    AR2
 endmac
 ?sleep:
     push    AR0
@@ -55,3 +55,4 @@ beep mac
 	jz 		?
 	pop		ACC
 endmac
+

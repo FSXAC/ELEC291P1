@@ -85,6 +85,7 @@ dseg at 0x30
     soakTime_sec:	ds 1
     power:		ds  1
 
+
     ; for math32
     result:     ds  2
     bcd:        ds  5
@@ -437,7 +438,7 @@ main_button_state:
 
 main_update:
     ; check if fsm is on, if it is, perform fsm tasks
-    jnb		ongoing_flag, main_update_cont
+    jnb		  ongoing_flag, main_update_cont
     ljmp    main_fsm_update
 main_update_cont:
     ; update main screen values
@@ -773,6 +774,7 @@ fsm_state4_update:
     mov state, #5
     setb reset_timer_f
     beep(1)
+
 
 fsm_state5:
     LCD_cursor(1, 1)
