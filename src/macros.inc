@@ -21,15 +21,38 @@ L1: djnz    R0,     L1 ; 3 cycles->3*45.21123ns*166=22.51519us
 ; Increment Macro		   ;
 ; -------------------------;
 increment mac
+	push 	ACC
     mov     a,      %0
     add     a,      #0x01
     mov     %0,     a
+	pop		ACC
 endmac
 ; -------------------------;
 ; Decrement Macro		   ;
 ; -------------------------;
 decrement mac
+	push	ACC
     mov     a,      %0
     add	    a,      #0xFF
     mov     %0,     a
+	pop		ACC
 endmac
+
+;=== BEEPING MACRO===
+; Current objective: just make a simple beep that might have delay on overall program
+beep mac
+	push	ACC
+
+	; param: mode of beeping
+	; [1] - Short single beep
+	; [2] - Long single beep
+	; [3] - 6 Intermediate beeps
+	clr 	c
+	mov 	a,		%0
+	dec		a
+	lcall	?beep_short
+	dec 	a
+	jz 		?
+	pop		ACC
+endmac
+
