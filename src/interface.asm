@@ -406,8 +406,6 @@ main:
     LCD_printChar(#0xDF)
 main_button_start:
     ; [START] - start the reflow program
-    ;check for start button only if the process has not started yet
-    jb      ongoing_flag,   main_update
     jb 	    BTN_START,      main_button_state
     sleep(#DEBOUNCE)
     jb 	    BTN_START,      main_button_state
@@ -424,12 +422,15 @@ main_button_start:
     ; set as FSM State 1
     mov		state, #RAMP2SOAK
 
-    ; go to FSM fsm loop
+    ; set LCD screen and go to FSM fsm loop
+    LCD_cursor(1, 1)
+    LCD_print(#msg_state1)
+    LCD_cursor(2, 1)
+    LCD_print(#msg_fsm)
     ljmp 	fsm
 
 main_button_state:
     ; [STATE] - configure reflow program
-    jb		ongoing_flag, main_update	; skip checking for state if process has started
     jb 		BTN_STATE, main_update
     sleep(#DEBOUNCE)
     jb 		BTN_STATE, main_update
@@ -437,10 +438,6 @@ main_button_state:
     ljmp    conf_soakTemp
 
 main_update:
-    ; check if fsm is on, if it is, perform fsm tasks
-    jnb		  ongoing_flag, main_update_cont
-    ljmp    main_fsm_update
-main_update_cont:
     ; update main screen values
     LCD_cursor(2, 9)
     LCD_printBCD(minutes)
@@ -448,11 +445,6 @@ main_update_cont:
     LCD_printBCD(seconds)
     LCD_printTemp(crtTemp, 1, 12)	; where is the temperature coming from ??
     ljmp 	main_button_start
-main_fsm_update:
-    ; update fsm values
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
-    ljmp    fsm
 
 ;-------------------------------------;
 ; CONFIGURE: Soak Temperature 		  ;
@@ -650,6 +642,9 @@ dec_reflow_time:
 ; END OF INTERFACE // BEGIN FSM       ;
 ;-------------------------------------;
 fsm:
+    ; update LCD
+    LCD_printTemp(crtTemp, 2, 3)
+    LCD_printTime(soakTime_sec, 2, 9)
     ; find which state we are currently on
 ;     clr     c
 ;     mov     a,  state
@@ -697,15 +692,6 @@ fsm_invalid:
     ljmp    setup
 
 fsm_state1:
-    ; display on LCD
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state1)
-    LCD_cursor(2, 1)
-    LCD_print(#msg_fsm)
-fsm_state1_update:
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
-
     mov     power,        #10 ; (Geoff pls change this line of code to fit)
     ;mov     soakTime_sec, #0
     ;mov     soakTime_min, #0
@@ -716,8 +702,10 @@ fsm_state1_update:
     clr     c
     ;crtTemp is the temperature taken from oven (i think...)
     subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jnc     fsm_state1_update
+    jc      fsm_state1_done
+    ljmp    fsm
 
+fsm_state1_done:
     ; temperature reached
     mov     state,          #PREHEAT_SOAK
     mov	    soakTime_sec,   #0x00   ; reset the timer before jummp to state2
@@ -763,33 +751,31 @@ fsm_state3_update:
 fsm_state4:
     LCD_cursor(1, 1)
     LCD_print(#msg_state4)
-    mov power,        #2
+    mov     power,        #2
 fsm_state4_update:
     LCD_printTemp(crtTemp, 2, 3)
     LCD_printTime(soakTime_sec, 2, 9)
-    mov a, soaktime  ; our soaktime has to be
-    clr c
-    subb a, soakTime_sec
-    jnc fsm_state4_update
-    mov state, #5
-    setb reset_timer_f
+    mov     a,      soaktime  ; our soaktime has to be
+    clr     c
+    subb    a,      soakTime_sec
+    jnc     fsm_state4_update
+    mov     state,  #5
+    setb    reset_timer_f
     beep(1)
-
 
 fsm_state5:
     LCD_cursor(1, 1)
     LCD_print(#msg_state5)
     mov     power,        #0
-Three_beeper:
     mov     a,          #60
     clr     c
     subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
     jnc     fsm_state5_done
     mov     state, #0
     setb    reset_timer_f; reset the timer before jummp to state2
-     ;*** here set *six*  beepers  ()
+    beep(3)
 fsm_state5_done:
-    ljmp fsm
-
+    ; !TODO after fsm is done, go to MAIN
+    ljmp    fsm
 
 END
