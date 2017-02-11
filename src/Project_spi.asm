@@ -248,6 +248,8 @@ add_two_temp:
 
    ;-----------------
    lcall add32
+   load_y(5) ; offest can be reset
+   lcall add32
    mov Oven_temp+3,  x+3   
    mov Oven_temp+2,  x+2
    mov Oven_temp+1,  x+1
