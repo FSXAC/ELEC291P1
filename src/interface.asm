@@ -12,8 +12,8 @@
 
 org 0x0000
     ljmp    setup
-;org 0x000B
-;    ljmp    T0_ISR
+org 0x000B
+    ljmp    T0_ISR
 org 0x002B
     ljmp    T2_ISR
 
@@ -27,30 +27,22 @@ $include(LCD_4bit.inc)
 $include(math32.inc)
 
 ; Preprocessor constants
-CLK             equ     22118400
-BAUD            equ     115200
-T0_RATE         equ     4096
-T0_RELOAD       equ     ((65536-(CLK/4096)))
-T1_RELOAD       equ     (0x100-CLK/(16*BAUD))
-T2_RATE         equ     1000
-T2_RELOAD       equ     (65536-(CLK/T2_RATE))
-DEBOUNCE        equ     50
-TIME_RATE       equ     1000
+CLK         equ     22118400
+BAUD        equ     115200
+T0_RELOAD   equ     ((65536-(CLK/4096)))
+T1_RELOAD   equ     (0x100-CLK/(16*BAUD))
+T2_RELOAD   equ     (65536-(CLK/1000))
+DEBOUNCE    equ     50
+TIME_RATE   equ     1000
 
 ; LCD PINS
-LCD_RS          equ     P1.2
-LCD_RW          equ     P1.3
-LCD_E           equ     P1.4
-LCD_D4          equ     P3.2
-LCD_D5          equ     P3.3
-LCD_D6          equ     P3.4
-LCD_D7          equ     P3.5
-
-; BUTTONS PINs
-BTN_START   	equ 	P2.4
-BTN_STATE	    equ 	P2.5
-BTN_UP	        equ 	P2.6
-BTN_DOWN	  	equ 	P2.7
+LCD_RS      equ     P1.2
+LCD_RW      equ     P1.3
+LCD_E       equ     P1.4
+LCD_D4      equ     P3.2
+LCD_D5      equ     P3.3
+LCD_D6      equ     P3.4
+LCD_D7      equ     P3.5
 
 ; ADC SPI PINS
 ADC_CE      equ     P2.0
@@ -58,8 +50,17 @@ ADC_MOSI    equ     P2.1
 ADC_MISO    equ     P2.2
 ADC_SCLK    equ     P2.3
 
+; BUTTONS PINs
+BTN_START   equ     P2.4
+BTN_STATE   equ     P2.5
+BTN_UP      equ     P2.6
+BTN_DOWN    equ     P2.7
+
 ; SSR / oven control pin
 SSR         equ     P3.7
+
+; SOUND
+SOUND       equ     P0.0
 
 ; States
 RAMP2SOAK		equ     1
@@ -86,10 +87,10 @@ dseg at 0x30
 
 
     ; for math32
-    result:         ds  2
-    bcd:            ds  5
-    x:              ds  4
-    y:              ds  4
+    result:     ds  2
+    bcd:        ds  5
+    x:          ds  4
+    y:          ds  4
 
 bseg
     seconds_flag: 	dbit 1
@@ -103,7 +104,7 @@ bseg
 cseg
 ; LCD SCREEN
 ;                     	1234567890123456
-msg_main_top:  		db 'STATE:-  T=--- C', 0  ;State: 1-5
+msg_main_top:  		db 'STATE:-  T:--- C', 0  ;State: 1-5
 msg_main_btm: 		db '   TIME --:--   ', 0  ;elapsed time
 msg_soakTemp:       db 'SOAK TEMP:     <', 0
 msg_soakTime:       db 'SOAK TIME:     <', 0
@@ -111,12 +112,39 @@ msg_reflowTemp:	    db 'REFLOW TEMP:   <', 0
 msg_reflowTime:	    db 'REFLOW TIME:   <', 0
 msg_temp:	        db '      --- C    >', 0
 msg_time:	        db '     --:--     >', 0
-msg_state1:         db ' S: RampToSoak  ', 0
-msg_state2:         db ' S: PreheatSoak ', 0
-msg_state3:			db ' S: RampToPeak  ', 0
-msg_state4:         db ' S: Reflow      ', 0
-msg_state5:         db ' S: Cooling     ', 0
-msg_fsm:            db '  --- C --:--   ', 0
+msg_state1:         db 'S: RampToSoak   ', 0
+msg_state2:         db 'S: PreheatSoak  ', 0
+msg_state3:			db 'S: RampToPeak   ', 0
+msg_state4:         db 'S: Reflow       ', 0
+msg_state5:         db 'S: Cooling      ', 0
+msg_fsm:            db 'T: --- C --:--  ', 0
+
+; -------------------------;
+; Initialize Timer 0	   ;
+; -------------------------;
+T0_init:
+    mov     a,      TMOD
+    anl     a,      #0xF0
+    orl     a,      #0x01
+    mov     TMOD,   a
+    mov     TH0,    #high(T0_RELOAD)
+    mov     TL0,    #low(T0_RELOAD)
+    ; Enable the timer and interrupts
+    setb    ET0
+    ; Timer 0 do not start by default
+    ; setb    TR0
+    ret
+
+;-----------------------------;
+; ISR for timer 0             ;
+;-----------------------------;
+T0_ISR:
+    clr     TR0
+    mov     TH0,    #high(T0_RELOAD)
+    mov     TL0,    #low(T0_RELOAD)
+    setb    TR0
+    cpl     P0.0
+    reti
 
 ; -------------------------;
 ; Initialize Timer 2	   ;
@@ -340,6 +368,7 @@ setup:
     mov     PMOD,   #0
 
     ; Timer setup
+    lcall   T0_init
     lcall   T2_init
     setb    EA
 
@@ -356,9 +385,10 @@ setup:
     lcall   ADC_init
     lcall   SPI_init
 
+    ; initialize variables
     clr	    ongoing_flag
-    setb    seconds_flag       				; may not need this..
-    mov     seconds,    #0x00   			; initialize variables
+    setb    seconds_flag
+    mov     seconds,    #0x00
     mov     minutes,    #0x00
     mov		soakTemp, 	#0x00
     mov		soakTime, 	#0x00
@@ -422,7 +452,8 @@ main_fsm_update:
     ; update fsm values
     LCD_printTemp(crtTemp, 2, 3)
     LCD_printTime(soakTime_sec, 2, 9)
-    ljmp fsm
+    ljmp    fsm
+
 ;-------------------------------------;
 ; CONFIGURE: Soak Temperature 		  ;
 ;-------------------------------------;
@@ -619,14 +650,53 @@ dec_reflow_time:
 ; END OF INTERFACE // BEGIN FSM       ;
 ;-------------------------------------;
 fsm:
-    mov		a, state
-    ljmp	fsm_state1
+    ; find which state we are currently on
+;     clr     c
+;     mov     a,  state
+;     subb    a,  #0x01
+;     jnz     fsm_notState1
+;     ljmp    fsm_state1
+; fsm_notState1:
+;     subb    a,  #0x01
+;     jnz     fsm_notState2
+;     ljmp    fsm_state2
+; fsm_notState2:
+;     subb    a,  #0x01
+;     jnz     fsm_notState3
+;     ljmp    fsm_state3
+; fsm_notState3:
+;     subb    a,  #0x01
+;     jnz     fsm_notState4
+;     ljmp    fsm_state4
+; fsm_notState4:
+;     subb    a,  #0x01
+;     jnz     fsm_invalid
+;     ljmp    fsm_state5
+; fsm_invalid:
+;     ; have some code for this exception (reset and return to main)
+;     ljmp    setup
 
-fsm_state2_j:
-    ljmp fsm_state2
+    ; find which state we are currently on
+    mov     a,  state
+    cjne    a,  #RAMP2SOAK,     fsm_notState1
+    ljmp    fsm_state1
+fsm_notState1:
+    cjne    a,  #PREHEAT_SOAK,  fsm_notState2
+    ljmp    fsm_state2
+fsm_notState2:
+    cjne    a,  #RAMP2PEAK,     fsm_notState3
+    ljmp    fsm_state3
+fsm_notState3:
+    cjne    a,  #REFLOW,        fsm_notState4
+    ljmp    fsm_state4
+fsm_notState4:
+    cjne    a,  #COOLING,       fsm_invalud
+    ljmp    fsm_state5
+fsm_invalid:
+    ; have some code for this exception (eg. reset and return to main)
+    ljmp    setup
+
 fsm_state1:
-    cjne    a,  #RAMP2SOAK,  fsm_state2_j
-
     ; display on LCD
     LCD_cursor(1, 1)
     LCD_print(#msg_state1)
@@ -636,94 +706,80 @@ fsm_state1_update:
     LCD_printTemp(crtTemp, 2, 3)
     LCD_printTime(soakTime_sec, 2, 9)
 
-
     mov     power,        #10 ; (Geoff pls change this line of code to fit)
     ;mov     soakTime_sec, #0
     ;mov     soakTime_min, #0
 
+    ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
     ;soakTemp is the saved parameter from interface
     mov     a,          soakTemp
     clr     c
     ;crtTemp is the temperature taken from oven (i think...)
     subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jnz     fsm_state1_done
-    mov     state, #PREHEAT_SOAK
-    mov		soakTime_sec, #0x00	; reset the timer before jummp to state2
-    ; ***here set the beeper ()
-    ljmp 	fsm
-fsm_state1_done:
-    ljmp 	fsm_state1_update
-    ljmp    fsm ; here should it be state1? FIXME
+    jnc     fsm_state1_update
+
+    ; temperature reached
+    mov     state,          #PREHEAT_SOAK
+    mov	    soakTime_sec,   #0x00   ; reset the timer before jummp to state2
+
+    ; produces beeping noise
+    beep(1)
 
 fsm_state2:
-    cjne    a,  #PREHEAT_SOAK, fsm_state3
-
     LCD_cursor(1, 1)
     LCD_print(#msg_state2)
-    ; display the current state, all other display will keep the same
+    mov     power,          #2
+fsm_state2_update:
+    LCD_printTemp(crtTemp, 2, 3)
+    LCD_printTime(soakTime_sec, 2, 9)
+
+    mov     a,              soaktime
+    clr     c
+    subb    a,              soakTime_sec
+    jnc     fsm_state2_update
+
+    ; finished state 2
+    mov     state,          #3
+    setb    reset_timer_f
+    beep(1)
+
+fsm_state3:
+    LCD_cursor(1, 1)
+    LCD_print(#msg_state3)
+    mov     power,          #10
+fsm_state3_update:
+    LCD_printTemp(crtTemp, 2, 3)
+    LCD_printTime(soakTime_sec, 2, 9)
+    mov     a,          #220 ; make this a constant
+    clr     c
+    subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
+    jnc     fsm_state3_update
+
+    ; finished state 3
+    mov     state,      #4
+    setb    reset_timer_f; reset the timer before jummp to state2
+    beep(1)
+
+fsm_state4:
+    LCD_cursor(1, 1)
+    LCD_print(#msg_state4)
     mov power,        #2
+fsm_state4_update:
+    LCD_printTemp(crtTemp, 2, 3)
+    LCD_printTime(soakTime_sec, 2, 9)
     mov a, soaktime  ; our soaktime has to be
     clr c
     subb a, soakTime_sec
-    jnc fsm_state2_done
-    mov state, #3
+    jnc fsm_state4_update
+    mov state, #5
     setb reset_timer_f
-    ;***set the beeper
-fsm_state2_done:
-    ljmp fsm
-    ; this portion will change depends on the whether we gonna use min or not
+    beep(1)
 
-
-fsm_state3:
-   cjne    a,  #RAMP2PEAK,  fsm_state4
-   LCD_cursor(1, 1)
-   LCD_print(#msg_state3)
-   ; display the current state, all other display will keep the same
-
-   mov     power,        #10  ; (Geoff pls change this line of code to fit)
-   ;mov     soakTime_sec, #0
-   ;mov     soakTime_min, #0
-   mov     a,          #220
-   clr     c
-   subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
-   jnc     fsm_state3_done
-   mov     state, #4
-   setb    reset_timer_f; reset the timer before jummp to state2
-   ; ***here set the beeper ()
-fsm_state3_done:
-   ljmp    fsm ; here should it be state1? FIXME
-
-
-fsm_state4:
-   cjne    a,  #REFLOW, fsm_state5
-   LCD_cursor(1, 1)
-   LCD_print(#msg_state4)
-   ; display the current state, all other display will keep the same
-   mov power,        #2
-   mov a, soaktime  ; our soaktime has to be
-   clr c
-   subb a, soakTime_sec
-   jnc fsm_state4_done
-   mov state, #5
-   setb reset_timer_f
-   ; ***set the beeper
-fsm_state4_done:
-   ljmp fsm
-
-
-
-main_button_start_j:
-    ljmp main_button_start
 
 fsm_state5:
-    cjne    a,  #RAMP2SOAK,  main_button_start_j
-
     LCD_cursor(1, 1)
     LCD_print(#msg_state5)
-
-    mov     power,        #0 ; (Geoff pls change this line of code to fit)
-    ;mov     soakTime_sec, #0
-    ;mov     soakTime_min, #0
+    mov     power,        #0
 Three_beeper:
     mov     a,          #60
     clr     c
