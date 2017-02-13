@@ -85,7 +85,6 @@ beepPulse mac
     setb    TR0_pulse_flag
 endmac
 
-
 ;--------------------------------;
 ; Pause (longer than sleep)
 ;--------------------------------;
