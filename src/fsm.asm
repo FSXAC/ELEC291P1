@@ -1,3 +1,6 @@
+; ********* SINCE INTEGRATION TO INTERFACE.asm
+; ********* THIS FILE IS NOW DEPRECATED
+
 org 0x0000
     ljmp    setup
 ; org 0x000B
@@ -54,12 +57,12 @@ dseg at 0x30
     countms:        ds  2
     state:          ds  1 ; current state of the controller
     crtTemp:	    ds	1			; temperature of oven
-    soakTime_sec    ds  1
-    soakTime_min    ds  1
+    soakTime_sec:   ds  1
+    soakTime_min:   ds  1
 bseg
-    seconds_f: 	dbit 1
-    ongoing_f:	dbit 1
-    reset_timer_f: dbit 1		;only check for buttons when the process has not started (JK just realized we might not need this..)
+    seconds_f: 	    dbit 1
+    ongoing_f:      dbit 1
+    reset_timer_f:  dbit 1		;only check for buttons when the process has not started (JK just realized we might not need this..)
     ;for every state to begin, the timer get reset
 cseg
 ; LCD SCREEN
@@ -72,10 +75,11 @@ msg_reflowTemp:	    db 'REFLOW TEMP:   <', 0
 msg_reflowTime:	    db 'REFLOW TIME:   <', 0
 msg_temp:	        db '      --- C    >', 0
 msg_time:	        db '     --:--     >', 0
-msg_state1:         db '   RampToSoak   ', 0
-msg_state2          db '   PREHEAT_SOAK' 0
-msg_state2          db '   REFLOW' 0
-msg_state2          db '   COOLING' 0
+msg_state1:         db '   RAMP TO SOAK ', 0
+msg_state2:         db '   PREHEAT SOAK ', 0
+msg_state3:         db '   RAMP TO PEAK ', 0
+msg_state4:         db '   REFLOW       ', 0
+msg_state5:         db '   COOLING      ', 0
 msg_fsm:            db '  --- C  --:--  ', 0
 
 ; -------------------------;
@@ -105,7 +109,7 @@ T2_ISR:
     jnz 	T2_ISR_incDone
     inc 	countms+1
 T2_ISR_incDone:
-	; Check if half second has passed
+    ; Check if half second has passed
     mov     a,  countms+0
     cjne    a,  #low(TIME_RATE),    T2_ISR_return
     mov     a,  countms+1
@@ -177,7 +181,7 @@ fsm_state1:
     jnc     fsm_state1_done
     mov     state, #2
     setb    reset_timer_f; reset the timer before jummp to state2
-    ; here set the beeper ()
+    ; ***here set the beeper ()
 fsm_state1_done:
     ljmp    forever ; here should it be state1? FIXME
 
@@ -194,7 +198,7 @@ fsm_state2:
     jnc fsm_state2_done
     mov state, #3
     setb reset_timer_f
-    ;set the beeper
+    ;***set the beeper
 fsm_state2_done:
     ljmp forever
     ; this portion will change depends on the whether we gonna use min or not
@@ -215,7 +219,7 @@ fsm_state3:
    jnc     fsm_state3_done
    mov     state, #4
    setb    reset_timer_f; reset the timer before jummp to state2
-   ; here set the beeper ()
+   ; ***here set the beeper ()
 fsm_state3_done:
    ljmp    forever ; here should it be state1? FIXME
 
@@ -232,7 +236,7 @@ fsm_state4:
    jnc fsm_state4_done
    mov state, #5
    setb reset_timer_f
-   ; set the beeper
+   ; ***set the beeper
 fsm_state4_done:
    ljmp forever
 
@@ -252,6 +256,6 @@ Three_beeper:
     jnc     fsm_state5_done
     mov     state, #0
     setb    reset_timer_f; reset the timer before jummp to state2
-     ; here set *six*  beepers  ()
+     ;*** here set *six*  beepers  ()
 fsm_state5_done:
     ljmp forever
