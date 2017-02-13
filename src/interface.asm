@@ -87,6 +87,7 @@ dseg at 0x30
     Thertemp:   ds  4
     LMtemp:     ds  4
     Oven_temp:  ds  4
+	sleep_time: ds 	1
 
     ; for math32
     result:     ds  2
@@ -102,6 +103,7 @@ bseg
     seconds_flag: 	dbit 1
     oven_enabled:	dbit 1
     reset_timer_f:	dbit 1
+	ongoing_f: 		dbit 1
 
     ; for math32
     mf:             dbit 1
@@ -129,6 +131,8 @@ msg_state3:			db 'S: RampToPeak   ', 0
 msg_state4:         db 'S: Reflow       ', 0
 msg_state5:         db 'S: Cooling      ', 0
 msg_fsm:            db 'T: --- C --:--  ', 0
+msg_reset_top:		db '   R E S E T    ', 0
+msg_reset_btm:		db '   STOP OVEN    ', 0  
 
 ; -------------------------;
 ; Initialize Timer 0	   ;
@@ -221,6 +225,7 @@ T2_ISR_incDone:
     mov 	countms+0,     a
     mov 	countms+1,     a
 
+	jnb 	ongoing_f, T2_ISR_return
     ; Increment soaktime timer
     increment(soakTime_sec)
 
@@ -405,6 +410,7 @@ setup:
 
     ; initialize variables
     setb    seconds_flag
+	clr 	ongoing_f
     mov     seconds,    #0x00
     mov     minutes,    #0x00
     mov		soakTemp, 	#0x00
@@ -438,12 +444,14 @@ main_button_start:
 
     ; set as FSM State 1
     mov		state, #RAMP2SOAK
+	
+	setb	ongoing_f
 
     ; set LCD screen and go to FSM fsm loop
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state1)
-    LCD_cursor(2, 1)
-    LCD_print(#msg_fsm)
+    ; LCD_cursor(1, 1)
+    ; LCD_print(#msg_state1)
+    ; LCD_cursor(2, 1)
+    ; LCD_print(#msg_fsm)
     ljmp 	fsm
 
 main_button_state:
@@ -659,10 +667,26 @@ dec_reflow_time:
 ; END OF INTERFACE // BEGIN FSM       ;
 ;-------------------------------------;
 fsm:
-    ; update LCD
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
-
+    ; update LCD (current temp)
+    LCD_printTemp(crtTemp, 1, 12)
+	; update elapsed time
+	LCD_cursor(2, 9)
+    LCD_printBCD(minutes)
+    LCD_cursor(2, 12)
+    LCD_printBCD(seconds)
+	; update state
+	LCD_cursor(1, 7)
+	mov		a, state
+	add		a, #0x30
+	mov		R1, a
+	LCD_printChar(R1)
+	
+	jb 		BTN_START, fsm_not_reset
+    sleep(#DEBOUNCE)
+    jb 		BTN_START, fsm_not_reset
+    jnb 	BTN_START, $
+    ljmp 	fsm_reset_state
+fsm_not_reset:
     ; find which state we are currently on
     mov     a,  state
     cjne    a,  #RAMP2SOAK,     fsm_notState1
@@ -693,12 +717,16 @@ fsm_state1:
 ;    subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
 ;    jc      fsm_state1_done
 ;    ljmp    fsm
+	mov		x+2, #0x00
+	mov 	x+3, #0x00
     mov     x+1,    Oven_temp+1; load Oven_temp with x
     mov     x+0,    Oven_temp+0
-    mov     y+1,    soakTemp+1 ; load soaktemp to y
-    mov     y+0,    soakTemp+0
+    mov     y+1,    #0x00 ; load soaktemp to y
+    mov     y+0,    soakTemp
+	mov 	y+2, #0x00
+	mov 	y+3, #0x00
     lcall   x_gteq_y ; call the math32 function
-    ; if mf is 1 then Oven_temp >= saoktemp
+    ; if mf is 1 then Oven_temp >= soaktemp
     jb      mf,     fsm_state1_done
     ljmp    fsm ; jump to the start otherwise
 
@@ -711,8 +739,14 @@ fsm_state1_done:
     beepshort()
 
     ; update state 2 LCD screen
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state2)
+   ; LCD_cursor(1, 1)
+    ;LCD_print(#msg_state2)
+	; update state
+	LCD_cursor(1, 7)
+	mov		a, state
+	add		a, #0x30
+	mov		R1, a
+	LCD_printChar(R1)
 
 fsm_state2:
     mov     power,          #2
@@ -724,19 +758,30 @@ fsm_state2:
 
 fsm_state2_done:
     ; finished state 2
-    mov     state,          #3
+    mov     state,          #RAMP2PEAK
     ; TODO reset counter !!! TODO
     beepShort()
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state3)
+   ; LCD_cursor(1, 1)
+    ;LCD_print(#msg_state3)
+	; update state
+	LCD_cursor(1, 7)
+	mov		a, state
+	add		a, #0x30
+	mov		R1, a
+	LCD_printChar(R1)
+
 
 fsm_state3:
     mov     power,      #10
-    mov x+1, Oven_temp+1; load Oven_temp with x
-    mov x+0, Oven_temp+0
-
-    mov y+1, reflowTemp+1 ; load soaktemp to y
-    mov y+0, reflowTemp+0
+    mov 	x+1, Oven_temp+1; load Oven_temp with x
+    mov 	x+0, Oven_temp+0
+	mov 	x+2, #0x00
+	mov 	x+3, #0x00
+    ;mov y+1, reflowTemp+1 ; load soaktemp to y
+    mov		y+0, reflowTemp
+	mov 	y+1, #0x00
+	mov 	y+2, #0x00
+	mov 	y+3, #0x00
     lcall x_gteq_y ; call the math32 function
     ; if mf is 1 then Oven_temp >= reflowtemp
     jb mf, fsm_state3_done
@@ -744,34 +789,37 @@ fsm_state3:
 
 fsm_state3_done:
     ; finished state 3
-    mov     state,      #4
+    mov     state,      #REFLOW
     ; TODO reset counter !!! TODO
     beepShort()
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state4)
+    ;LCD_cursor(1, 1)
+    ;LCD_print(#msg_state4)
+	LCD_cursor(1, 7)
+	mov		a, state
+	add		a, #0x30
+	mov		R1, a
+	LCD_printChar(R1)
 
 fsm_state4:
     mov     power,        #2
-    mov     a,      soaktime  ; our soaktime has to be
+    mov     a,      reflowTime  ; our soaktime has to be
     clr     c
     subb    a,      soakTime_sec
     jc      fsm_state4_done
     ljmp    fsm
 fsm_state4_done:
-    mov     state,  #5
+    mov     state,  #COOLING
     ; TODO reset counter !!! TODO
     beepLong()
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state5)
+    ;LCD_cursor(1, 1)
+    ;LCD_print(#msg_state5)
+	LCD_cursor(1, 7)
+	mov		a, state
+	add		a, #0x30
+	mov		R1, a
+	LCD_printChar(R1)
 
 fsm_state5:
-    mov     power,      #0
-    mov     a,          #60
-    clr     c
-    subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jc      fsm_state5_done
-    ljmp    fsm
-
     mov x+1, Oven_temp+1; load Oven_temp with x
     mov x+0, Oven_temp+0
     ; in our configuration we haven't set cooling temp yet
@@ -779,7 +827,7 @@ fsm_state5:
 
     mov y+1, coolingTemp+1 ; load soaktemp to y
     mov y+0, coolingTemp+0
-    lcall x_gteq_y ; call the math32 function
+    lcall x_lteq_y ; call the math32 function
     ; if mf is 1 then Oven_temp >= reflowtemp
     jb mf, fsm_state5_done
     ljmp fsm ; jump to the start
@@ -791,6 +839,22 @@ fsm_state5_done:
     beepPulse()
     ljmp    fsm
 
+; RESET BUTTON 
+fsm_reset_state:
+	LCD_cursor(1,1)
+	LCD_print(#msg_reset_top)
+	LCD_cursor(2,1)
+	LCD_print(#msg_reset_btm)
+	mov		soakTime_sec, #0x00
+	mov		sleep_time, #0x05
+; someone please fix this so the oven stops to and not just the controller lol
+reset_msg_sleep:
+	mov		a, sleep_time
+	clr		c
+	subb	a, soakTime_sec
+	jnz		reset_msg_sleep
+	mov		state, 		#0
+	ljmp	fsm
 
 
 ;-------------------------------------
