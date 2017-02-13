@@ -87,6 +87,7 @@ dseg at 0x30
     Thertemp:   ds  4
     LMtemp:     ds  4
     Oven_temp:  ds  4
+	sleep_time: ds 	1
 
     ; for math32
     result:     ds  2
@@ -130,6 +131,8 @@ msg_state3:			db 'S: RampToPeak   ', 0
 msg_state4:         db 'S: Reflow       ', 0
 msg_state5:         db 'S: Cooling      ', 0
 msg_fsm:            db 'T: --- C --:--  ', 0
+msg_reset_top:		db '   R E S E T    ', 0
+msg_reset_btm:		db '   STOP OVEN    ', 0  
 
 ; -------------------------;
 ; Initialize Timer 0	   ;
@@ -677,7 +680,13 @@ fsm:
 	add		a, #0x30
 	mov		R1, a
 	LCD_printChar(R1)
-
+	
+	jb 		BTN_START, fsm_not_reset
+    sleep(#DEBOUNCE)
+    jb 		BTN_START, fsm_not_reset
+    jnb 	BTN_START, $
+    ljmp 	fsm_reset_state
+fsm_not_reset:
     ; find which state we are currently on
     mov     a,  state
     cjne    a,  #RAMP2SOAK,     fsm_notState1
@@ -837,6 +846,20 @@ fsm_state5_done:
     beepPulse()
     ljmp    fsm
 
+fsm_reset_state:
+	LCD_cursor(1,1)
+	LCD_print(#msg_reset_top)
+	LCD_cursor(2,1)
+	LCD_print(#msg_reset_btm)
+	mov		soakTime_sec, #0x00
+	mov		sleep_time, #0x05
+reset_msg_sleep:
+	mov		a, sleep_time
+	clr		c
+	subb	a, soakTime_sec
+	jnz		reset_msg_sleep
+	mov		state, 		#0
+	ljmp	fsm
 
 
 ;-------------------------------------
