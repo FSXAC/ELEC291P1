@@ -254,7 +254,6 @@ T2_ISR_minutes:
     mov     minutes,    #0x00
 
 T2_ISR_return:
-    ;lcall SendVoltage; send voltage for each Timer2 interrupt
     pop 	AR1
     pop 	psw
     pop 	acc
@@ -302,86 +301,6 @@ PWM_return:
     pop     ACC
     ret
 
-;-----------------------------;
-; Initialize SPI		      ;
-;-----------------------------;
-SPI_init:
-    ; debounce reset button
-    mov     R1,     #222
-    mov     R0,     #166
-    djnz    R0,     $
-    djnz    R1,     $-4
-    ; set timer
-    clr     TR1
-    anl     TMOD,   #0x0f
-    orl	    TMOD,   #0x20
-    orl	    PCON,   #0x80
-    mov	    TH1,    #T1_RELOAD
-    mov	    TL1,    #T1_RELOAD
-    setb    TR1
-    mov	    SCON,   #0x52
-    ret
-
-;-----------------------------;
-; Initialize comm to ADC      ;
-;-----------------------------;
-ADC_init:
-    setb    ADC_MISO
-    clr     ADC_SCLK
-    ret
-;-----------------------------;
-; Communicate with ADC        ;
-;-----------------------------;
-; send byte in R0, receive byte in R1
-ADC_comm:
-    push    ACC
-    mov     R1,     #0
-    mov     R2,     #8
-ADC_comm_loop:
-    mov     a,      R0
-    rlc     a
-    mov     R0,     a
-    mov     ADC_MOSI,   c
-    setb    ADC_SCLK
-    mov     c,      ADC_MISO
-    mov     a,      R1
-    rlc     a
-    mov     R1,     a
-    clr     ADC_SCLK
-    djnz    R2,     ADC_comm_loop
-    pop     ACC
-    ret
-
-;-----------------------------;
-; Get number from ADC, store it in R6 and R7 ;
-;-----------------------------;
-ADC_get:
-    push    ACC
-    push    AR0
-    push    AR1
-    clr     ADC_CE
-    mov     R0,     #0x01B ; Start bit:1
-    lcall   ADC_comm
-
-    mov     a,      b
-    swap    a
-    anl     a,      #0F0H
-    setb    acc.7          ; Single mode (bit 7).
-    mov     R0,     a
-    lcall   ADC_comm
-    mov     a,      R1 ; R1 contains bits 8 and 9
-    anl     a,      #0x03 ; We need only the two least significant bits
-    mov     R7,     a ; Save result high.
-    mov     R0,     #0x55 ; It doesn't matter what we transmit...
-    lcall   ADC_comm
-    mov     a,      R1
-    mov     R6,     a ; R1 contains bits 0 to 7. Save result low.
-    setb    ADC_CE
-    sleep(#50)
-    pop     AR1
-    pop     AR0
-    pop     ACC
-    ret
 
 ;-----------------------------;
 ;	MAIN PROGRAM		      ;
@@ -404,9 +323,9 @@ setup:
     mov     perCntr,        #10
 
     ; Initialize MCP3008 ADC
-    setb    ADC_CE
-    lcall   ADC_init
-    lcall   SPI_init
+   ; setb    ADC_CE
+   ; lcall   ADC_init
+   ; lcall   SPI_init
 
     ; initialize variables
     setb    seconds_flag
@@ -855,124 +774,6 @@ reset_msg_sleep:
 	jnz		reset_msg_sleep
 	mov		state, 		#0
 	ljmp	fsm
-
-
-;-------------------------------------
-;send voltage to the serial port
-;--------------------------------------------------
-SendVoltage:
-    jnb LM_TH, Th ; jump to Th initially
-LM: mov b, #0;
-    lcall ADC_get
-    lcall LM_converter
-    clr LM_TH
- 	LCD_cursor(2, 7)
-    ;LCD_printBCD(bcd+1); display on the LCD
- 	;LCD_printBCD(bcd+0); display on the LCD
- 	Send_BCD(bcd+1) ;
-    Send_BCD(bcd+0) ;
-	;lcall add_two_temp ; two temp
-	lcall Switchline
-
-
-	lcall add_two_temp ; two temp
-    Send_bcd(bcd+1)             ;display the total temperature
-	Send_bcd(bcd+0)
-
-	lcall Switchline
-  ret ; jump back to our interrupt
-    ;ljmp SendVoltage ; for our testing code, constanly track the temperature
-
-
-Th: mov b, #1 ; connect thermocouple to chanel1
-    lcall ADC_get ; Read from the SPI
-    lcall Th_converter ; convert ADC TO actual value
-    setb LM_TH
-    ;;lcall hex2bcd
-    ;mov Thertemp+1,  bcd+1
-    ;mov Thertemp+0,  bcd+0
-
- 	Send_BCD(bcd+1) ;
-    Send_BCD(bcd+0) ;
-
-	lcall Switchline
-    ljmp SendVoltage
-
-;------------------------
-;Conver ADC LM_temp to BCD
-;------------------------
-LM_converter:
-
-    mov x+3, #0 ; Load 32-bit "y" with value from ADC
-    mov x+2, #0
-    mov x+1, R7
-    mov x+0, R6
-    load_y(503)
-    lcall mul32
-    load_y(1023)
-    lcall div32
-    load_y(273)
-    lcall sub32
-    ;lcall hex2bcd
-
-    mov LMtemp+3,  x+3
-    mov LMtemp+2,  x+2
-    mov LMtemp+1,  x+1
-    mov LMtemp+0,  x+0
-    lcall hex2bcd
-    ret
-;----------------------------
-; Conver ADC Ther_temp to BCD
-;----------------------------
-Th_converter:
-    mov x+3, #0 ; Load 32-bit �y� with value from ADC
-    mov x+2, #0
-    mov x+1, R7
-    mov x+0, R6
-    load_y(2)
-    lcall div32
-    ;lcall hex2bcd
-    mov Thertemp+3,  x+3
-    mov Thertemp+2,  x+2
-    mov Thertemp+1,  x+1
-    mov Thertemp+0,  x+0
-    lcall hex2bcd
-    ret
-    ;lcall hex2bcd
-    ;Send_BCD(bcd)
-
-    ;mov DPTR, #New_Line
-    ;lcall SendString
-
-;keep in hex
-;--------------------
-; ADD two temperature together for FSM
-;--------------------------------
-add_two_temp:
-   ;load_x(LMtemp)
-   ;load_y(Thertemp)
-
-   mov x+3,LMtemp+3
-   mov x+2,LMtemp+2
-   mov x+1,LMtemp+1
-   mov x+0,LMtemp+0
-
-   ;-----------------
-   mov y+3, Thertemp+3
-   mov y+2, Thertemp+2
-   mov y+1, Thertemp+1
-   mov y+0, Thertemp+0 ;
-
-   ;-----------------
-   lcall add32
-   load_y(5) ; offest can be reset
-   lcall add32
-   mov Oven_temp+3,  x+3
-   mov Oven_temp+2,  x+2
-   mov Oven_temp+1,  x+1
-   mov Oven_temp+0,  x+0
-   lcall hex2bcd
-   ret
 
 ;---------
 ;Swithline
