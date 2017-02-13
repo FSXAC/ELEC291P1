@@ -83,9 +83,9 @@ dseg at 0x30
     ovenPower:	ds  1 ; currnet power of the oven, number between 0 and 10
     soakTime_sec:	ds 1
     power:		ds  1
-    Thertemp: ds 4
-    LMtemp: ds 4
-    Oven_temp: ds 4
+    Thertemp:   ds  4
+    LMtemp:     ds  4
+    Oven_temp:  ds  4
 
     ; for math32
     result:     ds  2

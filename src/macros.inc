@@ -61,13 +61,17 @@ endmac
 	sjmp	?beep_long
 ?beep_not2:
 	sjmp	?beep_pulse
-
 ?beep_short:
-; 	; beep for 500ms
-; 	mov
-; 	setb	TR0
-
+    ; beep for 0.5s = 2 * 250ms
+    mov     soundCount, #2
+	setb	TR0
+    sjmp    ?beep_end
 ?beep_long:
+    ; beep for 1s = 4 * 250ms
+    mov     soundCount, #4
+    setb    TR0
+    sjmp    ?beep_end
 ?beep_pulse:
-
+    setb
+    sjmp    ?beep_end
 ?beep_end:
