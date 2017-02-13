@@ -1,3 +1,31 @@
+;-----------------------------
+;send bcd to putty
+;-----------------------------
+Send_BCD mac
+    push ar0
+    mov r0, %0
+    lcall ?Send_BCD
+    pop ar0
+endmac
+
+?Send_BCD:
+    push acc
+    ; Write most significant digit
+    mov a, r0
+    swap a
+    anl a, #0fh
+    orl a, #30h
+    lcall putchar
+    ; write least significant digit
+    mov a, r0
+    anl a, #0fh
+    orl a, #30h
+    lcall putchar
+    pop acc
+    ret
+
+
+
 ;===SLEEP===
 sleep mac
     push   AR2
@@ -40,19 +68,19 @@ endmac
 
 ;=== BEEPING MACRO===
 ; Current objective: just make a simple beep that might have delay on overall program
-beep mac
-	push	ACC
-
-	; param: mode of beeping
-	; [1] - Short single beep
-	; [2] - Long single beep
-	; [3] - 6 Intermediate beeps
-	clr 	c
-	mov 	a,		%0
-	dec		a
-	lcall	?beep_short
-	dec 	a
-	jz 		?
-	pop		ACC
+beepShort mac
+    ; beep for 0.5s = 2 * 250ms
+    mov     soundCount, #2
+	setb	TR0
 endmac
 
+beepLong mac
+    ; beep for 1s = 4 * 250ms
+    mov     soundCount, #4
+    setb    TR0
+endmac
+
+beepPulse mac
+    ; set special routine for 6 pulses of beeps
+    setb    TR0_pulse_flag
+endmac

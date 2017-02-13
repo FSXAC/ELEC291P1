@@ -16,20 +16,27 @@ AT89LP52 Microcontroller
 - **Input**: ADC module, LM335, thermocouple, buttons
 - **Output**: Serial to PC (via USB), PWM SSR control, speaker, LCD, LED
 
-![](doc/Hardware.png "Hardware Layout")
+### System Configuration
+
+![system](doc/Hardware.png "Hardware Layout")
+
+### OPAMP Configuration
+
+![OPAMP](doc/opamp.jpg)
 
 ### Task 1: Circuit and Hardware Assembly
 
 - [x] Assemble OP AMP
 - [x] Attach OP AMP to thermocouple
-- [ ] Attach LM335 for temperature offset
+- [x] Attach LM335 for temperature offset
 - [ ] Attach sensors to ADC, attach ADC to microcontroller
 
 ## Software
 
 ### Task 1: Reflow FSM
 
-- [ ] Program reflow FSM shown in diagram on lecture slides
+- [x] Program reflow FSM shown in diagram on lecture slides
+- [x] Integrate FSM with interface
 - [ ] Test FSM
 - [ ] Add required sound and LCD outputs during each transition
 
@@ -44,10 +51,33 @@ AT89LP52 Microcontroller
 - [x] Update LCD Screen for each state
 - [x] Make marcos for incrementing and decrementing temperature
 - [ ] Program what happens when you press start while on the main screen
-- [ ] Make macros for setting time
-- [ ] Modify code for 3 digit temperature readings
-- [ ] Unit Test FSM
+- [x] Make macros for setting time
+- [x] Modify code for 3 digit temperature readings
+- [x] Unit test interface
+- [ ] Unit test FSM
 - [ ] Integration to main program
+
+## Pin Assignment
+
+|  Pin | Assignment            |
+| ---: | --------------------- |
+| P0.0 | Buzzer Output         |
+| P0.1 | *unassigned*          |
+| P0.2 | *unassigned*          |
+| P0.3 | *unassigned*          |
+| P0.4 | *unassigned*          |
+| P0.5 | *unassigned*          |
+| P0.6 | *unassigned*          |
+| P0.7 | *unassigned*          |
+| P2.0 | ADC - CE              |
+| P2.1 | ADC - MOSI            |
+| P2.2 | ADC - MISO            |
+| P2.3 | ADC - SCLK            |
+| P2.4 | Button - Start / Stop |
+| P2.5 | Button - State        |
+| P2.6 | Button - Up           |
+| P2.7 | Button - Down         |
+| P3.7 | SSR Output            |
 
 ## Extra Features
 

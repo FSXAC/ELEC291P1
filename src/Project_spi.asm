@@ -1,4 +1,4 @@
-﻿$MODLP52
+$MODLP52
 org 0000H
    ljmp MainProgram
 
@@ -8,8 +8,9 @@ Final_result: ds 2
 x:   ds 4
 y:   ds 4
 bcd: ds 5
-Thertemp: ds 2
-LMtemp: ds 2
+Thertemp: ds 4
+LMtemp: ds 4
+Oven_temp: ds 4
 
 BSEG
 mf: dbit 1
@@ -31,9 +32,15 @@ MY_MOSI EQU P2.1
 MY_MISO EQU P2.2
 MY_SCLK EQU P2.3
 
+
+
 $NOLIST
 $include(math32.inc)
 $LIST
+$NOLIST
+$include(macros.inc)
+$LIST
+
 
 $NOLIST
 $include(LCD_4bit.inc)
@@ -146,12 +153,20 @@ LM: mov b, #0;
     lcall _Read_ADC_Channel
     lcall LM_converter
     clr LM_TH
-    lcall display
-
-    mov a, #'\r'
-    lcall putchar
-    mov a, #'\n'
-    lcall putchar; display our value - final temperature
+ 	LCD_cursor(2, 7)
+    ;LCD_printBCD(bcd+1); display on the LCD
+ 	;LCD_printBCD(bcd+0); display on the LCD
+ 	Send_BCD(bcd+1) ;
+    Send_BCD(bcd+0) ;
+	;lcall add_two_temp ; two temp 
+	lcall Switchline
+	
+	
+	lcall add_two_temp ; two temp 
+    Send_bcd(bcd+1)             ;display the total temperature 
+	Send_bcd(bcd+0)
+	
+	lcall Switchline
 
     ljmp SendVoltage ; for our testing code, constanly track the temperature
 
@@ -160,38 +175,102 @@ Th: mov b, #1 ; connect thermocouple to chanel1
     lcall _Read_ADC_Channel ; Read from the SPI
     lcall Th_converter ; convert ADC TO actual value
     setb LM_TH
-    ljmp SendVoltage
-Send_Done:
-
-    ; add it up
-
+    ;;lcall hex2bcd
+    ;mov Thertemp+1,  bcd+1
+    ;mov Thertemp+0,  bcd+0
+   
+ 	Send_BCD(bcd+1) ;
+    Send_BCD(bcd+0) ;
+   
+	lcall Switchline
+    ljmp SendVoltage		
+	
+;------------------------
+;Conver ADC LM_temp to BCD
+;------------------------
 LM_converter:
 
     mov x+3, #0 ; Load 32-bit �y� with value from ADC
     mov x+2, #0
     mov x+1, R7
     mov x+0, R6
-    load_y(491)
+    load_y(503)
     lcall mul32
     load_y(1023)
     lcall div32
     load_y(273)
-    lcLll sub32
+    lcall sub32
+    ;lcall hex2bcd 
+    
+    mov LMtemp+3,  x+3
+    mov LMtemp+2,  x+2
+    mov LMtemp+1,  x+1
+    mov LMtemp+0,  x+0    
     lcall hex2bcd
-
+    ret
+;----------------------------
+; Conver ADC Ther_temp to BCD
+;----------------------------    
 Th_converter:
     mov x+3, #0 ; Load 32-bit �y� with value from ADC
     mov x+2, #0
     mov x+1, R7
     mov x+0, R6
-    load_y(100)
-    lcall mul32
+    load_y(2)
+    lcall div32
+    ;lcall hex2bcd
+    mov Thertemp+3,  x+3
+    mov Thertemp+2,  x+2    
+    mov Thertemp+1,  x+1
+    mov Thertemp+0,  x+0
+    lcall hex2bcd
+    ret
     ;lcall hex2bcd
     ;Send_BCD(bcd)
     
     ;mov DPTR, #New_Line
     ;lcall SendString
 
+;keep in hex
+;--------------------
+; ADD two temperature together for FSM
+;--------------------------------
+add_two_temp:
+   ;load_x(LMtemp)
+   ;load_y(Thertemp)
+  
+   mov x+3,LMtemp+3
+   mov x+2,LMtemp+2
+   mov x+1,LMtemp+1
+   mov x+0,LMtemp+0   
+
+   ;-----------------
+   mov y+3, Thertemp+3
+   mov y+2, Thertemp+2 
+   mov y+1, Thertemp+1
+   mov y+0, Thertemp+0 ;   
+
+   ;-----------------
+   lcall add32
+   load_y(5) ; offest can be reset
+   lcall add32
+   mov Oven_temp+3,  x+3   
+   mov Oven_temp+2,  x+2
+   mov Oven_temp+1,  x+1
+   mov Oven_temp+0,  x+0 
+   lcall hex2bcd
+   ret	
+   
+;---------   
+;Swithline
+;---------
+Switchline:
+	mov a, #'\r' 
+    lcall putchar
+    mov a, #'\n'
+    lcall putchar; display our value - final temperature
+	ret
+		
 ;-----------------------------------
 ; chanel 6 mac
 ;-----------------------------------
@@ -245,26 +324,29 @@ L1_1s: djnz R0, L1_1s ; 3*45.21123ns*400
 ;display temperature
 ;------------------------------
 display:
-   Set_Cursor(2, 7)
-    ;Display_BCD(bcd+4)
-    ;Display_BCD(bcd+3)
-    ;Display_BCD(bcd+2)
-    ;Display_BCD(bcd+1)
-    Display_BCD(bcd+0)
+   LCD_cursor(2, 7)
+    ;LCD_printBCD(bcd+4)
+    ;LCD_printBCD(bcd+3)
+    ;LCD_printBCD(bcd+2)
+    ;LCD_printBCD(bcd+1)
+    LCD_printBCD(bcd+0)
     ret
 
 MainProgram:
-    lcall LCD_4BIT
+    ;lcall LCD_4BIT
     mov SP, #7FH ; Set the stack pointer to the begining of idata
     mov PMOD, #0 ; Configure all ports in bidirectional mode
-    Set_Cursor(1, 1)
-    Send_Constant_String(#Initial_Message)
+    lcall LCD_init
+    LCD_cursor(1, 1)
+    LCD_print (#Initial_Message)
 
     lcall InitSerialPort
     ;mov DPTR, #Hello_World
     ;lcall SendString
+	
+	
     clr LM_TH ; set the flag to low initially
-    lcall SendVoltage
+    ljmp SendVoltage
     ;lcall display
 
 END
