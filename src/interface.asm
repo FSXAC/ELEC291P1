@@ -143,6 +143,30 @@ T0_ISR:
     setb    TR0
     cpl     P0.0
     reti
+    
+    
+;---------------------------
+; Timer 1 for Serial port
+;---------------------------
+; Configure the serial port and baud rate using timer 1
+InitSerialPort:
+    ; Since the reset button bounces, we need to wait a bit before
+    ; sending messages, or risk displaying gibberish!
+    mov R1, #222
+    mov R0, #166
+    djnz R0, $   ; 3 cycles->3*45.21123ns*166=22.51519us
+    djnz R1, $-4 ; 22.51519us*222=4.998ms
+    ; Now we can safely proceed with the configuration
+    clr	TR1
+    anl	TMOD, #0x0f
+    orl	TMOD, #0x20
+    orl	PCON,#0x80
+    mov	TH1,#T1LOAD
+    mov	TL1,#T1LOAD
+    setb TR1
+    mov	SCON,#0x52
+    ret
+    
 
 ; -------------------------;
 ; Initialize Timer 2	   ;
