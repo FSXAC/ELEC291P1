@@ -676,22 +676,23 @@ fsm_invalid:
 fsm_state1:
     mov     power,        #10 ; (Geoff pls change this line of code to fit)
     ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
-    ;soakTemp is the saved parameter from interface
-    mov     a,          soakTemp
-    clr     c
-    ;crtTemp is the temperature taken from oven (i think...)
-    subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jc      fsm_state1_done
-    ljmp    fsm
-
-    mov x+1, soakTemp+1
+;    ;soakTemp is the saved parameter from interface
+;    mov     a,          soakTemp
+;    clr     c
+;    ;crtTemp is the temperature taken from oven (i think...)
+;    subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
+;    jc      fsm_state1_done
+;    ljmp    fsm
+    mov x+1, Oven_temp+1; load Oven_temp with x
+    mov x+0, Oven_temp+0
 
     mov y+1, soakTemp+1 ; load soaktemp to y
     mov y+0, soakTemp+0
-
-
-
-
+    lcall x_gteq_y ; call the math32 function
+    ; if mf is 1 then Oven_temp >= saoktemp
+    jb mf, fsm_state1_done
+    ljmp fsm ; jump to the start
+    
 fsm_state1_done:
     ; temperature reached
     mov     state,          #PREHEAT_SOAK
