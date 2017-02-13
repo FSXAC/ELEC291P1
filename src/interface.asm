@@ -74,7 +74,7 @@ dseg at 0x30
     soakTime:   ds  1
     reflowTemp: ds  1
     reflowTime: ds  1
-    coolingTemp ds  1
+    coolingTemp: ds  1
     seconds:    ds  1
     minutes:    ds  1
     countms:    ds  2
@@ -372,7 +372,7 @@ ADC_get:
     mov     a,      R1
     mov     R6,     a ; R1 contains bits 0 to 7. Save result low.
     setb    ADC_CE
-    sleep(50)
+    sleep(#50)
     pop     AR1
     pop     AR0
     ret
@@ -790,7 +790,7 @@ fsm_state5_done:
     beepPulse()
     ljmp    fsm
 
-END
+
 
 ;-------------------------------------
 ;send voltage to the serial port
@@ -918,3 +918,5 @@ Switchline:
     mov a, #'\n'
     lcall putchar; display our value - final temperature
 	ret
+
+END
