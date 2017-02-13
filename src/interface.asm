@@ -104,6 +104,7 @@ bseg
     oven_enabled:	dbit 1
     reset_timer_f:	dbit 1
 	ongoing_f: 		dbit 1
+	safetycheck_done_f: dbit 1
 
     ; for math32
     mf:             dbit 1
@@ -133,6 +134,8 @@ msg_state5:         db 'S: Cooling      ', 0
 msg_fsm:            db 'T: --- C --:--  ', 0
 msg_reset_top:		db '   R E S E T    ', 0
 msg_reset_btm:		db '   STOP OVEN    ', 0  
+msg_abort_top:		db 'Oven temp not   ', 0
+msg_abort_btm:		db 'reached, ABORT! ', 0 
 
 ; -------------------------;
 ; Initialize Timer 0	   ;
@@ -446,6 +449,7 @@ main_button_start:
     mov		state, #RAMP2SOAK
 	
 	setb	ongoing_f
+	clr 	safetycheck_done_f
 
     ; set LCD screen and go to FSM fsm loop
     ; LCD_cursor(1, 1)
@@ -707,8 +711,38 @@ fsm_invalid:
     ; have some code for this exception (eg. reset and return to main)
     ljmp    setup
 
+fsm_abort:
+	; print abort message
+	LCD_cursor(1,1)
+	LCD_print(#msg_abort_top)
+	LCD_cursor(2,1)
+	LCD_print(#msg_abort_btm)
+	waitSeconds(#0x05)	
+	;jump to reset to stop oven
+	ljmp fsm_reset_state
+	
+
 fsm_state1:
-    mov     power,        #10 ; (Geoff pls change this line of code to fit)
+	jb		safetycheck_done_f, fsm_state1a
+	; safety precaution check 
+	mov		a, #60d
+	clr		c
+	subb	a, soakTime_sec
+	; go to state 1 if not 60 seconds yet
+	jnz		fsm_state1a
+	; otherwise, check if temperature if above 50 degrees
+	mov 	x+0, 	Oven_temp
+	mov		x+1, 	Oven_temp+1
+	mov		x+2, 	#0x00
+	mov		x+3, 	#0x00
+	Load_y(50d)
+	lcall 	x_lteq_y
+	jb		mf, fsm_abort
+	setb	safetycheck_done_f
+	
+	
+fsm_state1a: 
+ mov     power,        #10 ; (Geoff pls change this line of code to fit)
     ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
 ;    ;soakTemp is the saved parameter from interface
 ;    mov     a,          soakTemp
@@ -738,9 +772,6 @@ fsm_state1_done:
     ; produces beeping noise
     beepshort()
 
-    ; update state 2 LCD screen
-   ; LCD_cursor(1, 1)
-    ;LCD_print(#msg_state2)
 	; update state
 	LCD_cursor(1, 7)
 	mov		a, state
@@ -820,6 +851,7 @@ fsm_state4_done:
 	LCD_printChar(R1)
 
 fsm_state5:
+	mov power, #0
     mov x+1, Oven_temp+1; load Oven_temp with x
     mov x+0, Oven_temp+0
     ; in our configuration we haven't set cooling temp yet
@@ -841,18 +873,26 @@ fsm_state5_done:
 
 ; RESET BUTTON 
 fsm_reset_state:
+	; someone please fix this so the oven stops to and not just the controller lol
+	mov power, #0
 	LCD_cursor(1,1)
 	LCD_print(#msg_reset_top)
 	LCD_cursor(2,1)
 	LCD_print(#msg_reset_btm)
-	mov		soakTime_sec, #0x00
-	mov		sleep_time, #0x05
-; someone please fix this so the oven stops to and not just the controller lol
-reset_msg_sleep:
-	mov		a, sleep_time
-	clr		c
-	subb	a, soakTime_sec
-	jnz		reset_msg_sleep
+	; show message for 5 seconds at least
+	waitSeconds(#0x05)
+
+	; stay at this state until oven has cooled down
+	mov x+1, Oven_temp+1; load Oven_temp with x
+    mov x+0, Oven_temp+0
+    ; in our configuration we haven't set cooling temp yet
+    mov coolingTemp, #60 ;
+
+    mov y+1, #0x00 ; load soaktemp to y
+    mov y+0, coolingTemp+0
+    lcall x_gteq_y ; call the math32 function
+    ; repeat while oven_temp >= coolingTemp
+	jb mf, fsm_reset_state
 	mov		state, 		#0
 	ljmp	fsm
 
