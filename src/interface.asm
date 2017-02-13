@@ -93,6 +93,10 @@ dseg at 0x30
     x:          ds  4
     y:          ds  4
 
+    ; for beep
+    soundCount: ds  1
+    soundms:    ds  1
+
 bseg
     seconds_flag: 	dbit 1
     oven_enabled:	dbit 1
@@ -100,8 +104,13 @@ bseg
 
     ; for math32
     mf:             dbit 1
+
     ; for reading temperature
-    LM_TH: dbit 1
+    LM_TH:          dbit 1
+
+    ; for beep
+    TR0_pulse_flag: dbit 1
+
 cseg
 ; LCD SCREEN
 ;                     	1234567890123456
@@ -156,12 +165,12 @@ putchar:
 
 ; Send a constant-zero-terminated string using the serial port
 SendString:
-    clr A
-    movc A, @A+DPTR
-    jz SendStringDone
-    lcall putchar
-    inc DPTR
-    sjmp SendString
+    clr     a
+    movc    a, @a+dptr
+    jz      SendStringDone
+    lcall   putchar
+    inc     DPTR
+    sjmp    SendString
 SendStringDone:
     ret
 
@@ -232,7 +241,6 @@ T2_ISR_minutes:
     mov     minutes,    a
     mov     seconds,    #0x00
 
-    ; CHANGED
     ; reset minute to 0 when minutes -> 60
     clr     c
     subb    a,          #0x60
@@ -260,7 +268,7 @@ PWM_oven:
     cjne    a,  ovenPower,  PWM_cont
     ; if power 10, then never turn off (corner case)
     mov     a,  ovenPower
-    cjne    a,  #10,    PWM_corner1false
+    cjne    a,  #10,        PWM_corner1false
     ljmp    PWM_corner1true
 PWM_corner1false:
     setb    SSR
