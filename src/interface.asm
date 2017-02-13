@@ -147,35 +147,6 @@ T0_ISR:
     cpl     P0.0
     reti
 
-
-;---------------------------
-; Timer 1 for Serial port
-;---------------------------
-; Configure the serial port and baud rate using timer 1
-InitSerialPort:
-    PUSH AR0
-    PUSH AR1
-    ; Since the reset button bounces, we need to wait a bit before
-    ; sending messages, or risk displaying gibberish!
-    mov R1, #222
-    mov R0, #166
-    djnz R0, $   ; 3 cycles->3*45.21123ns*166=22.51519us
-    djnz R1, $-4 ; 22.51519us*222=4.998ms
-    ; Now we can safely proceed with the configuration
-    clr	TR1
-    anl	TMOD, #0x0f
-    orl	TMOD, #0x20
-    orl	PCON,#0x80
-    mov	TH1,#T1LOAD
-    mov	TL1,#T1LOAD
-    setb TR1
-    mov	SCON,#0x52
-
-    POP AR1
-    POP AR0
-    ret
-
-
 ; Send a character using the serial port
 putchar:
     jnb TI, putchar
@@ -423,48 +394,27 @@ ADC_comm_loop:
     ret
 
 ;-----------------------------;
-; Get number from ADC         ;
+; Get number from ADC  store it in R6 and R7 ;
 ;-----------------------------;
 ADC_get:
-    push    ACC
-    push    AR0
-    push    AR1
-    clr     ADC_CE
-
-    ; starting bit is set to 1
-    mov     R0,     #0x01
-    lcall   ADC_comm
-
-    ; read channel 0 and save to result
-    ; read lower 2 bits of upper byte: ------XX --------
-    mov     R0,         #0x80
-    lcall   ADC_comm
-    mov     a,          R1
-    anl     a,          #0x03
-    mov     result+1,   a
-
-    ; read lower byte: -------- XXXXXXXX
-    mov     R0,         #0x55   ; random command
-    lcall   ADC_comm
-    mov     result,     R1
-    setb    ADC_CE
-
-    ; delay
-    ; sleep(#50)
-
-    ; convert result into BCD using math32
-    mov     x,      result
-    mov     x+1,    result+1
-    mov     x+2,    #0x00
-    mov     x+3,    #0x00
-    lcall   hex2bcd
-    mov     result,     bcd
-    mov     result+1,   bcd+1
-
-    ; restore registers
-    pop     AR1
-    pop     AR0
-    pop     ACC
+    clr ADC_CE
+    mov R0, #00000001B ; Start bit:1
+    lcall ADC_comm
+    mov a, b
+    swap a
+    anl a, #0F0H
+    setb acc.7 ; Single mode (bit 7).
+    mov R0, a
+    lcall ADC_comm
+    mov a, R1 ; R1 contains bits 8 and 9
+    anl a, #00000011B ; We need only the two least significant bits
+    mov R7, a ; Save result high.
+    mov R0, #55H ; It doesn't matter what we transmit...
+    lcall ADC_comm
+    mov a, R1
+    mov R6, a ; R1 contains bits 0 to 7. Save result low.
+    setb ADC_CE
+    lcall Delay
     ret
 
 ;-----------------------------;
@@ -490,8 +440,8 @@ setup:
     ; Initialize MCP3008 ADC
     setb    ADC_CE
     lcall   ADC_init
-    ;lcall   SPI_init
-    lcall InitSerialPort ; different names
+    lcall   SPI_init
+
 
     ; initialize variables
     setb    seconds_flag
