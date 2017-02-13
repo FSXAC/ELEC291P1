@@ -846,6 +846,7 @@ fsm_state5_done:
     beepPulse()
     ljmp    fsm
 
+; RESET BUTTON 
 fsm_reset_state:
 	LCD_cursor(1,1)
 	LCD_print(#msg_reset_top)
@@ -853,6 +854,7 @@ fsm_reset_state:
 	LCD_print(#msg_reset_btm)
 	mov		soakTime_sec, #0x00
 	mov		sleep_time, #0x05
+; someone please fix this so the oven stops to and not just the controller lol
 reset_msg_sleep:
 	mov		a, sleep_time
 	clr		c
