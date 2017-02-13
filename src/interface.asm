@@ -440,10 +440,10 @@ main_button_start:
     mov		state, #RAMP2SOAK
 
     ; set LCD screen and go to FSM fsm loop
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state1)
-    LCD_cursor(2, 1)
-    LCD_print(#msg_fsm)
+    ; LCD_cursor(1, 1)
+    ; LCD_print(#msg_state1)
+    ; LCD_cursor(2, 1)
+    ; LCD_print(#msg_fsm)
     ljmp 	fsm
 
 main_button_state:
@@ -659,9 +659,19 @@ dec_reflow_time:
 ; END OF INTERFACE // BEGIN FSM       ;
 ;-------------------------------------;
 fsm:
-    ; update LCD
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
+    ; update LCD (current temp)
+    LCD_printTemp(crtTemp, 1, 12)
+	; update elapsed time
+	LCD_cursor(2, 9)
+    LCD_printBCD(minutes)
+    LCD_cursor(2, 12)
+    LCD_printBCD(seconds)
+	; update state
+	LCD_cursor(1, 7)
+	mov		a, state
+	add		a, #0x30
+	mov		R1, a
+	LCD_printChar(R1)
 
     ; find which state we are currently on
     mov     a,  state
@@ -693,12 +703,13 @@ fsm_state1:
 ;    subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
 ;    jc      fsm_state1_done
 ;    ljmp    fsm
+
     mov     x+1,    Oven_temp+1; load Oven_temp with x
     mov     x+0,    Oven_temp+0
-    mov     y+1,    soakTemp+1 ; load soaktemp to y
-    mov     y+0,    soakTemp+0
+    mov     y+1,    #0x00 ; load soaktemp to y
+    mov     y+0,    soakTemp
     lcall   x_gteq_y ; call the math32 function
-    ; if mf is 1 then Oven_temp >= saoktemp
+    ; if mf is 1 then Oven_temp >= soaktemp
     jb      mf,     fsm_state1_done
     ljmp    fsm ; jump to the start otherwise
 
@@ -711,8 +722,14 @@ fsm_state1_done:
     beepshort()
 
     ; update state 2 LCD screen
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state2)
+   ; LCD_cursor(1, 1)
+    ;LCD_print(#msg_state2)
+	; update state
+	LCD_cursor(1, 7)
+	mov		a, state
+	add		a, #0x30
+	mov		R1, a
+	LCD_printChar(R1)
 
 fsm_state2:
     mov     power,          #2
@@ -727,8 +744,14 @@ fsm_state2_done:
     mov     state,          #3
     ; TODO reset counter !!! TODO
     beepShort()
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state3)
+   ; LCD_cursor(1, 1)
+    ;LCD_print(#msg_state3)
+	; update state
+	LCD_cursor(1, 7)
+	mov		a, state
+	add		a, #0x30
+	mov		R1, a
+	LCD_printChar(R1)
 
 fsm_state3:
     mov     power,      #10
@@ -747,8 +770,8 @@ fsm_state3_done:
     mov     state,      #4
     ; TODO reset counter !!! TODO
     beepShort()
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state4)
+    ;LCD_cursor(1, 1)
+    ;LCD_print(#msg_state4)
 
 fsm_state4:
     mov     power,        #2
@@ -761,8 +784,8 @@ fsm_state4_done:
     mov     state,  #5
     ; TODO reset counter !!! TODO
     beepLong()
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state5)
+    ;LCD_cursor(1, 1)
+    ;LCD_print(#msg_state5)
 
 fsm_state5:
     mov     power,      #0
