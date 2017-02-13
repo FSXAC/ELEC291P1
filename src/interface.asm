@@ -763,6 +763,14 @@ fsm_state1:
     jc      fsm_state1_done
     ljmp    fsm
 
+    mov x+1, soakTemp+1
+
+    mov y+1, soakTemp+1 ; load soaktemp to y
+    mov y+0, soakTemp+0
+
+
+
+
 fsm_state1_done:
     ; temperature reached
     mov     state,          #PREHEAT_SOAK
@@ -842,7 +850,7 @@ END
 SendVoltage:
     jnb LM_TH, Th ; jump to Th initially
 LM: mov b, #0;
-    lcall _Read_ADC_Channel
+    lcall ADC_get
     lcall LM_converter
     clr LM_TH
  	LCD_cursor(2, 7)
@@ -864,7 +872,7 @@ LM: mov b, #0;
 
 
 Th: mov b, #1 ; connect thermocouple to chanel1
-    lcall _Read_ADC_Channel ; Read from the SPI
+    lcall ADC_get ; Read from the SPI
     lcall Th_converter ; convert ADC TO actual value
     setb LM_TH
     ;;lcall hex2bcd
