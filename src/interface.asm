@@ -443,7 +443,7 @@ setup:
     mov		soakTime, 	#20
     mov		reflowTemp, #140
     mov		reflowTime, #15
-
+    mov   coolingTemp, #60
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
     clr     LM_TH  ; set the flag to low initially
 
@@ -807,7 +807,7 @@ fsm_state3_done:
     beepShort()
     LCD_cursor(1, 1)
     LCD_print(#msg_state4)
-
+    mov	    soakTime_sec,   #0x00
 fsm_state4:
     mov     power,        #2
     mov     a,      soaktime  ; our soaktime has to be
