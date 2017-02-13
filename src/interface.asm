@@ -820,13 +820,6 @@ fsm_state4_done:
 	LCD_printChar(R1)
 
 fsm_state5:
-    mov     power,      #0
-    mov     a,          #60
-    clr     c
-    subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jc      fsm_state5_done
-    ljmp    fsm
-
     mov x+1, Oven_temp+1; load Oven_temp with x
     mov x+0, Oven_temp+0
     ; in our configuration we haven't set cooling temp yet
@@ -834,7 +827,7 @@ fsm_state5:
 
     mov y+1, coolingTemp+1 ; load soaktemp to y
     mov y+0, coolingTemp+0
-    lcall x_gteq_y ; call the math32 function
+    lcall x_lteq_y ; call the math32 function
     ; if mf is 1 then Oven_temp >= reflowtemp
     jb mf, fsm_state5_done
     ljmp fsm ; jump to the start
