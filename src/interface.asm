@@ -1,14 +1,13 @@
-;LIT SOLDER OVEN CONTROLLER
+; LIT SOLDER OVEN CONTROLLER
 ; AUTHORS:  SCOTT BEAULIEU
-;			GEOFF GOODWIN
-;			MUCHEN HE
-;			LARRY LIU
-;			LUFEI LIU
-;			WENOA TEVES
-; VERSION:	0
-; LAST REVISION:	2017-02-03 MANSUR HE
+;           GEOFF GOODWIN
+;           MUCHEN HE
+;           LARRY LIU
+;           LUFEI LIU
+;           WENOA TEVES
+; VERSION:	1
+; LAST REVISION:	2017-02-11
 ; http:;i.imgur.com/7wOfG4U.gif
-
 
 org 0x0000
     ljmp    setup
@@ -75,6 +74,7 @@ dseg at 0x30
     soakTime:   ds  1
     reflowTemp: ds  1
     reflowTime: ds  1
+    coolingTemp: ds  1
     seconds:    ds  1
     minutes:    ds  1
     countms:    ds  2
@@ -84,7 +84,9 @@ dseg at 0x30
     ovenPower:	ds  1 ; currnet power of the oven, number between 0 and 10
     soakTime_sec:	ds 1
     power:		ds  1
-
+    Thertemp:   ds  4
+    LMtemp:     ds  4
+    Oven_temp:  ds  4
 
     ; for math32
     result:     ds  2
@@ -92,14 +94,23 @@ dseg at 0x30
     x:          ds  4
     y:          ds  4
 
+    ; for beep
+    soundCount: ds  1
+    soundms:    ds  1
+
 bseg
     seconds_flag: 	dbit 1
-    ongoing_flag:	dbit 1			;only check for buttons when the process has not started (JK just realized we might not need this..)
     oven_enabled:	dbit 1
     reset_timer_f:	dbit 1
 
     ; for math32
     mf:             dbit 1
+
+    ; for reading temperature
+    LM_TH:          dbit 1
+
+    ; for beep
+    TR0_pulse_flag: dbit 1
 
 cseg
 ; LCD SCREEN
@@ -146,6 +157,24 @@ T0_ISR:
     cpl     P0.0
     reti
 
+; Send a character using the serial port
+putchar:
+    jnb TI, putchar
+    clr TI
+    mov SBUF, a
+    ret
+
+; Send a constant-zero-terminated string using the serial port
+SendString:
+    clr     a
+    movc    a, @a+dptr
+    jz      SendStringDone
+    lcall   putchar
+    inc     DPTR
+    sjmp    SendString
+SendStringDone:
+    ret
+
 ; -------------------------;
 ; Initialize Timer 2	   ;
 ; -------------------------;
@@ -168,6 +197,7 @@ T2_ISR:
     push 	acc
     push 	psw
     push 	AR1
+
     inc 	countms+0
     mov 	a,     countms+0
     jnz 	T2_ISR_incDone
@@ -177,13 +207,15 @@ T2_ISR:
     lcall   PWM_oven
 
 T2_ISR_incDone:
-    ; Check if half second has passed
+    ; Check if a second has passed
     mov     a,  countms+0
     cjne    a,  #low(TIME_RATE),    T2_ISR_return
     mov     a,  countms+1
     cjne    a,  #high(TIME_RATE),   T2_ISR_return
-    ; Let the main program know half second had passed
+
+    ; following happens when TIME_RATE time has passed
     setb 	seconds_flag
+
     ; reset 16 bit ms counter
     clr 	a
     mov 	countms+0,     a
@@ -210,7 +242,6 @@ T2_ISR_minutes:
     mov     minutes,    a
     mov     seconds,    #0x00
 
-    ; CHANGED
     ; reset minute to 0 when minutes -> 60
     clr     c
     subb    a,          #0x60
@@ -218,6 +249,7 @@ T2_ISR_minutes:
     mov     minutes,    #0x00
 
 T2_ISR_return:
+    ;lcall SendVoltage; send voltage for each Timer2 interrupt
     pop 	AR1
     pop 	psw
     pop 	acc
@@ -237,7 +269,7 @@ PWM_oven:
     cjne    a,  ovenPower,  PWM_cont
     ; if power 10, then never turn off (corner case)
     mov     a,  ovenPower
-    cjne    a,  #10,    PWM_corner1false
+    cjne    a,  #10,        PWM_corner1false
     ljmp    PWM_corner1true
 PWM_corner1false:
     setb    SSR
@@ -316,45 +348,31 @@ ADC_comm_loop:
     ret
 
 ;-----------------------------;
-; Get number from ADC         ;
+; Get number from ADC, store it in R6 and R7 ;
 ;-----------------------------;
 ADC_get:
     push    ACC
     push    AR0
     push    AR1
     clr     ADC_CE
-
-    ; starting bit is set to 1
-    mov     R0,     #0x01
+    mov     R0,     #0x01B ; Start bit:1
     lcall   ADC_comm
 
-    ; read channel 0 and save to result
-    ; read lower 2 bits of upper byte: ------XX --------
-    mov     R0,         #0x80
+    mov     a,      b
+    swap    a
+    anl     a,      #0F0H
+    setb    acc.7          ; Single mode (bit 7).
+    mov     R0,     a
     lcall   ADC_comm
-    mov     a,          R1
-    anl     a,          #0x03
-    mov     result+1,   a
-
-    ; read lower byte: -------- XXXXXXXX
-    mov     R0,         #0x55   ; random command
+    mov     a,      R1 ; R1 contains bits 8 and 9
+    anl     a,      #0x03 ; We need only the two least significant bits
+    mov     R7,     a ; Save result high.
+    mov     R0,     #0x55 ; It doesn't matter what we transmit...
     lcall   ADC_comm
-    mov     result,     R1
+    mov     a,      R1
+    mov     R6,     a ; R1 contains bits 0 to 7. Save result low.
     setb    ADC_CE
-
-    ; delay
-    ; sleep(#50)
-
-    ; convert result into BCD using math32
-    mov     x,      result
-    mov     x+1,    result+1
-    mov     x+2,    #0x00
-    mov     x+3,    #0x00
-    lcall   hex2bcd
-    mov     result,     bcd
-    mov     result+1,   bcd+1
-
-    ; restore registers
+    sleep(#50)
     pop     AR1
     pop     AR0
     pop     ACC
@@ -386,7 +404,6 @@ setup:
     lcall   SPI_init
 
     ; initialize variables
-    clr	    ongoing_flag
     setb    seconds_flag
     mov     seconds,    #0x00
     mov     minutes,    #0x00
@@ -395,6 +412,8 @@ setup:
     mov		reflowTemp, #0x00
     mov		reflowTime, #0x00
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
+    clr     LM_TH  ; set the flag to low initially
+
 main:
     ; MAIN MENU LOOP
     ; CHECK: [START], [STATE]
@@ -406,14 +425,10 @@ main:
     LCD_printChar(#0xDF)
 main_button_start:
     ; [START] - start the reflow program
-    ;check for start button only if the process has not started yet
-    jb      ongoing_flag,   main_update
     jb 	    BTN_START,      main_button_state
     sleep(#DEBOUNCE)
     jb 	    BTN_START,      main_button_state
     jnb     BTN_START,      $
-    ; set ongoing_flag to prevent buttons from working during operation
-    setb	ongoing_flag
 
     ; clear the reset flag so timer can start counting up
     clr		reset_timer_f
@@ -424,12 +439,15 @@ main_button_start:
     ; set as FSM State 1
     mov		state, #RAMP2SOAK
 
-    ; go to FSM fsm loop
+    ; set LCD screen and go to FSM fsm loop
+    LCD_cursor(1, 1)
+    LCD_print(#msg_state1)
+    LCD_cursor(2, 1)
+    LCD_print(#msg_fsm)
     ljmp 	fsm
 
 main_button_state:
     ; [STATE] - configure reflow program
-    jb		ongoing_flag, main_update	; skip checking for state if process has started
     jb 		BTN_STATE, main_update
     sleep(#DEBOUNCE)
     jb 		BTN_STATE, main_update
@@ -437,10 +455,6 @@ main_button_state:
     ljmp    conf_soakTemp
 
 main_update:
-    ; check if fsm is on, if it is, perform fsm tasks
-    jnb		  ongoing_flag, main_update_cont
-    ljmp    main_fsm_update
-main_update_cont:
     ; update main screen values
     LCD_cursor(2, 9)
     LCD_printBCD(minutes)
@@ -448,11 +462,6 @@ main_update_cont:
     LCD_printBCD(seconds)
     LCD_printTemp(crtTemp, 1, 12)	; where is the temperature coming from ??
     ljmp 	main_button_start
-main_fsm_update:
-    ; update fsm values
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
-    ljmp    fsm
 
 ;-------------------------------------;
 ; CONFIGURE: Soak Temperature 		  ;
@@ -650,31 +659,9 @@ dec_reflow_time:
 ; END OF INTERFACE // BEGIN FSM       ;
 ;-------------------------------------;
 fsm:
-    ; find which state we are currently on
-;     clr     c
-;     mov     a,  state
-;     subb    a,  #0x01
-;     jnz     fsm_notState1
-;     ljmp    fsm_state1
-; fsm_notState1:
-;     subb    a,  #0x01
-;     jnz     fsm_notState2
-;     ljmp    fsm_state2
-; fsm_notState2:
-;     subb    a,  #0x01
-;     jnz     fsm_notState3
-;     ljmp    fsm_state3
-; fsm_notState3:
-;     subb    a,  #0x01
-;     jnz     fsm_notState4
-;     ljmp    fsm_state4
-; fsm_notState4:
-;     subb    a,  #0x01
-;     jnz     fsm_invalid
-;     ljmp    fsm_state5
-; fsm_invalid:
-;     ; have some code for this exception (reset and return to main)
-;     ljmp    setup
+    ; update LCD
+    LCD_printTemp(crtTemp, 2, 3)
+    LCD_printTime(soakTime_sec, 2, 9)
 
     ; find which state we are currently on
     mov     a,  state
@@ -690,106 +677,247 @@ fsm_notState3:
     cjne    a,  #REFLOW,        fsm_notState4
     ljmp    fsm_state4
 fsm_notState4:
-    cjne    a,  #COOLING,       fsm_invalud
+    cjne    a,  #COOLING,       fsm_invalid
     ljmp    fsm_state5
 fsm_invalid:
     ; have some code for this exception (eg. reset and return to main)
     ljmp    setup
 
 fsm_state1:
-    ; display on LCD
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state1)
-    LCD_cursor(2, 1)
-    LCD_print(#msg_fsm)
-fsm_state1_update:
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
-
     mov     power,        #10 ; (Geoff pls change this line of code to fit)
-    ;mov     soakTime_sec, #0
-    ;mov     soakTime_min, #0
-
     ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
-    ;soakTemp is the saved parameter from interface
-    mov     a,          soakTemp
-    clr     c
-    ;crtTemp is the temperature taken from oven (i think...)
-    subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jnc     fsm_state1_update
+;    ;soakTemp is the saved parameter from interface
+;    mov     a,          soakTemp
+;    clr     c
+;    ;crtTemp is the temperature taken from oven (i think...)
+;    subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
+;    jc      fsm_state1_done
+;    ljmp    fsm
+    mov     x+1,    Oven_temp+1; load Oven_temp with x
+    mov     x+0,    Oven_temp+0
+    mov     y+1,    soakTemp+1 ; load soaktemp to y
+    mov     y+0,    soakTemp+0
+    lcall   x_gteq_y ; call the math32 function
+    ; if mf is 1 then Oven_temp >= saoktemp
+    jb      mf,     fsm_state1_done
+    ljmp    fsm ; jump to the start otherwise
 
+fsm_state1_done:
     ; temperature reached
     mov     state,          #PREHEAT_SOAK
     mov	    soakTime_sec,   #0x00   ; reset the timer before jummp to state2
 
     ; produces beeping noise
-    beep(1)
+    beepshort()
 
-fsm_state2:
+    ; update state 2 LCD screen
     LCD_cursor(1, 1)
     LCD_print(#msg_state2)
-    mov     power,          #2
-fsm_state2_update:
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
 
+fsm_state2:
+    mov     power,          #2
     mov     a,              soaktime
     clr     c
     subb    a,              soakTime_sec
-    jnc     fsm_state2_update
+    jc      fsm_state2_done
+    ljmp    fsm
 
+fsm_state2_done:
     ; finished state 2
     mov     state,          #3
-    setb    reset_timer_f
-    beep(1)
-
-fsm_state3:
+    ; TODO reset counter !!! TODO
+    beepShort()
     LCD_cursor(1, 1)
     LCD_print(#msg_state3)
-    mov     power,          #10
-fsm_state3_update:
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
-    mov     a,          #220 ; make this a constant
-    clr     c
-    subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jnc     fsm_state3_update
 
+fsm_state3:
+    mov     power,      #10
+    mov x+1, Oven_temp+1; load Oven_temp with x
+    mov x+0, Oven_temp+0
+
+    mov y+1, reflowTemp+1 ; load soaktemp to y
+    mov y+0, reflowTemp+0
+    lcall x_gteq_y ; call the math32 function
+    ; if mf is 1 then Oven_temp >= reflowtemp
+    jb mf, fsm_state3_done
+    ljmp fsm ; jump to the start
+
+fsm_state3_done:
     ; finished state 3
     mov     state,      #4
-    setb    reset_timer_f; reset the timer before jummp to state2
-    beep(1)
-
-fsm_state4:
+    ; TODO reset counter !!! TODO
+    beepShort()
     LCD_cursor(1, 1)
     LCD_print(#msg_state4)
-    mov power,        #2
-fsm_state4_update:
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
-    mov a, soaktime  ; our soaktime has to be
-    clr c
-    subb a, soakTime_sec
-    jnc fsm_state4_update
-    mov state, #5
-    setb reset_timer_f
-    beep(1)
 
-
-fsm_state5:
+fsm_state4:
+    mov     power,        #2
+    mov     a,      soaktime  ; our soaktime has to be
+    clr     c
+    subb    a,      soakTime_sec
+    jc      fsm_state4_done
+    ljmp    fsm
+fsm_state4_done:
+    mov     state,  #5
+    ; TODO reset counter !!! TODO
+    beepLong()
     LCD_cursor(1, 1)
     LCD_print(#msg_state5)
-    mov     power,        #0
-Three_beeper:
+
+fsm_state5:
+    mov     power,      #0
     mov     a,          #60
     clr     c
     subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jnc     fsm_state5_done
-    mov     state, #0
-    setb    reset_timer_f; reset the timer before jummp to state2
-     ;*** here set *six*  beepers  ()
-fsm_state5_done:
-    ljmp fsm
+    jc      fsm_state5_done
+    ljmp    fsm
 
+    mov x+1, Oven_temp+1; load Oven_temp with x
+    mov x+0, Oven_temp+0
+    ; in our configuration we haven't set cooling temp yet
+    mov coolingTemp, #60 ;
+
+    mov y+1, coolingTemp+1 ; load soaktemp to y
+    mov y+0, coolingTemp+0
+    lcall x_gteq_y ; call the math32 function
+    ; if mf is 1 then Oven_temp >= reflowtemp
+    jb mf, fsm_state5_done
+    ljmp fsm ; jump to the start
+
+
+fsm_state5_done:
+    mov		state,		#0
+    ; TODO reset counter !!! TODO
+    beepPulse()
+    ljmp    fsm
+
+
+
+;-------------------------------------
+;send voltage to the serial port
+;--------------------------------------------------
+SendVoltage:
+    jnb LM_TH, Th ; jump to Th initially
+LM: mov b, #0;
+    lcall ADC_get
+    lcall LM_converter
+    clr LM_TH
+ 	LCD_cursor(2, 7)
+    ;LCD_printBCD(bcd+1); display on the LCD
+ 	;LCD_printBCD(bcd+0); display on the LCD
+ 	Send_BCD(bcd+1) ;
+    Send_BCD(bcd+0) ;
+	;lcall add_two_temp ; two temp
+	lcall Switchline
+
+
+	lcall add_two_temp ; two temp
+    Send_bcd(bcd+1)             ;display the total temperature
+	Send_bcd(bcd+0)
+
+	lcall Switchline
+  ret ; jump back to our interrupt
+    ;ljmp SendVoltage ; for our testing code, constanly track the temperature
+
+
+Th: mov b, #1 ; connect thermocouple to chanel1
+    lcall ADC_get ; Read from the SPI
+    lcall Th_converter ; convert ADC TO actual value
+    setb LM_TH
+    ;;lcall hex2bcd
+    ;mov Thertemp+1,  bcd+1
+    ;mov Thertemp+0,  bcd+0
+
+ 	Send_BCD(bcd+1) ;
+    Send_BCD(bcd+0) ;
+
+	lcall Switchline
+    ljmp SendVoltage
+
+;------------------------
+;Conver ADC LM_temp to BCD
+;------------------------
+LM_converter:
+
+    mov x+3, #0 ; Load 32-bit "y" with value from ADC
+    mov x+2, #0
+    mov x+1, R7
+    mov x+0, R6
+    load_y(503)
+    lcall mul32
+    load_y(1023)
+    lcall div32
+    load_y(273)
+    lcall sub32
+    ;lcall hex2bcd
+
+    mov LMtemp+3,  x+3
+    mov LMtemp+2,  x+2
+    mov LMtemp+1,  x+1
+    mov LMtemp+0,  x+0
+    lcall hex2bcd
+    ret
+;----------------------------
+; Conver ADC Ther_temp to BCD
+;----------------------------
+Th_converter:
+    mov x+3, #0 ; Load 32-bit �y� with value from ADC
+    mov x+2, #0
+    mov x+1, R7
+    mov x+0, R6
+    load_y(2)
+    lcall div32
+    ;lcall hex2bcd
+    mov Thertemp+3,  x+3
+    mov Thertemp+2,  x+2
+    mov Thertemp+1,  x+1
+    mov Thertemp+0,  x+0
+    lcall hex2bcd
+    ret
+    ;lcall hex2bcd
+    ;Send_BCD(bcd)
+
+    ;mov DPTR, #New_Line
+    ;lcall SendString
+
+;keep in hex
+;--------------------
+; ADD two temperature together for FSM
+;--------------------------------
+add_two_temp:
+   ;load_x(LMtemp)
+   ;load_y(Thertemp)
+
+   mov x+3,LMtemp+3
+   mov x+2,LMtemp+2
+   mov x+1,LMtemp+1
+   mov x+0,LMtemp+0
+
+   ;-----------------
+   mov y+3, Thertemp+3
+   mov y+2, Thertemp+2
+   mov y+1, Thertemp+1
+   mov y+0, Thertemp+0 ;
+
+   ;-----------------
+   lcall add32
+   load_y(5) ; offest can be reset
+   lcall add32
+   mov Oven_temp+3,  x+3
+   mov Oven_temp+2,  x+2
+   mov Oven_temp+1,  x+1
+   mov Oven_temp+0,  x+0
+   lcall hex2bcd
+   ret
+
+;---------
+;Swithline
+;---------
+Switchline:
+	mov a, #'\r'
+    lcall putchar
+    mov a, #'\n'
+    lcall putchar; display our value - final temperature
+	ret
 
 END
