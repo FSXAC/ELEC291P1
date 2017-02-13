@@ -74,6 +74,7 @@ dseg at 0x30
     soakTime:   ds  1
     reflowTemp: ds  1
     reflowTime: ds  1
+    coolingTemp ds  1
     seconds:    ds  1
     minutes:    ds  1
     countms:    ds  2
@@ -692,7 +693,7 @@ fsm_state1:
     ; if mf is 1 then Oven_temp >= saoktemp
     jb mf, fsm_state1_done
     ljmp fsm ; jump to the start
-    
+
 fsm_state1_done:
     ; temperature reached
     mov     state,          #PREHEAT_SOAK
@@ -723,11 +724,15 @@ fsm_state2_done:
 
 fsm_state3:
     mov     power,      #10
-    mov     a,          #220 ; make this a constant
-    clr     c
-    subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jc      fsm_state3_done
-    ljmp    fsm
+    mov x+1, Oven_temp+1; load Oven_temp with x
+    mov x+0, Oven_temp+0
+
+    mov y+1, reflowTemp+1 ; load soaktemp to y
+    mov y+0, reflowTemp+0
+    lcall x_gteq_y ; call the math32 function
+    ; if mf is 1 then Oven_temp >= reflowtemp
+    jb mf, fsm_state3_done
+    ljmp fsm ; jump to the start
 
 fsm_state3_done:
     ; finished state 3
@@ -758,6 +763,19 @@ fsm_state5:
     subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
     jc      fsm_state5_done
     ljmp    fsm
+
+    mov x+1, Oven_temp+1; load Oven_temp with x
+    mov x+0, Oven_temp+0
+    ; in our configuration we haven't set cooling temp yet
+    mov coolingTemp, #60 ;
+
+    mov y+1, coolingTemp+1 ; load soaktemp to y
+    mov y+0, coolingTemp+0
+    lcall x_gteq_y ; call the math32 function
+    ; if mf is 1 then Oven_temp >= reflowtemp
+    jb mf, fsm_state5_done
+    ljmp fsm ; jump to the start
+
 
 fsm_state5_done:
     mov		state,		#0
