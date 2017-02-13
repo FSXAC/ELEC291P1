@@ -220,10 +220,6 @@ _Read_ADC_Channel:
     lcall Delay
     ret
 
-
-
-
-
 ; -------------------------;
 ; Initialize Timer 2	   ;
 ; -------------------------;
@@ -752,9 +748,6 @@ fsm_invalid:
 
 fsm_state1:
     mov     power,        #10 ; (Geoff pls change this line of code to fit)
-    ;mov     soakTime_sec, #0
-    ;mov     soakTime_min, #0
-
     ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
     ;soakTemp is the saved parameter from interface
     mov     a,          soakTemp
@@ -770,7 +763,7 @@ fsm_state1_done:
     mov	    soakTime_sec,   #0x00   ; reset the timer before jummp to state2
 
     ; produces beeping noise
-    beep(1)
+    beepshort()
 
     ; update state 2 LCD screen
     LCD_cursor(1, 1)
@@ -788,7 +781,7 @@ fsm_state2_done:
     ; finished state 2
     mov     state,          #3
     ; TODO reset counter !!! TODO
-    beep(1)
+    beepShort()
     LCD_cursor(1, 1)
     LCD_print(#msg_state3)
 
@@ -804,7 +797,7 @@ fsm_state3_done:
     ; finished state 3
     mov     state,      #4
     ; TODO reset counter !!! TODO
-    beep(1)
+    beepShort()
     LCD_cursor(1, 1)
     LCD_print(#msg_state4)
 
@@ -818,7 +811,7 @@ fsm_state4:
 fsm_state4_done:
     mov     state,  #5
     ; TODO reset counter !!! TODO
-    beep(1)
+    beepLong()
     LCD_cursor(1, 1)
     LCD_print(#msg_state5)
 
@@ -833,7 +826,7 @@ fsm_state5:
 fsm_state5_done:
     mov		state,		#0
     ; TODO reset counter !!! TODO
-    beep(3)
+    beepPulse()
     ljmp    fsm
 
 END

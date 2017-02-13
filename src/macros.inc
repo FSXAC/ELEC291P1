@@ -40,38 +40,19 @@ endmac
 
 ;=== BEEPING MACRO===
 ; Current objective: just make a simple beep that might have delay on overall program
-beep mac
-	push	ACC
-	; param: mode of beeping
-	; [1] - Short single beep
-	; [2] - Long single beep
-	; [else] - 6 Intermediate beeps
-	mov 	a,		#%0
-	lcall	?beep
-	pop		ACC
-endmac
-?beep:
-	clr 	c
-	dec		a
-	jnz 	?beep_not1
-	sjmp	?beep_short
-?beep_not1:
-	dec 	a
-	jnz		?beep_not2
-	sjmp	?beep_long
-?beep_not2:
-	sjmp	?beep_pulse
-?beep_short:
+beepShort mac
     ; beep for 0.5s = 2 * 250ms
     mov     soundCount, #2
 	setb	TR0
-    sjmp    ?beep_end
-?beep_long:
+endmac
+
+beepLong mac
     ; beep for 1s = 4 * 250ms
     mov     soundCount, #4
     setb    TR0
-    sjmp    ?beep_end
-?beep_pulse:
-    setb
-    sjmp    ?beep_end
-?beep_end:
+endmac
+
+beepPulse mac
+    ; set special routine for 6 pulses of beeps
+    setb    TR0_pulse_flag
+endmac
