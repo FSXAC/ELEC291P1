@@ -851,6 +851,7 @@ fsm_state4_done:
 	LCD_printChar(R1)
 
 fsm_state5:
+	mov power, #0
     mov x+1, Oven_temp+1; load Oven_temp with x
     mov x+0, Oven_temp+0
     ; in our configuration we haven't set cooling temp yet
@@ -873,12 +874,25 @@ fsm_state5_done:
 ; RESET BUTTON 
 fsm_reset_state:
 	; someone please fix this so the oven stops to and not just the controller lol
-
+	mov power, #0
 	LCD_cursor(1,1)
 	LCD_print(#msg_reset_top)
 	LCD_cursor(2,1)
 	LCD_print(#msg_reset_btm)
+	; show message for 5 seconds at least
 	waitSeconds(#0x05)
+
+	; stay at this state until oven has cooled down
+	mov x+1, Oven_temp+1; load Oven_temp with x
+    mov x+0, Oven_temp+0
+    ; in our configuration we haven't set cooling temp yet
+    mov coolingTemp, #60 ;
+
+    mov y+1, #0x00 ; load soaktemp to y
+    mov y+0, coolingTemp+0
+    lcall x_gteq_y ; call the math32 function
+    ; repeat while oven_temp >= coolingTemp
+	jb mf, fsm_reset_state
 	mov		state, 		#0
 	ljmp	fsm
 
