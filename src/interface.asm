@@ -391,27 +391,33 @@ ADC_comm_loop:
     ret
 
 ;-----------------------------;
-; Get number from ADC  store it in R6 and R7 ;
+; Get number from ADC, store it in R6 and R7 ;
 ;-----------------------------;
 ADC_get:
-    clr ADC_CE
-    mov R0, #00000001B ; Start bit:1
-    lcall ADC_comm
-    mov a, b
-    swap a
-    anl a, #0F0H
-    setb acc.7 ; Single mode (bit 7).
-    mov R0, a
-    lcall ADC_comm
-    mov a, R1 ; R1 contains bits 8 and 9
-    anl a, #00000011B ; We need only the two least significant bits
-    mov R7, a ; Save result high.
-    mov R0, #55H ; It doesn't matter what we transmit...
-    lcall ADC_comm
-    mov a, R1
-    mov R6, a ; R1 contains bits 0 to 7. Save result low.
-    setb ADC_CE
-    lcall Delay
+    push    ACC
+    push    AR0
+    push    AR1
+    clr     ADC_CE
+    mov     R0,     #0x01 ; Start bit:1
+    lcall   ADC_comm
+
+    mov     a,      b
+    swap    a
+    anl     a,      #0F0H
+    setb    acc.7          ; Single mode (bit 7).
+    mov     R0,     a
+    lcall   ADC_comm
+    mov     a,      R1 ; R1 contains bits 8 and 9
+    anl     a,      #0x03 ; We need only the two least significant bits
+    mov     R7,     a ; Save result high.
+    mov     R0,     #0x55 ; It doesn't matter what we transmit...
+    lcall   ADC_comm
+    mov     a,      R1
+    mov     R6,     a ; R1 contains bits 0 to 7. Save result low.
+    setb    ADC_CE
+    ; lcall   Delay
+    pop     AR1
+    pop     AR0
     ret
 
 ;-----------------------------;
