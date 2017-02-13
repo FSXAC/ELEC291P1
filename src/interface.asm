@@ -83,7 +83,9 @@ dseg at 0x30
     ovenPower:	ds  1 ; currnet power of the oven, number between 0 and 10
     soakTime_sec:	ds 1
     power:		ds  1
-
+    Thertemp: ds 4
+    LMtemp: ds 4
+    Oven_temp: ds 4
 
     ; for math32
     result:     ds  2
@@ -98,7 +100,8 @@ bseg
 
     ; for math32
     mf:             dbit 1
-
+    ; for reading temperature
+    LM_TH: dbit 1
 cseg
 ; LCD SCREEN
 ;                     	1234567890123456
@@ -143,8 +146,8 @@ T0_ISR:
     setb    TR0
     cpl     P0.0
     reti
-    
-    
+
+
 ;---------------------------
 ; Timer 1 for Serial port
 ;---------------------------
@@ -167,12 +170,12 @@ InitSerialPort:
     mov	TL1,#T1LOAD
     setb TR1
     mov	SCON,#0x52
-    
+
     POP AR1
     POP AR0
     ret
-    
-	
+
+
 ; Send a character using the serial port
 putchar:
     jnb TI, putchar
@@ -192,9 +195,9 @@ SendStringDone:
     ret
 
 Hello_World:
-    DB  'Hello, World!', '\r', '\n', 0    
-    
-    
+    DB  'Hello, World!', '\r', '\n', 0
+
+
 ;----------------------------------------------------------------------
 ; These ?EQU? must match the wiring between the microcontroller and ADC
 ;----------------------------------------------------------------------
@@ -222,7 +225,62 @@ DO_SPI_G_LOOP:
  	djnz R2, DO_SPI_G_LOOP
  	pop acc
  	ret
-    
+
+
+;---------------------------------;
+; Wait for halfs
+;---------------------------------;
+Delay:
+    PUSH AR0
+    PUSH AR1
+    PUSH AR2
+
+    MOV R2, #200
+L3_1s: MOV R1, #160
+L2_1s: MOV R0, #200
+L1_1s: djnz R0, L1_1s ; 3*45.21123ns*400
+
+    djnz R1, L2_1s ;
+    djnz R2, L3_1s ;
+
+    POP AR2
+    POP AR1
+    POP AR0
+    ret
+
+
+;-----------------------------------
+; chanel 6 mac
+;-----------------------------------
+Read_ADC_Channel MAC
+mov b, %0
+lcall _Read_ADC_Channel
+ENDMAC
+
+_Read_ADC_Channel:
+    clr CE_ADC
+    mov R0, #00000001B ; Start bit:1
+    lcall DO_SPI_G
+    mov a, b
+    swap a
+    anl a, #0F0H
+    setb acc.7 ; Single mode (bit 7).
+    mov R0, a
+    lcall DO_SPI_G
+    mov a, R1 ; R1 contains bits 8 and 9
+    anl a, #00000011B ; We need only the two least significant bits
+    mov R7, a ; Save result high.
+    mov R0, #55H ; It doesn't matter what we transmit...
+    lcall DO_SPI_G
+    mov a, R1
+    mov R6, a ; R1 contains bits 0 to 7. Save result low.
+    setb CE_ADC
+    lcall Delay
+    ret
+
+
+
+
 
 ; -------------------------;
 ; Initialize Timer 2	   ;
