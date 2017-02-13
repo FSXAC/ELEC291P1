@@ -94,6 +94,10 @@ dseg at 0x30
     x:          ds  4
     y:          ds  4
 
+    ; for beep
+    soundCount: ds  1
+    soundms:    ds  1
+
 bseg
     seconds_flag: 	dbit 1
     oven_enabled:	dbit 1
@@ -101,8 +105,13 @@ bseg
 
     ; for math32
     mf:             dbit 1
+
     ; for reading temperature
-    LM_TH: dbit 1
+    LM_TH:          dbit 1
+
+    ; for beep
+    TR0_pulse_flag: dbit 1
+
 cseg
 ; LCD SCREEN
 ;                     	1234567890123456
@@ -157,17 +166,14 @@ putchar:
 
 ; Send a constant-zero-terminated string using the serial port
 SendString:
-    clr A
-    movc A, @A+DPTR
-    jz SendStringDone
-    lcall putchar
-    inc DPTR
-    sjmp SendString
+    clr     a
+    movc    a, @a+dptr
+    jz      SendStringDone
+    lcall   putchar
+    inc     DPTR
+    sjmp    SendString
 SendStringDone:
     ret
-
-Hello_World:
-    DB  'Hello, World!', '\r', '\n', 0
 
 ; -------------------------;
 ; Initialize Timer 2	   ;
@@ -191,6 +197,7 @@ T2_ISR:
     push 	acc
     push 	psw
     push 	AR1
+
     inc 	countms+0
     mov 	a,     countms+0
     jnz 	T2_ISR_incDone
@@ -200,13 +207,15 @@ T2_ISR:
     lcall   PWM_oven
 
 T2_ISR_incDone:
-    ; Check if half second has passed
+    ; Check if a second has passed
     mov     a,  countms+0
     cjne    a,  #low(TIME_RATE),    T2_ISR_return
     mov     a,  countms+1
     cjne    a,  #high(TIME_RATE),   T2_ISR_return
-    ; Let the main program know half second had passed
+
+    ; following happens when TIME_RATE time has passed
     setb 	seconds_flag
+
     ; reset 16 bit ms counter
     clr 	a
     mov 	countms+0,     a
@@ -233,7 +242,6 @@ T2_ISR_minutes:
     mov     minutes,    a
     mov     seconds,    #0x00
 
-    ; CHANGED
     ; reset minute to 0 when minutes -> 60
     clr     c
     subb    a,          #0x60
@@ -261,7 +269,7 @@ PWM_oven:
     cjne    a,  ovenPower,  PWM_cont
     ; if power 10, then never turn off (corner case)
     mov     a,  ovenPower
-    cjne    a,  #10,    PWM_corner1false
+    cjne    a,  #10,        PWM_corner1false
     ljmp    PWM_corner1true
 PWM_corner1false:
     setb    SSR
@@ -684,15 +692,14 @@ fsm_state1:
 ;    subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
 ;    jc      fsm_state1_done
 ;    ljmp    fsm
-    mov x+1, Oven_temp+1; load Oven_temp with x
-    mov x+0, Oven_temp+0
-
-    mov y+1, soakTemp+1 ; load soaktemp to y
-    mov y+0, soakTemp+0
-    lcall x_gteq_y ; call the math32 function
+    mov     x+1,    Oven_temp+1; load Oven_temp with x
+    mov     x+0,    Oven_temp+0
+    mov     y+1,    soakTemp+1 ; load soaktemp to y
+    mov     y+0,    soakTemp+0
+    lcall   x_gteq_y ; call the math32 function
     ; if mf is 1 then Oven_temp >= saoktemp
-    jb mf, fsm_state1_done
-    ljmp fsm ; jump to the start
+    jb      mf,     fsm_state1_done
+    ljmp    fsm ; jump to the start otherwise
 
 fsm_state1_done:
     ; temperature reached
