@@ -519,7 +519,8 @@ setup:
     ; Initialize MCP3008 ADC
     setb    ADC_CE
     lcall   ADC_init
-    lcall   SPI_init
+    ;lcall   SPI_init
+    lcall InitSerialPort ; different names
 
     ; initialize variables
     setb    seconds_flag
@@ -530,6 +531,9 @@ setup:
     mov		reflowTemp, #0x00
     mov		reflowTime, #0x00
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
+    clr LM_TH  ; set the flag to low initially
+
+
 main:
     ; MAIN MENU LOOP
     ; CHECK: [START], [STATE]
@@ -911,3 +915,129 @@ fsm_state5_done:
     ljmp    fsm
 
 END
+;-------------------------------------
+;send voltage to the serial port
+;--------------------------------------------------
+SendVoltage:
+    jnb LM_TH, Th ; jump to Th initially
+LM: mov b, #0;
+    lcall _Read_ADC_Channel
+    lcall LM_converter
+    clr LM_TH
+ 	LCD_cursor(2, 7)
+    ;LCD_printBCD(bcd+1); display on the LCD
+ 	;LCD_printBCD(bcd+0); display on the LCD
+ 	Send_BCD(bcd+1) ;
+    Send_BCD(bcd+0) ;
+	;lcall add_two_temp ; two temp
+	lcall Switchline
+
+
+	lcall add_two_temp ; two temp
+    Send_bcd(bcd+1)             ;display the total temperature
+	Send_bcd(bcd+0)
+
+	lcall Switchline
+  ret ; jump back to our interrupt
+    ;ljmp SendVoltage ; for our testing code, constanly track the temperature
+
+
+Th: mov b, #1 ; connect thermocouple to chanel1
+    lcall _Read_ADC_Channel ; Read from the SPI
+    lcall Th_converter ; convert ADC TO actual value
+    setb LM_TH
+    ;;lcall hex2bcd
+    ;mov Thertemp+1,  bcd+1
+    ;mov Thertemp+0,  bcd+0
+
+ 	Send_BCD(bcd+1) ;
+    Send_BCD(bcd+0) ;
+
+	lcall Switchline
+    ljmp SendVoltage
+
+;------------------------
+;Conver ADC LM_temp to BCD
+;------------------------
+LM_converter:
+
+    mov x+3, #0 ; Load 32-bit �y� with value from ADC
+    mov x+2, #0
+    mov x+1, R7
+    mov x+0, R6
+    load_y(503)
+    lcall mul32
+    load_y(1023)
+    lcall div32
+    load_y(273)
+    lcall sub32
+    ;lcall hex2bcd
+
+    mov LMtemp+3,  x+3
+    mov LMtemp+2,  x+2
+    mov LMtemp+1,  x+1
+    mov LMtemp+0,  x+0
+    lcall hex2bcd
+    ret
+;----------------------------
+; Conver ADC Ther_temp to BCD
+;----------------------------
+Th_converter:
+    mov x+3, #0 ; Load 32-bit �y� with value from ADC
+    mov x+2, #0
+    mov x+1, R7
+    mov x+0, R6
+    load_y(2)
+    lcall div32
+    ;lcall hex2bcd
+    mov Thertemp+3,  x+3
+    mov Thertemp+2,  x+2
+    mov Thertemp+1,  x+1
+    mov Thertemp+0,  x+0
+    lcall hex2bcd
+    ret
+    ;lcall hex2bcd
+    ;Send_BCD(bcd)
+
+    ;mov DPTR, #New_Line
+    ;lcall SendString
+
+;keep in hex
+;--------------------
+; ADD two temperature together for FSM
+;--------------------------------
+add_two_temp:
+   ;load_x(LMtemp)
+   ;load_y(Thertemp)
+
+   mov x+3,LMtemp+3
+   mov x+2,LMtemp+2
+   mov x+1,LMtemp+1
+   mov x+0,LMtemp+0
+
+   ;-----------------
+   mov y+3, Thertemp+3
+   mov y+2, Thertemp+2
+   mov y+1, Thertemp+1
+   mov y+0, Thertemp+0 ;
+
+   ;-----------------
+   lcall add32
+   load_y(5) ; offest can be reset
+   lcall add32
+   mov Oven_temp+3,  x+3
+   mov Oven_temp+2,  x+2
+   mov Oven_temp+1,  x+1
+   mov Oven_temp+0,  x+0
+   lcall hex2bcd
+   ret
+
+;---------
+;Swithline
+;---------
+Switchline:
+	mov a, #'\r'
+    lcall putchar
+    mov a, #'\n'
+    lcall putchar; display our value - final temperature
+	ret
