@@ -102,6 +102,7 @@ bseg
     seconds_flag: 	dbit 1
     oven_enabled:	dbit 1
     reset_timer_f:	dbit 1
+	ongoing_f: 		dbit 1
 
     ; for math32
     mf:             dbit 1
@@ -221,6 +222,7 @@ T2_ISR_incDone:
     mov 	countms+0,     a
     mov 	countms+1,     a
 
+	jnb 	ongoing_f, T2_ISR_return
     ; Increment soaktime timer
     increment(soakTime_sec)
 
@@ -405,6 +407,7 @@ setup:
 
     ; initialize variables
     setb    seconds_flag
+	clr 	ongoing_f
     mov     seconds,    #0x00
     mov     minutes,    #0x00
     mov		soakTemp, 	#0x00
@@ -438,6 +441,8 @@ main_button_start:
 
     ; set as FSM State 1
     mov		state, #RAMP2SOAK
+	
+	setb	ongoing_f
 
     ; set LCD screen and go to FSM fsm loop
     ; LCD_cursor(1, 1)
