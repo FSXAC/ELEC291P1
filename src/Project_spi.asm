@@ -158,14 +158,14 @@ LM: mov b, #0;
  	;LCD_printBCD(bcd+0); display on the LCD
  	Send_BCD(bcd+1) ;
     Send_BCD(bcd+0) ;
-	;lcall add_two_temp ; two temp 
+	;lcall add_two_temp ; two temp
 	lcall Switchline
-	
-	
-	lcall add_two_temp ; two temp 
-    Send_bcd(bcd+1)             ;display the total temperature 
+
+
+	lcall add_two_temp ; two temp
+    Send_bcd(bcd+1)             ;display the total temperature
 	Send_bcd(bcd+0)
-	
+
 	lcall Switchline
 
     ljmp SendVoltage ; for our testing code, constanly track the temperature
@@ -178,13 +178,13 @@ Th: mov b, #1 ; connect thermocouple to chanel1
     ;;lcall hex2bcd
     ;mov Thertemp+1,  bcd+1
     ;mov Thertemp+0,  bcd+0
-   
+
  	Send_BCD(bcd+1) ;
     Send_BCD(bcd+0) ;
-   
+
 	lcall Switchline
-    ljmp SendVoltage		
-	
+    ljmp SendVoltage
+
 ;------------------------
 ;Conver ADC LM_temp to BCD
 ;------------------------
@@ -200,17 +200,17 @@ LM_converter:
     lcall div32
     load_y(273)
     lcall sub32
-    ;lcall hex2bcd 
-    
+    ;lcall hex2bcd
+
     mov LMtemp+3,  x+3
     mov LMtemp+2,  x+2
     mov LMtemp+1,  x+1
-    mov LMtemp+0,  x+0    
+    mov LMtemp+0,  x+0
     lcall hex2bcd
     ret
 ;----------------------------
 ; Conver ADC Ther_temp to BCD
-;----------------------------    
+;----------------------------
 Th_converter:
     mov x+3, #0 ; Load 32-bit �y� with value from ADC
     mov x+2, #0
@@ -220,14 +220,14 @@ Th_converter:
     lcall div32
     ;lcall hex2bcd
     mov Thertemp+3,  x+3
-    mov Thertemp+2,  x+2    
+    mov Thertemp+2,  x+2
     mov Thertemp+1,  x+1
     mov Thertemp+0,  x+0
     lcall hex2bcd
     ret
     ;lcall hex2bcd
     ;Send_BCD(bcd)
-    
+
     ;mov DPTR, #New_Line
     ;lcall SendString
 
@@ -238,39 +238,39 @@ Th_converter:
 add_two_temp:
    ;load_x(LMtemp)
    ;load_y(Thertemp)
-  
+
    mov x+3,LMtemp+3
    mov x+2,LMtemp+2
    mov x+1,LMtemp+1
-   mov x+0,LMtemp+0   
+   mov x+0,LMtemp+0
 
    ;-----------------
    mov y+3, Thertemp+3
-   mov y+2, Thertemp+2 
+   mov y+2, Thertemp+2
    mov y+1, Thertemp+1
-   mov y+0, Thertemp+0 ;   
+   mov y+0, Thertemp+0 ;
 
    ;-----------------
    lcall add32
    load_y(5) ; offest can be reset
    lcall add32
-   mov Oven_temp+3,  x+3   
+   mov Oven_temp+3,  x+3
    mov Oven_temp+2,  x+2
    mov Oven_temp+1,  x+1
-   mov Oven_temp+0,  x+0 
+   mov Oven_temp+0,  x+0
    lcall hex2bcd
-   ret	
-   
-;---------   
+   ret
+
+;---------
 ;Swithline
 ;---------
 Switchline:
-	mov a, #'\r' 
+	mov a, #'\r'
     lcall putchar
     mov a, #'\n'
     lcall putchar; display our value - final temperature
 	ret
-		
+
 ;-----------------------------------
 ; chanel 6 mac
 ;-----------------------------------
@@ -343,8 +343,8 @@ MainProgram:
     lcall InitSerialPort
     ;mov DPTR, #Hello_World
     ;lcall SendString
-	
-	
+
+
     clr LM_TH ; set the flag to low initially
     ljmp SendVoltage
     ;lcall display
