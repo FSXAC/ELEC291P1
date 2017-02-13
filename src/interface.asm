@@ -168,58 +168,6 @@ SendStringDone:
 Hello_World:
     DB  'Hello, World!', '\r', '\n', 0
 
-
-;---------------------------------;
-; Wait for halfs
-;---------------------------------;
-Delay:
-    PUSH AR0
-    PUSH AR1
-    PUSH AR2
-
-    MOV R2, #200
-L3_1s: MOV R1, #160
-L2_1s: MOV R0, #200
-L1_1s: djnz R0, L1_1s ; 3*45.21123ns*400
-
-    djnz R1, L2_1s ;
-    djnz R2, L3_1s ;
-
-    POP AR2
-    POP AR1
-    POP AR0
-    ret
-
-
-;-----------------------------------
-; chanel 6 mac
-;-----------------------------------
-Read_ADC_Channel MAC
-mov b, %0
-lcall _Read_ADC_Channel
-ENDMAC
-
-_Read_ADC_Channel:
-    clr CE_ADC
-    mov R0, #00000001B ; Start bit:1
-    lcall DO_SPI_G
-    mov a, b
-    swap a
-    anl a, #0F0H
-    setb acc.7 ; Single mode (bit 7).
-    mov R0, a
-    lcall DO_SPI_G
-    mov a, R1 ; R1 contains bits 8 and 9
-    anl a, #00000011B ; We need only the two least significant bits
-    mov R7, a ; Save result high.
-    mov R0, #55H ; It doesn't matter what we transmit...
-    lcall DO_SPI_G
-    mov a, R1
-    mov R6, a ; R1 contains bits 0 to 7. Save result low.
-    setb CE_ADC
-    lcall Delay
-    ret
-
 ; -------------------------;
 ; Initialize Timer 2	   ;
 ; -------------------------;
@@ -415,7 +363,7 @@ ADC_get:
     mov     a,      R1
     mov     R6,     a ; R1 contains bits 0 to 7. Save result low.
     setb    ADC_CE
-    ; lcall   Delay
+    sleep(50)
     pop     AR1
     pop     AR0
     ret
@@ -445,7 +393,6 @@ setup:
     lcall   ADC_init
     lcall   SPI_init
 
-
     ; initialize variables
     setb    seconds_flag
     mov     seconds,    #0x00
@@ -455,8 +402,7 @@ setup:
     mov		reflowTemp, #0x00
     mov		reflowTime, #0x00
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
-    clr LM_TH  ; set the flag to low initially
-
+    clr     LM_TH  ; set the flag to low initially
 
 main:
     ; MAIN MENU LOOP
@@ -706,31 +652,6 @@ fsm:
     ; update LCD
     LCD_printTemp(crtTemp, 2, 3)
     LCD_printTime(soakTime_sec, 2, 9)
-    ; find which state we are currently on
-;     clr     c
-;     mov     a,  state
-;     subb    a,  #0x01
-;     jnz     fsm_notState1
-;     ljmp    fsm_state1
-; fsm_notState1:
-;     subb    a,  #0x01
-;     jnz     fsm_notState2
-;     ljmp    fsm_state2
-; fsm_notState2:
-;     subb    a,  #0x01
-;     jnz     fsm_notState3
-;     ljmp    fsm_state3
-; fsm_notState3:
-;     subb    a,  #0x01
-;     jnz     fsm_notState4
-;     ljmp    fsm_state4
-; fsm_notState4:
-;     subb    a,  #0x01
-;     jnz     fsm_invalid
-;     ljmp    fsm_state5
-; fsm_invalid:
-;     ; have some code for this exception (reset and return to main)
-;     ljmp    setup
 
     ; find which state we are currently on
     mov     a,  state
@@ -844,6 +765,7 @@ fsm_state5_done:
     ljmp    fsm
 
 END
+
 ;-------------------------------------
 ;send voltage to the serial port
 ;--------------------------------------------------
@@ -890,7 +812,7 @@ Th: mov b, #1 ; connect thermocouple to chanel1
 ;------------------------
 LM_converter:
 
-    mov x+3, #0 ; Load 32-bit �y� with value from ADC
+    mov x+3, #0 ; Load 32-bit "y" with value from ADC
     mov x+2, #0
     mov x+1, R7
     mov x+0, R6
