@@ -84,3 +84,22 @@ beepPulse mac
     ; set special routine for 6 pulses of beeps
     setb    TR0_pulse_flag
 endmac
+
+
+;--------------------------------;
+; Pause (longer than sleep)
+;--------------------------------;
+waitSeconds mac
+	push	acc
+	mov		soakTime_sec, #0x00
+	mov		sleep_time, %0
+	lcall	?msg_sleep
+endmac
+?msg_sleep:
+L5:
+	mov		a, sleep_time
+	clr		c
+	subb	a, soakTime_sec
+	jnz		L5
+	pop		acc
+ret

@@ -104,6 +104,7 @@ bseg
     oven_enabled:	dbit 1
     reset_timer_f:	dbit 1
 	ongoing_f: 		dbit 1
+	safetycheck_done_f: dbit 1
 
     ; for math32
     mf:             dbit 1
@@ -133,6 +134,8 @@ msg_state5:         db 'S: Cooling      ', 0
 msg_fsm:            db 'T: --- C --:--  ', 0
 msg_reset_top:		db '   R E S E T    ', 0
 msg_reset_btm:		db '   STOP OVEN    ', 0  
+msg_abort_top:		db 'Oven temp not   ', 0
+msg_abort_btm:		db 'reached, ABORT! ', 0 
 
 ; -------------------------;
 ; Initialize Timer 0	   ;
@@ -707,8 +710,38 @@ fsm_invalid:
     ; have some code for this exception (eg. reset and return to main)
     ljmp    setup
 
+fsm_abort:
+	; print abort message
+	LCD_cursor(1,1)
+	LCD_print(#msg_abort_top)
+	LCD_cursor(2,1)
+	LCD_print(#msg_abort_btm)
+	waitSeconds(#0x05)	
+	;jump to reset to stop oven
+	ljmp fsm_reset_state
+	
+
 fsm_state1:
-    mov     power,        #10 ; (Geoff pls change this line of code to fit)
+	jb		safetycheck_done_f, fsm_state1a
+	; safety precaution check 
+	mov		a, #0x60
+	clr		c
+	subb	a, soakTime_sec
+	; go to state 1 if not 60 seconds yet
+	jnz		fsm_state1a
+	; otherwise, check if temperature if above 50 degrees
+	mov 	x+0, 	Oven_temp
+	mov		x+1, 	Oven_temp+1
+	mov		x+2, 	#0x00
+	mov		x+3, 	#0x00
+	Load_y(50)
+	lcall 	x_lteq_y
+	jnb		mf, fsm_abort
+	setb	safetycheck_done_f
+	
+	
+fsm_state1a: 
+ mov     power,        #10 ; (Geoff pls change this line of code to fit)
     ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
 ;    ;soakTemp is the saved parameter from interface
 ;    mov     a,          soakTemp
@@ -738,9 +771,6 @@ fsm_state1_done:
     ; produces beeping noise
     beepshort()
 
-    ; update state 2 LCD screen
-   ; LCD_cursor(1, 1)
-    ;LCD_print(#msg_state2)
 	; update state
 	LCD_cursor(1, 7)
 	mov		a, state
@@ -841,18 +871,13 @@ fsm_state5_done:
 
 ; RESET BUTTON 
 fsm_reset_state:
+	; someone please fix this so the oven stops to and not just the controller lol
+
 	LCD_cursor(1,1)
 	LCD_print(#msg_reset_top)
 	LCD_cursor(2,1)
 	LCD_print(#msg_reset_btm)
-	mov		soakTime_sec, #0x00
-	mov		sleep_time, #0x05
-; someone please fix this so the oven stops to and not just the controller lol
-reset_msg_sleep:
-	mov		a, sleep_time
-	clr		c
-	subb	a, soakTime_sec
-	jnz		reset_msg_sleep
+	waitSeconds(#0x05)
 	mov		state, 		#0
 	ljmp	fsm
 
