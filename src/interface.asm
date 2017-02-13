@@ -249,7 +249,7 @@ T2_ISR_minutes:
     mov     minutes,    #0x00
 
 T2_ISR_return:
-    lcall SendVoltage; send voltage for each Timer2 interrupt
+    ;lcall SendVoltage; send voltage for each Timer2 interrupt
     pop 	AR1
     pop 	psw
     pop 	acc
@@ -355,7 +355,7 @@ ADC_get:
     push    AR0
     push    AR1
     clr     ADC_CE
-    mov     R0,     #0x01 ; Start bit:1
+    mov     R0,     #0x01B ; Start bit:1
     lcall   ADC_comm
 
     mov     a,      b
@@ -375,6 +375,7 @@ ADC_get:
     sleep(#50)
     pop     AR1
     pop     AR0
+    pop     ACC
     ret
 
 ;-----------------------------;
