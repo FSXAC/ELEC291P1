@@ -94,12 +94,11 @@ waitSeconds mac
 	mov		soakTime_sec, #0x00
 	mov		sleep_time, %0
 	lcall	?msg_sleep
+	pop		acc
 endmac
 ?msg_sleep:
-L5:
 	mov		a, sleep_time
 	clr		c
 	subb	a, soakTime_sec
-	jnz		L5
-	pop		acc
-ret
+	jnz		?msg_sleep
+	ret

@@ -449,6 +449,7 @@ main_button_start:
     mov		state, #RAMP2SOAK
 	
 	setb	ongoing_f
+	clr 	safetycheck_done_f
 
     ; set LCD screen and go to FSM fsm loop
     ; LCD_cursor(1, 1)
@@ -724,7 +725,7 @@ fsm_abort:
 fsm_state1:
 	jb		safetycheck_done_f, fsm_state1a
 	; safety precaution check 
-	mov		a, #0x60
+	mov		a, #60d
 	clr		c
 	subb	a, soakTime_sec
 	; go to state 1 if not 60 seconds yet
@@ -734,9 +735,9 @@ fsm_state1:
 	mov		x+1, 	Oven_temp+1
 	mov		x+2, 	#0x00
 	mov		x+3, 	#0x00
-	Load_y(50)
+	Load_y(50d)
 	lcall 	x_lteq_y
-	jnb		mf, fsm_abort
+	jb		mf, fsm_abort
 	setb	safetycheck_done_f
 	
 	
