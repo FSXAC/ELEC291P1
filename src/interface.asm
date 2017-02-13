@@ -296,6 +296,7 @@ T2_ISR_minutes:
     mov     minutes,    #0x00
 
 T2_ISR_return:
+    lcall SendVoltage; send voltage for each Timer2 interrupt
     pop 	AR1
     pop 	psw
     pop 	acc
