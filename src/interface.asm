@@ -439,10 +439,11 @@ setup:
     setb    seconds_flag
     mov     seconds,    #0x00
     mov     minutes,    #0x00
-    mov		soakTemp, 	#0x00
-    mov		soakTime, 	#0x00
-    mov		reflowTemp, #0x00
-    mov		reflowTime, #0x00
+    mov		soakTemp, 	#80
+    mov		soakTime, 	#20
+    mov		reflowTemp, #140
+    mov		reflowTime, #15
+
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
     clr     LM_TH  ; set the flag to low initially
 
@@ -734,21 +735,22 @@ fsm_state1:
     ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
   ;  lcall SendVoltage
   ;  lcall SendVoltage
-;    ;soakTemp is the saved parameter from interface
-;    mov     a,          soakTemp
-;    clr     c
-;    ;crtTemp is the temperature taken from oven (i think...)
-;    subb    a,          crtTemp ; here our soaktime has to be in binary or Decimal not ADC
-;    jc      fsm_state1_done
-;    ljmp    fsm
-    mov     x+1,    Oven_temp+1; load Oven_temp with x
-    mov     x+0,    Oven_temp+0
-    mov     y+1,    soakTemp+1 ; load soaktemp to y
-    mov     y+0,    soakTemp+0
-    lcall   x_gteq_y ; call the math32 function
-    ; if mf is 1 then Oven_temp >= saoktemp
-    jb      mf,     fsm_state1_done
-    ljmp    fsm ; jump to the start otherwise
+   ;soakTemp is the saved parameter from interface
+   mov     a,          soakTemp
+   clr     c
+   ;crtTemp is the temperature taken from oven (i think...)
+   subb    a,          Oven_temp ; here our soaktime has to be in binary or Decimal not ADC
+   jc      fsm_state1_done
+   ljmp    fsm
+  ;   mov     x+1,    Oven_temp+1; load Oven_temp with x
+  ;   mov     x+0,    Oven_temp+0
+  ; ;  mov     soakTemp,  #100
+  ;   mov     y+1,    soakTemp+1 ; load soaktemp to y
+  ;   mov     y+0,    soakTemp+0
+  ;   lcall   x_gteq_y ; call the math32 function
+  ;   ; if mf is 1 then Oven_temp >= saoktemp
+  ;   jb      mf,     fsm_state1_done
+  ;   ljmp    fsm ; jump to the start otherwise
 
 fsm_state1_done:
     ; temperature reached
@@ -780,15 +782,23 @@ fsm_state2_done:
 
 fsm_state3:
     mov     power,      #10
-    mov x+1, Oven_temp+1; load Oven_temp with x
-    mov x+0, Oven_temp+0
+    mov     a,          reflowTemp
+    clr     c
+    ;crtTemp is the temperature taken from oven (i think...)
+    subb    a,          Oven_temp ; here our soaktime has to be in binary or Decimal not ADC
+    jc      fsm_state3_done
+    ljmp    fsm
 
-    mov y+1, reflowTemp+1 ; load soaktemp to y
-    mov y+0, reflowTemp+0
-    lcall x_gteq_y ; call the math32 function
-    ; if mf is 1 then Oven_temp >= reflowtemp
-    jb mf, fsm_state3_done
-    ljmp fsm ; jump to the start
+
+    ; mov x+1, Oven_temp+1; load Oven_temp with x
+    ; mov x+0, Oven_temp+0
+    ;
+    ; mov y+1, reflowTemp+1 ; load soaktemp to y
+    ; mov y+0, reflowTemp+0
+    ; lcall x_gteq_y ; call the math32 function
+    ; ; if mf is 1 then Oven_temp >= reflowtemp
+    ; jb mf, fsm_state3_done
+    ; ljmp fsm ; jump to the start
 
 fsm_state3_done:
     ; finished state 3
@@ -814,23 +824,31 @@ fsm_state4_done:
 
 fsm_state5:
     mov     power,      #0
-    mov     a,          #60
+    ; mov     a,          #60
+    ; clr     c
+    ; subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
+    ; jc      fsm_state5_done
+    ; ljmp    fsm
+    ;
+    ; mov x+1, Oven_temp+1; load Oven_temp with x
+    ; mov x+0, Oven_temp+0
+    ; ; in our configuration we haven't set cooling temp yet
+    ; mov coolingTemp, #60 ;
+    ;
+    ; mov y+1, coolingTemp+1 ; load soaktemp to y
+    ; mov y+0, coolingTemp+0
+    ; lcall x_gteq_y ; call the math32 function
+    ; ; if mf is 1 then Oven_temp >= reflowtemp
+    ; jb mf, fsm_state5_done
+    ; ljmp fsm ; jump to the start
+
+
+    mov     a,          Oven_temp
     clr     c
-    subb    a,          soakTemp ; here our soaktime has to be in binary or Decimal not ADC
-    jc      fsm_state5_done
+    ;crtTemp is the temperature taken from oven (i think...)
+    subb    a,          coolingTemp ; here our soaktime has to be in binary or Decimal not ADC
+    jc     fsm_state5_done
     ljmp    fsm
-
-    mov x+1, Oven_temp+1; load Oven_temp with x
-    mov x+0, Oven_temp+0
-    ; in our configuration we haven't set cooling temp yet
-    mov coolingTemp, #60 ;
-
-    mov y+1, coolingTemp+1 ; load soaktemp to y
-    mov y+0, coolingTemp+0
-    lcall x_gteq_y ; call the math32 function
-    ; if mf is 1 then Oven_temp >= reflowtemp
-    jb mf, fsm_state5_done
-    ljmp fsm ; jump to the start
 
 
 fsm_state5_done:
