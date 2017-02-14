@@ -256,6 +256,8 @@ T2_ISR_return:
 ; Period: #10					  ;
 ; Occurs roughly every half sec.  ;
 ;---------------------------------;
+
+;Tested, everything works as intended. PWM should not need any modification.
 PWM_oven:
     push    ACC
     mov     a,              perCntr
