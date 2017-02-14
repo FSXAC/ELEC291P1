@@ -23,9 +23,6 @@ endmac
     lcall putchar
     pop acc
     ret
-
-
-
 ;===SLEEP===
 sleep mac
     push   AR2
@@ -84,7 +81,6 @@ beepPulse mac
     ; set special routine for 6 pulses of beeps
     setb    TR0_pulse_flag
 endmac
-
 
 ;--------------------------------;
 ; Pause (longer than sleep)
