@@ -18,6 +18,8 @@ final String[] STATES = {
     "Reflow",
     "Cooling"
 };
+float[] hex_x = new float[6];
+float[] hex_y = new float[6];
 
 int state = 0;
 
@@ -39,11 +41,14 @@ void setup() {
     // setup drawing
     textAlign(CENTER, CENTER);
     noFill();
+
+    // setup hexagon
+    generateHexagon(width/2, height/2, height/3, 6);
 }
 
 void draw() {
     background(50);
-    displayState(width / 2, height / 2, height / 3 - SMALL_HEX - 20, 6, state);
+    displayState(state);
     if (port.available() > 0) {
         readString = port.readStringUntil(LINEFEED);
         if (readString != null) {
@@ -62,24 +67,27 @@ void draw() {
     }
 }
 
-void displayState(float x, float y, float radius, int nstates, int activeState) {
+void generateHexagon(float x, float y, float radius, int nstates) {
     float angle = TWO_PI / nstates;
     for (int i = 0; i < nstates; i++) {
+        hex_x[i] = x + cos(i * angle) * radius;
+        hex_y[i] = y + sin(i * angle) * radius;
+    }
+}
+
+void displayState(int activeState) {
+    for (int i = 0; i < STATES.length; i++) {
         if (i == activeState) {
-            stroke(0, 255, 0); 
+            stroke(0, 255, 0);
             strokeWeight(5);
         } else {
             stroke(240);
             strokeWeight(1);
         }
-        
-        float a = i * angle;
-        float sx = x + cos(a) * radius;
-        float sy = y + sin(a) * radius;
 
-        polygon(sx, sy, SMALL_HEX, 6);
+        polygon(hex_x[i], hex_y[i], SMALL_HEX, 6);
         textSize(20);
-        text(STATES[i], sx, sy);
+        text(STATES[i], hex_x[i], hex_y[i]);
     }
 }
 
