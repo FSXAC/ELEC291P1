@@ -67,20 +67,43 @@ endmac
 ; Current objective: just make a simple beep that might have delay on overall program
 beepShort mac
     ; beep for 0.5s = 2 * 250ms
-    mov     soundCount, #2
+    ;mov     soundms+0, #low(500)
+	;mov 	soundms+1, #high(500)
+	;mov 	soundX, #5
 	setb	TR0
+	sleep(#250)
+	sleep(#150)
+	clr 	TR0
 endmac
 
 beepLong mac
     ; beep for 1s = 4 * 250ms
-    mov     soundCount, #4
-    setb    TR0
+    ;mov     soundms+0, #low(1000)
+	;mov 	soundms+1, #high(1000)
+	;mov 	soundX, #0
+	setb	TR0
+	sleep(#250)
+	sleep(#250)
+	sleep(#250)
+	sleep(#250)
+	clr 	TR0
 endmac
 
 beepPulse mac
+	push 	AR0
     ; set special routine for 6 pulses of beeps
-    setb    TR0_pulse_flag
+	mov 	R0,	#6
+	lcall 	?beepPulse	
+	pop		AR0
 endmac
+?beepPulse:
+	setb	TR0
+	sleep(#250)
+	sleep(#250)
+	clr 	TR0
+	sleep(#250)
+	djnz	R0,	?beepPulse
+	ret
 
 ;--------------------------------;
 ; Pause (longer than sleep)
