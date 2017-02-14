@@ -97,6 +97,8 @@ dseg at 0x30
     ; for beep
     soundCount: ds  1
     soundms:    ds  1
+    
+    sleep_time: ds 	1
 
 bseg
     seconds_flag: 	dbit 1
@@ -820,8 +822,11 @@ fsm_state2_done:
     mov     state,          #3
     ; TODO reset counter !!! TODO
     beepShort()
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state3)
+	LCD_cursor(1, 7)
+	mov		a, state
+	add		a, #0x30
+	mov		R1, a
+	LCD_printChar(R1)
 
 fsm_state3:
     mov     power,      #10
@@ -848,8 +853,11 @@ fsm_state3_done:
     mov     state,      #4
     ; TODO reset counter !!! TODO
     beepShort()
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state4)
+	LCD_cursor(1, 7)
+	mov		a, state
+	add		a, #0x30
+	mov		R1, a
+	LCD_printChar(R1)
     mov	    soakTime_sec,   #0x00
 fsm_state4:
     mov     power,        #2
@@ -862,8 +870,11 @@ fsm_state4_done:
     mov     state,  #5
     ; TODO reset counter !!! TODO
     beepLong()
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state5)
+	LCD_cursor(1, 7)
+	mov		a, state
+	add		a, #0x30
+	mov		R1, a
+	LCD_printChar(R1)
 
 fsm_state5:
     mov     power,      #0
