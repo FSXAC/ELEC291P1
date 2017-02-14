@@ -216,6 +216,7 @@ T2_ISR_incDone:
     mov 	countms+0,     a
     mov 	countms+1,     a
 
+	jnb		ongoing_f, T2_ISR_return
     ; Increment soaktime timer
     increment(soakTime_sec)
 
@@ -514,6 +515,7 @@ main_update:
     LCD_printBCD(minutes)
     LCD_cursor(2, 12)
     LCD_printBCD(seconds)
+	lcall SendVoltage
     LCD_printTemp(Oven_temp, 1, 12)	; where is the temperature coming from ??
     ljmp 	main_button_start
 
@@ -920,12 +922,16 @@ fsm_reset_state:
 	waitSeconds(#0x05)
 
 	; stay at this state until oven has cooled down
+	mov x+3, #0x00
+	mov x+2, #0x00
 	mov x+1, #0x00; load Oven_temp with x
-    mov x+0, Oven_temp+0
+    mov x+0, Oven_temp
     ; in our configuration we haven't set cooling temp yet
     mov coolingTemp, #60 ;
-
-    mov y+1, #0x00 ; load soaktemp to y
+	
+	mov y+3, #0x00
+    mov y+2, #0x00
+	mov y+1, #0x00 ; load soaktemp to y
     mov y+0, coolingTemp+0
     lcall x_gteq_y ; call the math32 function
     ; repeat while oven_temp >= coolingTemp
@@ -950,7 +956,6 @@ LM: mov b, #0;
     Send_BCD(bcd+0) ;
 	;lcall add_two_temp ; two temp
 	lcall Switchline
-
 
 	lcall add_two_temp ; two temp
     Send_bcd(bcd+1)             ;display the total temperature
