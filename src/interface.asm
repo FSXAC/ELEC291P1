@@ -53,7 +53,7 @@ ADC_SCLK    equ     P2.3
 BTN_START   equ     P2.4
 BTN_STATE   equ     P2.5
 BTN_UP      equ     P2.6
- BTN_DOWN    equ     P2.7
+BTN_DOWN    equ     P2.7
 
 ; SSR / oven control pin
 SSR         equ     P3.7
@@ -104,7 +104,7 @@ bseg
     seconds_flag: 	dbit 1
     oven_enabled:	dbit 1
     reset_timer_f:	dbit 1
-	  ongoing_f: 		dbit 1
+	ongoing_f: 		dbit 1
 	safetycheck_done_f: dbit 1
 
     ; for math32
@@ -446,13 +446,14 @@ setup:
 
     ; initialize variables
     setb    seconds_flag
+	clr		ongoing_f
     mov     seconds,    #0x00
     mov     minutes,    #0x00
     mov		soakTemp, 	#80
     mov		soakTime, 	#20
     mov		reflowTemp, #140
     mov		reflowTime, #15
-    mov   coolingTemp, #60
+    mov  	coolingTemp, #60
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
     clr     LM_TH  ; set the flag to low initially
 
@@ -490,10 +491,10 @@ main_button_start:
 	clr 	safetycheck_done_f
 
     ; set LCD screen and go to FSM fsm loop
-    LCD_cursor(1, 1)
-    LCD_print(#msg_state1)
-    LCD_cursor(2, 1)
-    LCD_print(#msg_fsm)
+    ; LCD_cursor(1, 1)
+    ; LCD_print(#msg_state1)
+    ; LCD_cursor(2, 1)
+    ; LCD_print(#msg_fsm)
   ;  lcall SendVoltage
     ljmp 	fsm
 
@@ -511,7 +512,7 @@ main_update:
     LCD_printBCD(minutes)
     LCD_cursor(2, 12)
     LCD_printBCD(seconds)
-    LCD_printTemp(crtTemp, 1, 12)	; where is the temperature coming from ??
+    LCD_printTemp(Oven_temp, 1, 12)	; where is the temperature coming from ??
     ljmp 	main_button_start
 
 ;-------------------------------------;
@@ -713,19 +714,32 @@ fsm:
 
   ;  lcall SendVoltage
     ; update LCD
-    LCD_printTemp(crtTemp, 2, 3)
-    LCD_printTime(soakTime_sec, 2, 9)
+    LCD_printTemp(Oven_temp, 1, 12)
+    ; update elapsed time
+	LCD_cursor(2, 9)
+    LCD_printBCD(minutes)
+    LCD_cursor(2, 12)
+    LCD_printBCD(seconds)
+	; update state
+	LCD_cursor(1, 7)
+	mov		a, state
+	add		a, #0x30
+	mov		R1, a
+	LCD_printChar(R1)
 
-   lcall SendVoltage
+	lcall SendVoltage
     lcall SendVoltage
+	
     ; find which state we are currently on
-    mov     a,  state
+   	jb 		BTN_START, fsm_not_reset
+    sleep(#DEBOUNCE)
+    jb 		BTN_START, fsm_not_reset
+    jnb 	BTN_START, $
+    ljmp 	fsm_reset_state
+fsm_not_reset:
+	mov     a,  state
     cjne    a,  #RAMP2SOAK,     fsm_notState1
     ljmp    fsm_state1
-  ;  mov DPTR,#Hello_World
-  ;  lcall SendString
-
-
 fsm_notState1:
     cjne    a,  #PREHEAT_SOAK,  fsm_notState2
     ljmp    fsm_state2
@@ -763,7 +777,7 @@ fsm_state1:
 	jnz		fsm_state1a
 	; otherwise, check if temperature if above 50 degrees
 	mov 	x+0, 	Oven_temp
-	mov		x+1, 	Oven_temp+1
+	mov		x+1, 	#0x00
 	mov		x+2, 	#0x00
 	mov		x+3, 	#0x00
 	Load_y(50d)
@@ -819,7 +833,7 @@ fsm_state2:
 
 fsm_state2_done:
     ; finished state 2
-    mov     state,          #3
+    mov     state,          #RAMP2PEAK
     ; TODO reset counter !!! TODO
     beepShort()
 	LCD_cursor(1, 7)
@@ -850,7 +864,7 @@ fsm_state3:
 
 fsm_state3_done:
     ; finished state 3
-    mov     state,      #4
+    mov     state,      #REFLOW
     ; TODO reset counter !!! TODO
     beepShort()
 	LCD_cursor(1, 7)
@@ -861,13 +875,13 @@ fsm_state3_done:
     mov	    soakTime_sec,   #0x00
 fsm_state4:
     mov     power,        #2
-    mov     a,      soaktime  ; our soaktime has to be
+    mov     a,      reflowTime  ; our soaktime has to be
     clr     c
     subb    a,      soakTime_sec
     jc      fsm_state4_done
     ljmp    fsm
 fsm_state4_done:
-    mov     state,  #5
+    mov     state,  #COOLING
     ; TODO reset counter !!! TODO
     beepLong()
 	LCD_cursor(1, 7)
@@ -904,7 +918,7 @@ fsm_reset_state:
 	waitSeconds(#0x05)
 
 	; stay at this state until oven has cooled down
-	mov x+1, Oven_temp+1; load Oven_temp with x
+	mov x+1, #0x00; load Oven_temp with x
     mov x+0, Oven_temp+0
     ; in our configuration we haven't set cooling temp yet
     mov coolingTemp, #60 ;
