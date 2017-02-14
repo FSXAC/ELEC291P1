@@ -6,7 +6,7 @@
 ;           LUFEI LIU
 ;           WENOA TEVES
 ; VERSION:	1
-; LAST REVISION:	2017-02-11
+; LAST REVISION:	2017-02-14
 ; http:;i.imgur.com/7wOfG4U.gif
 
 org 0x0000
@@ -95,8 +95,8 @@ dseg at 0x30
     y:          ds  4
 
     ; for beep
-    soundCount: ds  1
-    soundms:    ds  1
+    soundms:    ds  2
+	soundx:		ds  1
     
     sleep_time: ds 	1
 
@@ -127,12 +127,6 @@ msg_reflowTemp:	    db 'REFLOW TEMP:   <', 0
 msg_reflowTime:	    db 'REFLOW TIME:   <', 0
 msg_temp:	        db '      --- C    >', 0
 msg_time:	        db '     --:--     >', 0
-msg_state1:         db 'S: RampToSoak   ', 0
-msg_state2:         db 'S: PreheatSoak  ', 0
-msg_state3:			db 'S: RampToPeak   ', 0
-msg_state4:         db 'S: Reflow       ', 0
-msg_state5:         db 'S: Cooling      ', 0
-msg_fsm:            db 'T: --- C --:--  ', 0
 
 msg_reset_top:		db '   R E S E T    ', 0
 msg_reset_btm:		db '   STOP OVEN    ', 0  
@@ -195,13 +189,17 @@ T2_ISR:
     jnz 	T2_ISR_incDone
     inc 	countms+1
 
-    ; PWM
-    lcall   PWM_oven
-
 T2_ISR_incDone:
-   ; mov DPTR,#Hello_World
-    ;lcall SendString
-
+	; PWM
+    lcall   PWM_oven
+		
+	; ayyy bby wanna count dwn dem beats
+	;dec 	soundms
+	;mov 	a,	soundms
+	;jnz		T2_ISR_incDone_sound
+	;clr 	TR0
+	
+T2_ISR_incDone_sound:
     ; Check if a second has passed
     mov     a,  countms+0
     cjne    a,  #low(TIME_RATE),    T2_ISR_return
@@ -855,21 +853,9 @@ fsm_state3:
     jc      fsm_state3_done
     ljmp    fsm
 
-
-    ; mov x+1, Oven_temp+1; load Oven_temp with x
-    ; mov x+0, Oven_temp+0
-    ;
-    ; mov y+1, reflowTemp+1 ; load soaktemp to y
-    ; mov y+0, reflowTemp+0
-    ; lcall x_gteq_y ; call the math32 function
-    ; ; if mf is 1 then Oven_temp >= reflowtemp
-    ; jb mf, fsm_state3_done
-    ; ljmp fsm ; jump to the start
-
 fsm_state3_done:
     ; finished state 3
     mov     state,      #REFLOW
-    ; TODO reset counter !!! TODO
     beepShort()
 	LCD_cursor(1, 7)
 	mov		a, state
@@ -886,7 +872,6 @@ fsm_state4:
     ljmp    fsm
 fsm_state4_done:
     mov     state,  #COOLING
-    ; TODO reset counter !!! TODO
     beepLong()
 	LCD_cursor(1, 7)
 	mov		a, state
