@@ -23,9 +23,6 @@ endmac
     lcall putchar
     pop acc
     ret
-
-
-
 ;===SLEEP===
 sleep mac
     push   AR2

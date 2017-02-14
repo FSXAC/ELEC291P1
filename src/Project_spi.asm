@@ -27,10 +27,10 @@ LCD_D7 equ P3.5
 CLK  EQU 22118400
 BAUD equ 115200
 T1LOAD equ (0x100-(CLK/(16*BAUD)))
-CE_ADC EQU P2.0
-MY_MOSI EQU P2.1
-MY_MISO EQU P2.2
-MY_SCLK EQU P2.3
+ADC_CE EQU P2.0
+ADC_MOSI EQU P2.1
+ADC_MISO EQU P2.2
+ADC_SCLK EQU P2.3
 
 
 
@@ -78,7 +78,7 @@ endmac
     ret
 
 ; Configure the serial port and baud rate using timer 1
-InitSerialPort:
+SPI_init:
     ; Since the reset button bounces, we need to wait a bit before
     ; sending messages, or risk displaying gibberish!
     mov R1, #222
@@ -121,26 +121,26 @@ Hello_World:
 ;----------------------------------------------------------------------
 
 INIT_SPI:
- 	setb MY_MISO ; Make MISO an input pin
- 	clr MY_SCLK ; For mode (0,0) SCLK is zero
+ 	setb ADC_MISO ; Make MISO an input pin
+ 	clr ADC_SCLK ; For mode (0,0) SCLK is zero
  	ret
 
-DO_SPI_G:
+ADC_comm:
  	push acc
  	mov R1, #0 ; Received byte stored in R1
  	mov R2, #8 ; Loop counter (8-bits)
-DO_SPI_G_LOOP:
+ADC_comm_loop:
  	mov a, R0 ; Byte to write is in R0
  	rlc a ; Carry flag has bit to write
  	mov R0, a
- 	mov MY_MOSI, c
- 	setb MY_SCLK ; Transmit
- 	mov c, MY_MISO ; Read received bit
+ 	mov ADC_MOSI, c
+ 	setb ADC_SCLK ; Transmit
+ 	mov c, ADC_MISO ; Read received bit
  	mov a, R1 ; Save received bit in R1
  	rlc a
-    mov R1, a
- 	clr MY_SCLK
- 	djnz R2, DO_SPI_G_LOOP
+  mov R1, a
+ 	clr ADC_SCLK
+ 	djnz R2, ADC_comm_loop
  	pop acc
  	ret
 
@@ -150,7 +150,7 @@ DO_SPI_G_LOOP:
 SendVoltage:
     jnb LM_TH, Th ; jump to Th initially
 LM: mov b, #0;
-    lcall _Read_ADC_Channel
+    lcall ADC_get
     lcall LM_converter
     clr LM_TH
  	LCD_cursor(2, 7)
@@ -172,7 +172,7 @@ LM: mov b, #0;
 
 
 Th: mov b, #1 ; connect thermocouple to chanel1
-    lcall _Read_ADC_Channel ; Read from the SPI
+    lcall ADC_get ; Read from the SPI
     lcall Th_converter ; convert ADC TO actual value
     setb LM_TH
     ;;lcall hex2bcd
@@ -279,25 +279,26 @@ mov b, %0
 lcall _Read_ADC_Channel
 ENDMAC
 
-_Read_ADC_Channel:
-    clr CE_ADC
+ADC_get:
+    clr ADC_CE
     mov R0, #00000001B ; Start bit:1
-    lcall DO_SPI_G
+    lcall ADC_comm
     mov a, b
     swap a
     anl a, #0F0H
     setb acc.7 ; Single mode (bit 7).
     mov R0, a
-    lcall DO_SPI_G
+    lcall ADC_comm
     mov a, R1 ; R1 contains bits 8 and 9
     anl a, #00000011B ; We need only the two least significant bits
     mov R7, a ; Save result high.
     mov R0, #55H ; It doesn't matter what we transmit...
-    lcall DO_SPI_G
+    lcall ADC_comm
     mov a, R1
     mov R6, a ; R1 contains bits 0 to 7. Save result low.
-    setb CE_ADC
-    lcall Delay
+    setb ADC_CE
+    sleep(#50)
+    ;lcall Delay
     ret
 
 ;---------------------------------;
@@ -340,11 +341,9 @@ MainProgram:
     LCD_cursor(1, 1)
     LCD_print (#Initial_Message)
 
-    lcall InitSerialPort
+    lcall SPI_init
     ;mov DPTR, #Hello_World
     ;lcall SendString
-
-
     clr LM_TH ; set the flag to low initially
     ljmp SendVoltage
     ;lcall display
