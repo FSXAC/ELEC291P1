@@ -49,13 +49,16 @@ void setup() {
 }
 
 int state = 0;
-int signal;
-int power;
+int signal = 0;
+int power = 0;
 String[] components = {"0", "0", "0"};
 
 void draw() {
-    background(50);
-    displayState(state);
+    // background(50);
+    fill(0, 25);
+    noStroke();
+    rect(0, 0, width, height);
+    fill(255);
 
     // read data from serial
     if (port.available() > 0) {
@@ -63,30 +66,48 @@ void draw() {
 
         // parse data into variables
         components = readString.split(",");
+        state = Integer.parseInt(components[0]);
+        signal = Integer.parseInt(components[1]);
+        power = Integer.parseInt(components[2]);
     }
+
+    drawSignal(signal);
+    displayState(state);
 
     // draw onto the screen
     if (readString != null) {
         // println(readString);
         textSize(50);
         stroke(240);
+        rectMode(CENTER);
+        fill(power == 1 ? 0: 255);
+        noStroke();
+        rect(width/2, height/2, width/4, 70);
+        rectMode(CORNER);
+        fill(255);
         text(components[0] + " : " + components[1] + " : "  + components[2], width/2, height/2);
     }
-}
 
+}
 
 // read from serial
 String readSerial() {
     String buffer = port.readStringUntil(ASCII_LINEFEED);
-    if (buffer.charAt(buffer.length()-1)=='\r') {
-        buffer = buffer.substring(0, buffer.length()-1);
+    if (buffer.charAt(buffer.length()-1)=='\n') {
+        buffer = buffer.substring(0, buffer.length()-2);
     }
     return buffer;
 }
 
 float theta = 0;
-void drawSignal(float angle, float value) {
-
+void drawSignal(float value) {
+    theta = (theta >= TWO_PI) ? 0 : theta + 0.01;
+    float r = map(value, 10, 260, 0, 400);
+    float sx = width/2 + r * cos(theta);
+    float sy = height/2 + r * sin(theta);
+    stroke(255, 0, 0);
+    strokeWeight(10);
+    line(width/2, height/2, sx, sy);
 }
 
 void generateHexagon(float x, float y, float radius, int nstates) {
@@ -106,7 +127,7 @@ void displayState(int activeState) {
             stroke(240);
             strokeWeight(1);
         }
-
+        noFill();
         polygon(hex_x[i], hex_y[i], SMALL_HEX, 6);
         textSize(20);
         text(STATES[i], hex_x[i], hex_y[i]);
