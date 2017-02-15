@@ -7,10 +7,8 @@ final int   BAUD_RATE = 115200;
 final int   ASCII_LINEFEED = 10;
 final int   ASCII_CARRIAGE_RETURN = 13;
 
-// state diagram setup
+// state diagram numbers
 final int   SMALL_HEX = 100;
-
-// states
 final String[] STATES = {
     "Main Menu",
     "Ramp To Soak",
@@ -21,6 +19,18 @@ final String[] STATES = {
 };
 float[] hex_x = new float[6];
 float[] hex_y = new float[6];
+
+// readings from serial
+int state = 0;
+int signal = 0;
+int power = 0;
+String[] components = {"0", "0", "0"};
+
+// drawing mode
+int mode = 1;
+
+// radial graph
+float theta = 0;
 
 void setup() {
     fullScreen();
@@ -48,13 +58,6 @@ void setup() {
     generateHexagon(width/2, height/2, height/3, 6);
 }
 
-int state = 0;
-int signal = 0;
-int power = 0;
-String[] components = {"0", "0", "0"};
-
-int mode = 1;
-
 void draw() {
     // background(50);
     fill(0, 25);
@@ -78,87 +81,18 @@ void draw() {
             break;
         case 2: mode2();
             break;
-        default: mode1();
-            break;
-    }
-}
-
-void mode1() {
-    drawSignal(signal);
-}
-
-void mode2() {
-    drawSignal(signal);
-    displayState(state);
-
-    // draw onto the screen
-    if (readString != null) {
-        // println(readString);
-        textSize(50);
-        stroke(240);
-        rectMode(CENTER);
-        fill(power == 1 ? 0: 50);
-        noStroke();
-        rect(width/2, height/2, width/4, 70);
-        rectMode(CORNER);
-        fill(255);
-        text(components[0] + " : " + components[1] + " : "  + components[2], width/2, height/2);
     }
 }
 
 // read from serial
 String readSerial() {
     String buffer = port.readStringUntil(ASCII_LINEFEED);
+
+    // remove the last "\r\n" characters
     if (buffer.charAt(buffer.length()-1)=='\n') {
         buffer = buffer.substring(0, buffer.length()-2);
     }
     return buffer;
-}
-
-float theta = 0;
-void drawSignal(float value) {
-    theta = (theta >= TWO_PI) ? 0 : theta + 0.01;
-    float r = map(value, 10, 260, 0, 400);
-    float sx = width/2 + r * cos(theta);
-    float sy = height/2 + r * sin(theta);
-    stroke(0, 255, 255);
-    strokeWeight(10);
-    line(width/2, height/2, sx, sy);
-}
-
-void generateHexagon(float x, float y, float radius, int nstates) {
-    float angle = TWO_PI / nstates;
-    for (int i = 0; i < nstates; i++) {
-        hex_x[i] = x + cos(i * angle) * radius;
-        hex_y[i] = y + sin(i * angle) * radius;
-    }
-}
-
-void displayState(int activeState) {
-    for (int i = 0; i < STATES.length; i++) {
-        if (i == activeState) {
-            stroke(0, 255, 255);
-            strokeWeight(20);
-        } else {
-            stroke(240);
-            strokeWeight(1);
-        }
-        noFill();
-        polygon(hex_x[i], hex_y[i], SMALL_HEX, 6);
-        textSize(20);
-        text(STATES[i], hex_x[i], hex_y[i]);
-    }
-}
-
-void polygon(float x, float y, float radius, int npoints) {
-    float angle = TWO_PI / npoints;
-    beginShape();
-    for (float a = 0; a < TWO_PI; a += angle) {
-        float sx = x + cos(a) * radius;
-        float sy = y + sin(a) * radius;
-        vertex(sx, sy);
-    }
-    endShape(CLOSE);
 }
 
 // keyboard events
