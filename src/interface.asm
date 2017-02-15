@@ -191,15 +191,8 @@ T2_ISR:
     jnz 	T2_ISR_incDone
     inc 	countms+1
 
-T2_ISR_incDone:
 	; PWM
     lcall   PWM_oven
-
-	; ayyy bby wanna count dwn dem beats
-	;dec 	soundms
-	;mov 	a,	soundms
-	;jnz		T2_ISR_incDone_sound
-	;clr 	TR0
 
 T2_ISR_incDone_sound:
     ; Check if a second has passed

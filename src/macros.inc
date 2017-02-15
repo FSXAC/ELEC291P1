@@ -71,8 +71,10 @@ beepButton mac
     clr     TR0
 endmac
 beepStart mac
+    push    acc
     mov     dptr,   #sound_start
     lcall   ?beepStart
+    pop     acc
 endmac
 ?beepStart:
     clr     a
