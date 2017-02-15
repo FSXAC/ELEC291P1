@@ -28,7 +28,7 @@ $include(math32.inc)
 ; Preprocessor constants
 CLK         equ     22118400
 BAUD        equ     115200
-T0_RELOAD   equ     (65536-(CLK/4096))
+T0_RELOAD   equ     ((65536-(CLK/4096)))
 T1_RELOAD   equ     (0x100-CLK/(16*BAUD))
 T2_RELOAD   equ     (65536-(CLK/1000))
 DEBOUNCE    equ     50
@@ -63,7 +63,7 @@ SOUND       equ     P0.0
 
 ; States
 RAMP2SOAK		equ     1
-PREHEAT_SOAK	equ     2
+ PREHEAT_SOAK	equ     2
 RAMP2PEAK		equ     3
 REFLOW			equ     4
 COOLING			equ     5
@@ -95,7 +95,8 @@ dseg at 0x30
     y:          ds  4
 
     ; for beep
-    freq:       ds  2
+    soundms:    ds  2
+	soundx:		ds  1
 
     sleep_time: ds 	1
 
@@ -105,8 +106,6 @@ bseg
     reset_timer_f:	dbit 1
 	ongoing_f: 		dbit 1
 	safetycheck_done_f: dbit 1
-	celsius_f:		dbit 1 
-	
 
     ; for math32
     mf:             dbit 1
@@ -134,10 +133,6 @@ msg_reset_btm:		db '   STOP OVEN    ', 0
 msg_abort_top:		db 'Oven temp not   ', 0
 msg_abort_btm:		db 'reached, ABORT! ', 0
 
-; music sequenceS
-sound_start:
-    db 0xEB, 0x69, 0xED, 0x34, 0xEF, 0x0C, 0xF0, 0x90, 0xF1, 0xD4, 0
-
 ; -------------------------;
 ; Initialize Timer 0	   ;
 ; -------------------------;
@@ -159,11 +154,12 @@ T0_init:
 ;-----------------------------;
 T0_ISR:
     clr     TR0
-    mov     TH0,    freq+1
-    mov     TL0,    freq+0
+    mov     TH0,    #high(T0_RELOAD)
+    mov     TL0,    #low(T0_RELOAD)
     setb    TR0
     cpl     P0.0
     reti
+
 
 ; -------------------------;
 ; Initialize Timer 2	   ;
@@ -193,8 +189,15 @@ T2_ISR:
     jnz 	T2_ISR_incDone
     inc 	countms+1
 
+T2_ISR_incDone:
 	; PWM
     lcall   PWM_oven
+
+	; ayyy bby wanna count dwn dem beats
+	;dec 	soundms
+	;mov 	a,	soundms
+	;jnz		T2_ISR_incDone_sound
+	;clr 	TR0
 
 T2_ISR_incDone_sound:
     ; Check if a second has passed
@@ -255,6 +258,7 @@ T2_ISR_return:
 
 ;Tested, everything works as intended. PWM should not need any modification.
 PWM_oven:
+	;cpl P3.7
     push    ACC
     mov     a,              perCntr
     jb     oven_enabled,   PWM_oven_on
@@ -317,6 +321,29 @@ ADC_init:
     setb    ADC_MISO
     clr     ADC_SCLK
     ret
+;-----------------------------;
+; Communicate with ADC        ;
+;-----------------------------;
+; send byte in R0, receive byte in R1
+;ADC_comm:
+;    push    ACC
+;    mov     R1,     #0
+;    mov     R2,     #8
+;ADC_comm_loop:
+;    mov     a,      R0;
+;    rlc     a
+;    mov     R0,     a
+;    mov     ADC_MOSI,   c
+;    setb    ADC_SCLK
+;    mov     c,      ADC_MISO
+;    mov     a,      R1
+;;    rlc     a
+;    mov     R1,     a
+;    clr     ADC_SCLK
+;    djnz    R2,     ADC_comm_loop
+;    pop     ACC
+;    ret
+;
 ADC_comm:
  	push acc
  	mov R1, #0 ; Received byte stored in R1
@@ -336,9 +363,40 @@ ADC_comm_loop:
  	pop acc
  	ret
 
+
+
+
+
 ;-----------------------------;
 ; Get number from ADC, store it in R6 and R7 ;
 ;-----------------------------;
+;ADC_get:
+;    push    ACC
+;    push    AR0
+;    push    AR1
+;    clr     ADC_CE
+;    mov     R0,     #0x01B ; Start bit:1
+;    lcall   ADC_comm
+
+;    mov     a,      b
+;    swap    a
+;    anl     a,      #0F0H
+;    setb    acc.7          ; Single mode (bit 7).
+;    mov     R0,     a
+;    lcall   ADC_comm
+;    mov     a,      R1 ; R1 contains bits 8 and 9
+;    anl     a,      #0x03 ; We need only the two least significant bits
+;    mov     R7,     a ; Save result high.
+;    mov     R0,     #0x55 ; It doesn't matter what we transmit...
+;    lcall   ADC_comm
+;    mov     a,      R1
+;    mov     R6,     a ; R1 contains bits 0 to 7. Save result low.
+;    setb    ADC_CE
+;    sleep(#50)
+;    pop     AR1
+;    pop     AR0
+;    pop     ACC
+;    ret
 ADC_get:
     clr ADC_CE
     mov R0, #00000001B ; Start bit:
@@ -361,16 +419,14 @@ ADC_get:
         ;lcall Delay
     ret
 
+
+
 ;-----------------------------;
 ;	MAIN PROGRAM		      ;
 ;-----------------------------;
 setup:
     mov     SP,     #0x7F
     mov     PMOD,   #0
-
-    ; sound frequency setup
-    mov     freq+1, #HIGH(T0_RELOAD)
-    mov     freq+0, #LOW(T0_RELOAD)
 
     ; Timer setup
     lcall   T0_init
@@ -395,16 +451,15 @@ setup:
 	clr		ongoing_f
     mov     seconds,    #0x00
     mov     minutes,    #0x00
-    mov		soakTemp, 	#150
-    mov		soakTime, 	#60
-    mov		reflowTemp, #220
+    mov		soakTemp, 	#30
+    mov		soakTime, 	#10
+    mov		reflowTemp, #35
     mov		reflowTime, #45
     mov  	coolingTemp, #60
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
     mov     ovenPower,  #10
 	mov     state,      #0
     clr     LM_TH  ; set the flag to low initially
-	setb	celsius_f
 
 main:
     ; MAIN MENU LOOP
@@ -422,6 +477,11 @@ main_button_start:
     jb 	    BTN_START,      main_button_state
     jnb     BTN_START,      $
 
+;-------SERIAL port works here ------------------------
+  ;lcall SendVoltage
+  ; mov DPTR,#Hello_World
+  ;  lcall SendString
+
     ; clear the reset flag so timer can start counting up
     clr		reset_timer_f
 
@@ -433,26 +493,23 @@ main_button_start:
 
 	setb	ongoing_f
 	clr 	safetycheck_done_f
-    beepStart()
+
+    ; set LCD screen and go to FSM fsm loop
+    ; LCD_cursor(1, 1)
+    ; LCD_print(#msg_state1)
+    ; LCD_cursor(2, 1)
+    ; LCD_print(#msg_fsm)
+  ;  lcall SendVoltage
     ljmp 	fsm
 
 main_button_state:
     ; [STATE] - configure reflow program
-    jb 		BTN_STATE, main_button_cf
+    jb 		BTN_STATE, main_update
     sleep(#DEBOUNCE)
-    jb 		BTN_STATE, main_button_cf
+    jb 		BTN_STATE, main_update
     jnb 	BTN_STATE, $
-    beepButton()
     ljmp    conf_soakTemp
 
-; toggle between celsius and fahrenheit	
-main_button_cf:
-    jb 		BTN_UP, main_update
-    sleep(#DEBOUNCE)
-    jb 		BTN_UP, main_update
-    jnb 	BTN_UP, $
-    cpl		celsius_f
-	
 main_update:
     ; update main screen values
     LCD_cursor(2, 9)
@@ -460,15 +517,7 @@ main_update:
     LCD_cursor(2, 12)
     LCD_printBCD(seconds)
 	lcall SendVoltage
-	jnb 	celsius_f, main_display_fahren
-    LCD_printTemp(Oven_temp, 1, 12)	
-	LCD_cursor(1, 16)
-	LCD_printChar(#'C')
-	ljmp 	main_button_start
-main_display_fahren:
-	LCD_printFahren(Oven_temp) 
-	LCD_cursor(1, 16)
-	LCD_printChar(#'F')
+    LCD_printTemp(Oven_temp, 1, 12)	; where is the temperature coming from ??
     ljmp 	main_button_start
 
 ;-------------------------------------;
@@ -491,7 +540,6 @@ conf_soakTemp_button_up:
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_soakTemp_button_down
     jnb 	BTN_UP, $
-    beepButton()
     increment(soakTemp)
 
 conf_soakTemp_button_down:
@@ -500,7 +548,6 @@ conf_soakTemp_button_down:
     sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_soakTemp_button_state
     jnb 	BTN_DOWN, $
-    beepButton()
     decrement(soakTemp)
 
 conf_soakTemp_button_state:
@@ -509,7 +556,6 @@ conf_soakTemp_button_state:
     sleep(#DEBOUNCE)
     jb 		BTN_STATE, conf_soakTemp_j
     jnb 	BTN_STATE, $
-    beepButton()
     ljmp 	conf_soakTime
 conf_soakTemp_j:
     ljmp conf_soakTemp_update
@@ -533,7 +579,6 @@ conf_soakTime_button_up:
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_soakTime_button_down
     jnb 	BTN_UP, $
-    beepButton()
     lcall 	inc_soak_time
 
 conf_soakTime_button_down:
@@ -542,7 +587,6 @@ conf_soakTime_button_down:
     sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_soakTime_button_state
     jnb 	BTN_DOWN, $
-    beepButton()
     lcall 	dec_soak_time
 
 conf_soakTime_button_state:
@@ -551,7 +595,6 @@ conf_soakTime_button_state:
     sleep(#DEBOUNCE)
     jb 		BTN_STATE, conf_soakTime_j
     jnb 	BTN_STATE, $
-    beepButton()
     ljmp 	conf_reflowTemp
 
 conf_soakTime_j:
@@ -577,7 +620,6 @@ conf_reflowTemp_button_up:
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_reflowTemp_button_down
     jnb 	BTN_UP, $
-    beepButton()
     increment(reflowTemp)
 
 conf_reflowTemp_button_down:
@@ -586,7 +628,6 @@ conf_reflowTemp_button_down:
     sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_reflowTemp_button_state
     jnb 	BTN_DOWN, $
-    beepButton()
     decrement(reflowTemp)
 
 conf_reflowTemp_button_state:
@@ -595,7 +636,6 @@ conf_reflowTemp_button_state:
     sleep(#DEBOUNCE)
     jb 		BTN_STATE, conf_reflowTemp_j
     jnb 	BTN_STATE, $
-    beepButton()
     ljmp 	conf_reflowTime
 
 conf_reflowTemp_j:
@@ -621,7 +661,6 @@ conf_reflowTime_button_up:
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_reflowTime_button_down
     jnb 	BTN_UP, $
-    beepButton()
     lcall 	inc_reflow_time
 
 conf_reflowTime_button_down:
@@ -630,7 +669,6 @@ conf_reflowTime_button_down:
     sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_reflowTime_button_state
     jnb 	BTN_DOWN, $
-    beepButton()
     lcall 	dec_reflow_time
 
 conf_reflowTime_button_state:
@@ -639,7 +677,6 @@ conf_reflowTime_button_state:
     sleep(#DEBOUNCE)
     jb 		BTN_STATE, conf_reflowTime_j
     jnb 	BTN_STATE, $
-    beepButton()
     ljmp 	main
 
 conf_reflowTime_j:
@@ -667,6 +704,7 @@ inc_reflow_time:
     add		a, #0x05
     mov		reflowTime, a
     ret
+
 dec_reflow_time:
     mov 	a, reflowTime
     add		a, #0xFB
@@ -678,19 +716,11 @@ dec_reflow_time:
 ; END OF INTERFACE // BEGIN FSM       ;
 ;-------------------------------------;
 fsm:
+
+  ;  lcall SendVoltage
     ; update LCD
-	jnb 	celsius_f, fsm_display_fahren
-    LCD_printTemp(Oven_temp, 1, 12)	
-	LCD_cursor(1, 16)
-	LCD_printChar(#'C')
-	ljmp 	fsm_display_update
-fsm_display_fahren:
-	LCD_printFahren(Oven_temp) 
-	LCD_cursor(1, 16)
-	LCD_printChar(#'F')
- 
-fsm_display_update: 
-	; update elapsed time
+    LCD_printTemp(Oven_temp, 1, 12)
+    ; update elapsed time
 	LCD_cursor(2, 9)
     LCD_printBCD(minutes)
     LCD_cursor(2, 12)
@@ -703,16 +733,7 @@ fsm_display_update:
 	LCD_printChar(R1)
 
 	lcall SendVoltage
-    lcall SendVoltage
-
-
-	;check for celsius fahrenheit toggle
-	jb 		BTN_UP, fsm_reset_button
-    sleep(#DEBOUNCE)
-    jb 		BTN_UP, fsm_reset_button
-    jnb 	BTN_UP, $
-    cpl		celsius_f
-fsm_reset_button:	
+    ; lcall SendVoltage
 
     ; find which state we are currently on
    	jb 		BTN_START, fsm_not_reset
@@ -746,10 +767,9 @@ fsm_abort:
 	LCD_print(#msg_abort_top)
 	LCD_cursor(2,1)
 	LCD_print(#msg_abort_btm)
-	waitSeconds(#0x05)
+	waitSeconds(#0x03)
 	;jump to reset to stop oven
 	ljmp fsm_reset_state
-
 
 fsm_state1:
 	jb		safetycheck_done_f, fsm_state1a
@@ -769,7 +789,6 @@ fsm_state1:
 	jb		mf, fsm_abort
 	setb	safetycheck_done_f
 
-
 fsm_state1a:
  mov     ovenPower,        #0 ; (Geoff pls change this line of code to fit)
     ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
@@ -782,23 +801,16 @@ fsm_state1a:
    subb    a,          Oven_temp ; here our soaktime has to be in binary or Decimal not ADC
    jc      fsm_state1_done
    ljmp    fsm
-  ;   mov     x+1,    Oven_temp+1; load Oven_temp with x
-  ;   mov     x+0,    Oven_temp+0
-  ; ;  mov     soakTemp,  #100
-  ;   mov     y+1,    soakTemp+1 ; load soaktemp to y
-  ;   mov     y+0,    soakTemp+0
-  ;   lcall   x_gteq_y ; call the math32 function
-  ;   ; if mf is 1 then Oven_temp >= saoktemp
-  ;   jb      mf,     fsm_state1_done
-  ;   ljmp    fsm ; jump to the start otherwise
-
 fsm_state1_done:
+    ; produces beeping noise
+    ; beepShort()
+    setb TR0
+    sleep(#250)
+    clr TR0
+
     ; temperature reached
     mov     state,          #PREHEAT_SOAK
     mov	    soakTime_sec,   #0x00   ; reset the timer before jummp to state2
-
-    ; produces beeping noise
-    beepshort()
 
 	; update state
 	LCD_cursor(1, 7)
@@ -1029,28 +1041,28 @@ add_two_temp:
    lcall hex2bcd
    ret
 
-   ; Send a character using the serial port
-   putchar:
-       jnb TI, putchar
-       clr TI
-       mov SBUF, a
-       ret
+; Send a character using the serial port
+putchar:
+   jnb TI, putchar
+   clr TI
+   mov SBUF, a
+   ret
 
-   ; Send a constant-zero-terminated string using the serial port
-   SendString:
-       clr     a
-       movc    a, @a+dptr
-       jz      SendStringDone
-       lcall   putchar
-       inc     DPTR
-       sjmp    SendString
-   SendStringDone:
-       ret
+; Send a constant-zero-terminated string using the serial port
+SendString:
+   clr     a
+   movc    a, @a+dptr
+   jz      SendStringDone
+   lcall   putchar
+   inc     DPTR
+   sjmp    SendString
+SendStringDone:
+   ret
 
-   Hello_World:
-       DB  'Hello, World!', '\r', '\n', 0
-   comma:
-   	   DB  ',',0
+Hello_World:
+   DB  'Hello, World!', '\r', '\n', 0
+comma:
+	   DB  ',',0
 ;---------
 ;Swithline
 ;---------
