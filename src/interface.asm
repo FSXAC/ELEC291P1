@@ -28,7 +28,7 @@ $include(math32.inc)
 ; Preprocessor constants
 CLK         equ     22118400
 BAUD        equ     115200
-T0_RELOAD   equ     ((65536-(CLK/4096)))
+T0_RELOAD   equ     (65536-(CLK/4096))
 T1_RELOAD   equ     (0x100-CLK/(16*BAUD))
 T2_RELOAD   equ     (65536-(CLK/1000))
 DEBOUNCE    equ     50
@@ -95,9 +95,8 @@ dseg at 0x30
     y:          ds  4
 
     ; for beep
-    soundms:    ds  2
-	soundx:		ds  1
-    
+    freq:       ds  2
+
     sleep_time: ds 	1
 
 bseg
@@ -131,9 +130,13 @@ msg_temp:	        db '      --- C    >', 0
 msg_time:	        db '     --:--     >', 0
 
 msg_reset_top:		db '   R E S E T    ', 0
-msg_reset_btm:		db '   STOP OVEN    ', 0  
+msg_reset_btm:		db '   STOP OVEN    ', 0
 msg_abort_top:		db 'Oven temp not   ', 0
-msg_abort_btm:		db 'reached, ABORT! ', 0 
+msg_abort_btm:		db 'reached, ABORT! ', 0
+
+; music sequenceS
+sound_start:
+    db 0xEB, 0x69, 0xED, 0x34, 0xEF, 0x0C, 0xF0, 0x90, 0xF1, 0xD4, 0
 
 ; -------------------------;
 ; Initialize Timer 0	   ;
@@ -156,12 +159,11 @@ T0_init:
 ;-----------------------------;
 T0_ISR:
     clr     TR0
-    mov     TH0,    #high(T0_RELOAD)
-    mov     TL0,    #low(T0_RELOAD)
+    mov     TH0,    freq+1
+    mov     TL0,    freq+0
     setb    TR0
     cpl     P0.0
     reti
-
 
 ; -------------------------;
 ; Initialize Timer 2	   ;
@@ -191,16 +193,9 @@ T2_ISR:
     jnz 	T2_ISR_incDone
     inc 	countms+1
 
-T2_ISR_incDone:
 	; PWM
     lcall   PWM_oven
-		
-	; ayyy bby wanna count dwn dem beats
-	;dec 	soundms
-	;mov 	a,	soundms
-	;jnz		T2_ISR_incDone_sound
-	;clr 	TR0
-	
+
 T2_ISR_incDone_sound:
     ; Check if a second has passed
     mov     a,  countms+0
@@ -260,7 +255,6 @@ T2_ISR_return:
 
 ;Tested, everything works as intended. PWM should not need any modification.
 PWM_oven:
-	;cpl P3.7
     push    ACC
     mov     a,              perCntr
     jb     oven_enabled,   PWM_oven_on
@@ -323,29 +317,6 @@ ADC_init:
     setb    ADC_MISO
     clr     ADC_SCLK
     ret
-;-----------------------------;
-; Communicate with ADC        ;
-;-----------------------------;
-; send byte in R0, receive byte in R1
-;ADC_comm:
-;    push    ACC
-;    mov     R1,     #0
-;    mov     R2,     #8
-;ADC_comm_loop:
-;    mov     a,      R0;
-;    rlc     a
-;    mov     R0,     a
-;    mov     ADC_MOSI,   c
-;    setb    ADC_SCLK
-;    mov     c,      ADC_MISO
-;    mov     a,      R1
-;;    rlc     a
-;    mov     R1,     a
-;    clr     ADC_SCLK
-;    djnz    R2,     ADC_comm_loop
-;    pop     ACC
-;    ret
-;
 ADC_comm:
  	push acc
  	mov R1, #0 ; Received byte stored in R1
@@ -365,40 +336,9 @@ ADC_comm_loop:
  	pop acc
  	ret
 
-
-
-
-
 ;-----------------------------;
 ; Get number from ADC, store it in R6 and R7 ;
 ;-----------------------------;
-;ADC_get:
-;    push    ACC
-;    push    AR0
-;    push    AR1
-;    clr     ADC_CE
-;    mov     R0,     #0x01B ; Start bit:1
-;    lcall   ADC_comm
-
-;    mov     a,      b
-;    swap    a
-;    anl     a,      #0F0H
-;    setb    acc.7          ; Single mode (bit 7).
-;    mov     R0,     a
-;    lcall   ADC_comm
-;    mov     a,      R1 ; R1 contains bits 8 and 9
-;    anl     a,      #0x03 ; We need only the two least significant bits
-;    mov     R7,     a ; Save result high.
-;    mov     R0,     #0x55 ; It doesn't matter what we transmit...
-;    lcall   ADC_comm
-;    mov     a,      R1
-;    mov     R6,     a ; R1 contains bits 0 to 7. Save result low.
-;    setb    ADC_CE
-;    sleep(#50)
-;    pop     AR1
-;    pop     AR0
-;    pop     ACC
-;    ret
 ADC_get:
     clr ADC_CE
     mov R0, #00000001B ; Start bit:
@@ -421,14 +361,16 @@ ADC_get:
         ;lcall Delay
     ret
 
-
-
 ;-----------------------------;
 ;	MAIN PROGRAM		      ;
 ;-----------------------------;
 setup:
     mov     SP,     #0x7F
     mov     PMOD,   #0
+
+    ; sound frequency setup
+    mov     freq+1, #HIGH(T0_RELOAD)
+    mov     freq+0, #LOW(T0_RELOAD)
 
     ; Timer setup
     lcall   T0_init
@@ -480,11 +422,6 @@ main_button_start:
     jb 	    BTN_START,      main_button_state
     jnb     BTN_START,      $
 
-;-------SERIAL port works here ------------------------
-  ;lcall SendVoltage
-  ; mov DPTR,#Hello_World
-  ;  lcall SendString
-
     ; clear the reset flag so timer can start counting up
     clr		reset_timer_f
 
@@ -496,13 +433,7 @@ main_button_start:
 
 	setb	ongoing_f
 	clr 	safetycheck_done_f
-
-    ; set LCD screen and go to FSM fsm loop
-    ; LCD_cursor(1, 1)
-    ; LCD_print(#msg_state1)
-    ; LCD_cursor(2, 1)
-    ; LCD_print(#msg_fsm)
-  ;  lcall SendVoltage
+    beepStart()
     ljmp 	fsm
 
 main_button_state:
@@ -511,6 +442,7 @@ main_button_state:
     sleep(#DEBOUNCE)
     jb 		BTN_STATE, main_button_cf
     jnb 	BTN_STATE, $
+    beepButton()
     ljmp    conf_soakTemp
 
 ; toggle between celsius and fahrenheit	
@@ -559,6 +491,7 @@ conf_soakTemp_button_up:
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_soakTemp_button_down
     jnb 	BTN_UP, $
+    beepButton()
     increment(soakTemp)
 
 conf_soakTemp_button_down:
@@ -567,6 +500,7 @@ conf_soakTemp_button_down:
     sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_soakTemp_button_state
     jnb 	BTN_DOWN, $
+    beepButton()
     decrement(soakTemp)
 
 conf_soakTemp_button_state:
@@ -575,6 +509,7 @@ conf_soakTemp_button_state:
     sleep(#DEBOUNCE)
     jb 		BTN_STATE, conf_soakTemp_j
     jnb 	BTN_STATE, $
+    beepButton()
     ljmp 	conf_soakTime
 conf_soakTemp_j:
     ljmp conf_soakTemp_update
@@ -598,6 +533,7 @@ conf_soakTime_button_up:
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_soakTime_button_down
     jnb 	BTN_UP, $
+    beepButton()
     lcall 	inc_soak_time
 
 conf_soakTime_button_down:
@@ -606,6 +542,7 @@ conf_soakTime_button_down:
     sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_soakTime_button_state
     jnb 	BTN_DOWN, $
+    beepButton()
     lcall 	dec_soak_time
 
 conf_soakTime_button_state:
@@ -614,6 +551,7 @@ conf_soakTime_button_state:
     sleep(#DEBOUNCE)
     jb 		BTN_STATE, conf_soakTime_j
     jnb 	BTN_STATE, $
+    beepButton()
     ljmp 	conf_reflowTemp
 
 conf_soakTime_j:
@@ -639,6 +577,7 @@ conf_reflowTemp_button_up:
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_reflowTemp_button_down
     jnb 	BTN_UP, $
+    beepButton()
     increment(reflowTemp)
 
 conf_reflowTemp_button_down:
@@ -647,6 +586,7 @@ conf_reflowTemp_button_down:
     sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_reflowTemp_button_state
     jnb 	BTN_DOWN, $
+    beepButton()
     decrement(reflowTemp)
 
 conf_reflowTemp_button_state:
@@ -655,6 +595,7 @@ conf_reflowTemp_button_state:
     sleep(#DEBOUNCE)
     jb 		BTN_STATE, conf_reflowTemp_j
     jnb 	BTN_STATE, $
+    beepButton()
     ljmp 	conf_reflowTime
 
 conf_reflowTemp_j:
@@ -680,6 +621,7 @@ conf_reflowTime_button_up:
     sleep(#DEBOUNCE)
     jb 		BTN_UP, conf_reflowTime_button_down
     jnb 	BTN_UP, $
+    beepButton()
     lcall 	inc_reflow_time
 
 conf_reflowTime_button_down:
@@ -688,6 +630,7 @@ conf_reflowTime_button_down:
     sleep(#DEBOUNCE)
     jb 		BTN_DOWN, conf_reflowTime_button_state
     jnb 	BTN_DOWN, $
+    beepButton()
     lcall 	dec_reflow_time
 
 conf_reflowTime_button_state:
@@ -696,6 +639,7 @@ conf_reflowTime_button_state:
     sleep(#DEBOUNCE)
     jb 		BTN_STATE, conf_reflowTime_j
     jnb 	BTN_STATE, $
+    beepButton()
     ljmp 	main
 
 conf_reflowTime_j:
@@ -723,7 +667,6 @@ inc_reflow_time:
     add		a, #0x05
     mov		reflowTime, a
     ret
-
 dec_reflow_time:
     mov 	a, reflowTime
     add		a, #0xFB
@@ -735,8 +678,6 @@ dec_reflow_time:
 ; END OF INTERFACE // BEGIN FSM       ;
 ;-------------------------------------;
 fsm:
-
-  ;  lcall SendVoltage
     ; update LCD
 	jnb 	celsius_f, fsm_display_fahren
     LCD_printTemp(Oven_temp, 1, 12)	
@@ -764,6 +705,7 @@ fsm_display_update:
 	lcall SendVoltage
     lcall SendVoltage
 
+
 	;check for celsius fahrenheit toggle
 	jb 		BTN_UP, fsm_reset_button
     sleep(#DEBOUNCE)
@@ -771,6 +713,7 @@ fsm_display_update:
     jnb 	BTN_UP, $
     cpl		celsius_f
 fsm_reset_button:	
+
     ; find which state we are currently on
    	jb 		BTN_START, fsm_not_reset
     sleep(#DEBOUNCE)
@@ -803,14 +746,14 @@ fsm_abort:
 	LCD_print(#msg_abort_top)
 	LCD_cursor(2,1)
 	LCD_print(#msg_abort_btm)
-	waitSeconds(#0x05)	
+	waitSeconds(#0x05)
 	;jump to reset to stop oven
 	ljmp fsm_reset_state
-	
+
 
 fsm_state1:
 	jb		safetycheck_done_f, fsm_state1a
-	; safety precaution check 
+	; safety precaution check
 	mov		a, #60d
 	clr		c
 	subb	a, soakTime_sec
@@ -825,9 +768,9 @@ fsm_state1:
 	lcall 	x_lteq_y
 	jb		mf, fsm_abort
 	setb	safetycheck_done_f
-	
-	
-fsm_state1a: 
+
+
+fsm_state1a:
  mov     ovenPower,        #0 ; (Geoff pls change this line of code to fit)
     ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
   ;  lcall SendVoltage
@@ -934,7 +877,7 @@ fsm_state5_done:
     ljmp    fsm
 
 
-; RESET BUTTON 
+; RESET BUTTON
 fsm_reset_state:
 	; someone please fix this so the oven stops to and not just the controller lol
 	mov ovenPower, #0
@@ -952,7 +895,7 @@ fsm_reset_state:
     mov x+0, Oven_temp
     ; in our configuration we haven't set cooling temp yet
     mov coolingTemp, #60 ;
-	
+
 	mov y+3, #0x00
     mov y+2, #0x00
 	mov y+1, #0x00 ; load soaktemp to y
@@ -984,7 +927,7 @@ LM: mov b, #0;
 	lcall add_two_temp ; two temp
     Send_bcd(bcd+1)             ;display the total temperature
 	Send_bcd(bcd+0)
-	lcall print_comma 
+	lcall print_comma
 	lcall print_power
 	;Send_bcd(#1)
 	lcall Switchline
@@ -1004,10 +947,10 @@ Th: mov b, #1 ; connect thermocouple to chanel1
     ;Send_BCD(bcd+0) ;
 
 	;lcall Switchline
-    
+
     Send_BCD(state)
     lcall print_comma
-    
+
     ljmp SendVoltage
 
 ;------------------------
@@ -1126,11 +1069,11 @@ print_comma:
 print_power:
 	jb oven_enabled, po
 	Send_BCD(#0)
-	ret 
+	ret
 ;--------------
-;print 1 if the power is on 	
+;print 1 if the power is on
 po: Send_BCD(#1)
-	ret 
+	ret
 
 
 END
