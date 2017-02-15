@@ -25,10 +25,8 @@ final int   BAUD_RATE = 115200;
 final int   ASCII_LINEFEED = 10;
 final int   ASCII_CARRIAGE_RETURN = 13;
 
-// state diagram setup
+// state diagram numbers
 final int   SMALL_HEX = 100;
-
-// states
 final String[] STATES = {
     "Main Menu",
     "Ramp To Soak",
@@ -39,6 +37,21 @@ final String[] STATES = {
 };
 float[] hex_x = new float[6];
 float[] hex_y = new float[6];
+
+// readings from serial
+int state = 0;
+int signal = 0;
+int power = 0;
+String[] components = {"0", "0", "0"};
+
+// drawing mode
+int mode = 1;
+
+// radial graph
+float theta = 0;
+
+// strip chart
+float strip_x = 0;
 
 public void setup() {
     
@@ -66,13 +79,6 @@ public void setup() {
     generateHexagon(width/2, height/2, height/3, 6);
 }
 
-int state = 0;
-int signal = 0;
-int power = 0;
-String[] components = {"0", "0", "0"};
-
-int mode = 1;
-
 public void draw() {
     // background(50);
     fill(0, 25);
@@ -82,7 +88,7 @@ public void draw() {
 
     // read data from serial
     if (port.available() > 0) {
-        readString = readSerial();
+        readString = readSerial(readString);
 
         // parse data into variables
         components = readString.split(",");
@@ -96,11 +102,28 @@ public void draw() {
             break;
         case 2: mode2();
             break;
-        default: mode1();
-            break;
+        case 3: mode3();
     }
 }
 
+// read from serial
+public String readSerial(String previousBuffer) {
+    String buffer = port.readStringUntil(ASCII_LINEFEED);
+
+    // remove the last "\r\n" characters
+    if (buffer != null && buffer.charAt(buffer.length()-1)=='\n') {
+        buffer = buffer.substring(0, buffer.length()-2);
+        return buffer;
+    } else {
+        return previousBuffer;
+    }
+}
+
+// keyboard events
+public void keyPressed() {
+    // background(0);
+    mode = (mode == 3 ? 1 : mode + 1);
+}
 public void mode1() {
     drawSignal(signal);
 }
@@ -115,28 +138,43 @@ public void mode2() {
         textSize(50);
         stroke(240);
         rectMode(CENTER);
-        fill(power == 1 ? 0: 50);
+        fill(power == 1 ? 0: 50, 100);
         noStroke();
-        rect(width/2, height/2, width/4, 70);
+        rect(width/2, height/2, width/4, 100);
         rectMode(CORNER);
         fill(255);
-        text(components[0] + " : " + components[1] + " : "  + components[2], width/2, height/2);
+        // text(components[0] + " : " + components[1] + " : "  + components[2], width/2, height/2);
+        textAlign(CENTER, CENTER);
+        text(str(signal) + " deg C", width/2, height/2);
     }
 }
 
-// read from serial
-public String readSerial() {
-    String buffer = port.readStringUntil(ASCII_LINEFEED);
-    if (buffer.charAt(buffer.length()-1)=='\n') {
-        buffer = buffer.substring(0, buffer.length()-2);
-    }
-    return buffer;
+public void mode3() {
+    float strip_y = map(signal, 0, 260, height - 50, 50);
+    fill(
+        map(strip_y, 0.3f * (height - 50), 0.7f * (height - 50), 255, 0),
+        (1 - sq(map(strip_y, 0, height, -1, 1))) * 255,
+        map(strip_y, 0.3f * (height - 50), 0.7f * (height - 50), 0, 255)
+        );
+    rect(strip_x, strip_y, 5, height-50-strip_y);
+
+    // display x-axis label
+    fill(0);
+    rect(0, height-50, width, height);
+    textSize(20);
+    fill(255);
+    text(str(millis() / 1000) + 's', strip_x, height - 25);
+
+    // display temperature
+    text(str(signal) + " deg C", strip_x, strip_y);
+
+    // increment horizontal
+    strip_x = (strip_x >= width) ? 0 : strip_x + 5;
 }
 
-float theta = 0;
 public void drawSignal(float value) {
     theta = (theta >= TWO_PI) ? 0 : theta + 0.01f;
-    float r = map(value, 10, 260, 0, 400);
+    float r = map(value, 0, 260, 30, 400);
     float sx = width/2 + r * cos(theta);
     float sy = height/2 + r * sin(theta);
     stroke(0, 255, 255);
@@ -177,11 +215,6 @@ public void polygon(float x, float y, float radius, int npoints) {
         vertex(sx, sy);
     }
     endShape(CLOSE);
-}
-
-// keyboard events
-public void keyPressed() {
-    mode = (mode == 1 ? 2 : 1);
 }
   public void settings() {  fullScreen(); }
   static public void main(String[] passedArgs) {

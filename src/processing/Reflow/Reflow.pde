@@ -32,6 +32,9 @@ int mode = 1;
 // radial graph
 float theta = 0;
 
+// strip chart
+float strip_x = 0;
+
 void setup() {
     fullScreen();
 
@@ -67,7 +70,7 @@ void draw() {
 
     // read data from serial
     if (port.available() > 0) {
-        readString = readSerial();
+        readString = readSerial(readString);
 
         // parse data into variables
         components = readString.split(",");
@@ -81,21 +84,25 @@ void draw() {
             break;
         case 2: mode2();
             break;
+        case 3: mode3();
     }
 }
 
 // read from serial
-String readSerial() {
+String readSerial(String previousBuffer) {
     String buffer = port.readStringUntil(ASCII_LINEFEED);
 
     // remove the last "\r\n" characters
-    if (buffer.charAt(buffer.length()-1)=='\n') {
+    if (buffer != null && buffer.charAt(buffer.length()-1)=='\n') {
         buffer = buffer.substring(0, buffer.length()-2);
+        return buffer;
+    } else {
+        return previousBuffer;
     }
-    return buffer;
 }
 
 // keyboard events
 void keyPressed() {
-    mode = (mode == 1 ? 2 : 1);
+    // background(0);
+    mode = (mode == 3 ? 1 : mode + 1);
 }

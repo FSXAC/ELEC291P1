@@ -12,18 +12,43 @@ void mode2() {
         textSize(50);
         stroke(240);
         rectMode(CENTER);
-        fill(power == 1 ? 0: 50);
+        fill(power == 1 ? 0: 50, 100);
         noStroke();
-        rect(width/2, height/2, width/4, 70);
+        rect(width/2, height/2, width/4, 100);
         rectMode(CORNER);
         fill(255);
-        text(components[0] + " : " + components[1] + " : "  + components[2], width/2, height/2);
+        // text(components[0] + " : " + components[1] + " : "  + components[2], width/2, height/2);
+        textAlign(CENTER, CENTER);
+        text(str(signal) + " deg C", width/2, height/2);
     }
+}
+
+void mode3() {
+    float strip_y = map(signal, 0, 260, height - 50, 50);
+    fill(
+        map(strip_y, 0.3 * (height - 50), 0.7 * (height - 50), 255, 0),
+        (1 - sq(map(strip_y, 0, height, -1, 1))) * 255,
+        map(strip_y, 0.3 * (height - 50), 0.7 * (height - 50), 0, 255)
+        );
+    rect(strip_x, strip_y, 5, height-50-strip_y);
+
+    // display x-axis label
+    fill(0);
+    rect(0, height-50, width, height);
+    textSize(20);
+    fill(255);
+    text(str(millis() / 1000) + 's', strip_x, height - 25);
+
+    // display temperature
+    text(str(signal) + " deg C", strip_x, strip_y);
+
+    // increment horizontal
+    strip_x = (strip_x >= width) ? 0 : strip_x + 5;
 }
 
 void drawSignal(float value) {
     theta = (theta >= TWO_PI) ? 0 : theta + 0.01;
-    float r = map(value, 10, 260, 0, 400);
+    float r = map(value, 0, 260, 30, 400);
     float sx = width/2 + r * cos(theta);
     float sy = height/2 + r * sin(theta);
     stroke(0, 255, 255);
