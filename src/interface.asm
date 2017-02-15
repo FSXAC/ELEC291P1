@@ -458,6 +458,7 @@ setup:
     mov  	coolingTemp, #60
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
     mov     ovenPower,  #10
+	mov     state,      #0
     clr     LM_TH  ; set the flag to low initially
 
 main:
@@ -939,15 +940,17 @@ LM: mov b, #0;
  	LCD_cursor(2, 7)
     ;LCD_printBCD(bcd+1); display on the LCD
  	;LCD_printBCD(bcd+0); display on the LCD
- 	Send_BCD(bcd+1) ;
-    Send_BCD(bcd+0) ;
+ ;	Send_BCD(bcd+1) ;
+  ;  Send_BCD(bcd+0) ;
 	;lcall add_two_temp ; two temp
-	lcall Switchline
+	;;lcall Switchline
 
 	lcall add_two_temp ; two temp
     Send_bcd(bcd+1)             ;display the total temperature
 	Send_bcd(bcd+0)
-
+	lcall print_comma 
+	lcall print_power
+	;Send_bcd(#1)
 	lcall Switchline
   ret ; jump back to our interrupt
     ;ljmp SendVoltage ; for our testing code, constanly track the temperature
@@ -960,11 +963,15 @@ Th: mov b, #1 ; connect thermocouple to chanel1
     ;;lcall hex2bcd
     ;mov Thertemp+1,  bcd+1
     ;mov Thertemp+0,  bcd+0
+	;-----------------------------new
+ 	;Send_BCD(bcd+1) ;
+    ;Send_BCD(bcd+0) ;
 
- 	Send_BCD(bcd+1) ;
-    Send_BCD(bcd+0) ;
-
-	lcall Switchline
+	;lcall Switchline
+    
+    Send_BCD(state)
+    lcall print_comma
+    
     ljmp SendVoltage
 
 ;------------------------
@@ -1063,7 +1070,8 @@ add_two_temp:
 
    Hello_World:
        DB  'Hello, World!', '\r', '\n', 0
-
+   comma:
+   	   DB  ',',0
 ;---------
 ;Swithline
 ;---------
@@ -1073,5 +1081,20 @@ Switchline:
     mov a, #'\n'
     lcall putchar; display our value - final temperature
 	ret
+
+
+print_comma:
+	mov DPTR, #comma
+    lcall SendString
+	ret
+print_power:
+	jb oven_enabled, po
+	Send_BCD(#0)
+	ret 
+;--------------
+;print 1 if the power is on 	
+po: Send_BCD(#1)
+	ret 
+
 
 END
