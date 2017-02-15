@@ -63,7 +63,7 @@ SOUND       equ     P0.0
 
 ; States
 RAMP2SOAK		equ     1
- PREHEAT_SOAK	equ     2
+PREHEAT_SOAK	equ     2
 RAMP2PEAK		equ     3
 REFLOW			equ     4
 COOLING			equ     5
@@ -106,6 +106,8 @@ bseg
     reset_timer_f:	dbit 1
 	ongoing_f: 		dbit 1
 	safetycheck_done_f: dbit 1
+	celsius_f:		dbit 1 
+	
 
     ; for math32
     mf:             dbit 1
@@ -460,6 +462,7 @@ setup:
     mov     ovenPower,  #10
 	mov     state,      #0
     clr     LM_TH  ; set the flag to low initially
+	setb	celsius_f
 
 main:
     ; MAIN MENU LOOP
@@ -504,12 +507,20 @@ main_button_start:
 
 main_button_state:
     ; [STATE] - configure reflow program
-    jb 		BTN_STATE, main_update
+    jb 		BTN_STATE, main_button_cf
     sleep(#DEBOUNCE)
-    jb 		BTN_STATE, main_update
+    jb 		BTN_STATE, main_button_cf
     jnb 	BTN_STATE, $
     ljmp    conf_soakTemp
 
+; toggle between celsius and fahrenheit	
+main_button_cf:
+    jb 		BTN_UP, main_update
+    sleep(#DEBOUNCE)
+    jb 		BTN_UP, main_update
+    jnb 	BTN_UP, $
+    cpl		celsius_f
+	
 main_update:
     ; update main screen values
     LCD_cursor(2, 9)
@@ -517,7 +528,15 @@ main_update:
     LCD_cursor(2, 12)
     LCD_printBCD(seconds)
 	lcall SendVoltage
-    LCD_printTemp(Oven_temp, 1, 12)	; where is the temperature coming from ??
+	jnb 	celsius_f, main_display_fahren
+    LCD_printTemp(Oven_temp, 1, 12)	
+	LCD_cursor(1, 16)
+	LCD_printChar(#'C')
+	ljmp 	main_button_start
+main_display_fahren:
+	LCD_printFahren(Oven_temp) 
+	LCD_cursor(1, 16)
+	LCD_printChar(#'F')
     ljmp 	main_button_start
 
 ;-------------------------------------;
@@ -719,8 +738,18 @@ fsm:
 
   ;  lcall SendVoltage
     ; update LCD
-    LCD_printTemp(Oven_temp, 1, 12)
-    ; update elapsed time
+	jnb 	celsius_f, fsm_display_fahren
+    LCD_printTemp(Oven_temp, 1, 12)	
+	LCD_cursor(1, 16)
+	LCD_printChar(#'C')
+	ljmp 	fsm_display_update
+fsm_display_fahren:
+	LCD_printFahren(Oven_temp) 
+	LCD_cursor(1, 16)
+	LCD_printChar(#'F')
+ 
+fsm_display_update: 
+	; update elapsed time
 	LCD_cursor(2, 9)
     LCD_printBCD(minutes)
     LCD_cursor(2, 12)
@@ -734,7 +763,14 @@ fsm:
 
 	lcall SendVoltage
     lcall SendVoltage
-	
+
+	;check for celsius fahrenheit toggle
+	jb 		BTN_UP, fsm_reset_button
+    sleep(#DEBOUNCE)
+    jb 		BTN_UP, fsm_reset_button
+    jnb 	BTN_UP, $
+    cpl		celsius_f
+fsm_reset_button:	
     ; find which state we are currently on
    	jb 		BTN_START, fsm_not_reset
     sleep(#DEBOUNCE)

@@ -246,3 +246,88 @@ LCD_printTemp mac
     pop     AR1
     pop     ACC
 endmac
+
+; -------------------------;
+; Print High Temp Macro	   ;
+; -------------------------;
+LCD_printHighTemp mac
+    push    ACC
+    push    AR1
+    mov 	a, %0
+	add		a, #55d
+    mov 	b, #100
+    div		ab				; result is in a, remainder is in b
+    LCD_cursor(%1, %2)
+    add		a, #0x32
+    mov		R1, a
+    LCD_printChar(R1)
+    mov		a, b
+    mov		b, #10
+    div		ab
+    add		a, #0x30
+    mov		R1, a
+    LCD_cursor(%1, %2+1)
+    LCD_printChar(R1)
+    LCD_cursor(%1, %2+2)
+    mov		a, b
+    add		a, #0x30
+    mov		b, a
+    LCD_printChar(b)
+    pop     AR1
+    pop     ACC
+endmac
+
+;------------------------------------;
+; Print Fahrenheit temperature
+;------------------------------------;
+LCD_printFahren mac
+	push 	y
+	push	y+1 
+	push	y+2
+	push	y+3 
+	push	x 
+	push	x+1
+	push	x+2 
+	push	x+3 
+	push	acc
+		
+	mov 	y, #0x09
+	mov	 	y+1, #0x00
+	mov 	y+2, #0x00
+	mov 	y+3, #0x00	
+	
+	mov		x, %0
+	mov	 	x+1, #0x00
+	mov 	x+2, #0x00
+	mov 	x+3, #0x00	
+
+	lcall 	mul32
+	mov		y, #0x05
+	lcall	div32
+	mov		y, #0x20
+	lcall	add32	
+
+	lcall	?print_fahren
+	
+	pop		acc
+	pop 	x+3
+	pop		x+2 
+	pop		x+1
+	pop		x
+	pop		y+3
+	pop		y+2
+	pop		y+1
+	pop		y
+endmac
+?print_fahren:
+	mov		a, x+1
+	clr		c
+	subb	a, #0x01 
+	jz		high_temp
+	LCD_printTemp(x, 1, 12)
+	sjmp	doneprint
+high_temp:
+	LCD_printHighTemp(x, 1, 12)
+doneprint:
+	ret
+	
