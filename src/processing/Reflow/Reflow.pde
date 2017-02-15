@@ -4,7 +4,8 @@ import processing.serial.*;
 Serial      port;
 String      readString = null;
 final int   BAUD_RATE = 115200;
-final int   LINEFEED = 10;
+final int   ASCII_LINEFEED = 10;
+final int   ASCII_CARRIAGE_RETURN = 13;
 
 // state diagram setup
 final int   SMALL_HEX = 100;
@@ -21,18 +22,19 @@ final String[] STATES = {
 float[] hex_x = new float[6];
 float[] hex_y = new float[6];
 
-int state = 0;
-
 void setup() {
     fullScreen();
-    //size(500, 500);
 
     // initialize SPI
     printArray(Serial.list());
+    while (Serial.list().length < 1) {
+        delay(1000);
+    }
     port = new Serial(this, Serial.list()[0], BAUD_RATE);
 
     // throw out garbage values
-    readString = port.readStringUntil(LINEFEED);
+    delay(1000);
+    readString = port.readStringUntil(ASCII_LINEFEED);
     readString = null;
 
     // setup canvas
@@ -46,25 +48,45 @@ void setup() {
     generateHexagon(width/2, height/2, height/3, 6);
 }
 
+int state = 0;
+int signal;
+int power;
+String[] components = {"0", "0", "0"};
+
 void draw() {
     background(50);
     displayState(state);
+
+    // read data from serial
     if (port.available() > 0) {
-        readString = port.readStringUntil(LINEFEED);
-        if (readString != null) {
-            textSize(50);
-            stroke(240);
-            text(readString, width/2, height/2);
-        }
+        readString = readSerial();
+
+        // parse data into variables
+        components = readString.split(",");
     }
-    if (millis() % 1000 <= 10) {
-        println("hello");
-        if (state == 5) {
-            state = 0;
-        } else {
-            state++;
-        }
+
+    // draw onto the screen
+    if (readString != null) {
+        // println(readString);
+        textSize(50);
+        stroke(240);
+        text(components[0] + " : " + components[1] + " : "  + components[2], width/2, height/2);
     }
+}
+
+
+// read from serial
+String readSerial() {
+    String buffer = port.readStringUntil(ASCII_LINEFEED);
+    if (buffer.charAt(buffer.length()-1)=='\r') {
+        buffer = buffer.substring(0, buffer.length()-1);
+    }
+    return buffer;
+}
+
+float theta = 0;
+void drawSignal(float angle, float value) {
+
 }
 
 void generateHexagon(float x, float y, float radius, int nstates) {
