@@ -83,7 +83,7 @@ dseg at 0x30
     perCntr:	ds  1 ; counter to count period in PWM
     ovenPower:	ds  1 ; currnet power of the oven, number between 0 and 10
     soakTime_sec:	ds 1
-    power:		ds  1
+  ;  power:		ds  1
     Thertemp:   ds  4
     LMtemp:     ds  4
     Oven_temp:  ds  4
@@ -258,9 +258,10 @@ T2_ISR_return:
 
 ;Tested, everything works as intended. PWM should not need any modification.
 PWM_oven:
+	;cpl P3.7
     push    ACC
     mov     a,              perCntr
-    jnb     oven_enabled,   PWM_oven_on
+    jb     oven_enabled,   PWM_oven_on
     ; toaster is now off, check to see if toaster should be turned on
     cjne    a,  ovenPower,  PWM_cont
     ; if power 10, then never turn off (corner case)
@@ -450,12 +451,14 @@ setup:
 	clr		ongoing_f
     mov     seconds,    #0x00
     mov     minutes,    #0x00
-    mov		soakTemp, 	#80
-    mov		soakTime, 	#20
-    mov		reflowTemp, #140
-    mov		reflowTime, #15
+    mov		soakTemp, 	#150
+    mov		soakTime, 	#60
+    mov		reflowTemp, #220
+    mov		reflowTime, #45
     mov  	coolingTemp, #60
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
+    mov     ovenPower,  #10
+	mov     state,      #0
     clr     LM_TH  ; set the flag to low initially
 
 main:
@@ -789,7 +792,7 @@ fsm_state1:
 	
 	
 fsm_state1a: 
- mov     power,        #10 ; (Geoff pls change this line of code to fit)
+ mov     ovenPower,        #0 ; (Geoff pls change this line of code to fit)
     ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
   ;  lcall SendVoltage
   ;  lcall SendVoltage
@@ -826,7 +829,7 @@ fsm_state1_done:
 	LCD_printChar(R1)
 
 fsm_state2:
-    mov     power,          #2
+    mov     ovenPower,          #9
     mov     a,              soaktime
     clr     c
     subb    a,              soakTime_sec
@@ -845,7 +848,7 @@ fsm_state2_done:
 	LCD_printChar(R1)
 
 fsm_state3:
-    mov     power,      #10
+    mov     ovenPower,      #0
     mov     a,          reflowTemp
     clr     c
     ;crtTemp is the temperature taken from oven (i think...)
@@ -864,7 +867,7 @@ fsm_state3_done:
 	LCD_printChar(R1)
     mov	    soakTime_sec,   #0x00
 fsm_state4:
-    mov     power,        #2
+    mov     ovenPower,        #7
     mov     a,      reflowTime  ; our soaktime has to be
     clr     c
     subb    a,      soakTime_sec
@@ -880,7 +883,7 @@ fsm_state4_done:
 	LCD_printChar(R1)
 
 fsm_state5:
-    mov     power,      #0
+    mov     ovenPower,      #10
     mov     a,          Oven_temp
     clr     c
     ;crtTemp is the temperature taken from oven (i think...)
@@ -898,7 +901,7 @@ fsm_state5_done:
 ; RESET BUTTON 
 fsm_reset_state:
 	; someone please fix this so the oven stops to and not just the controller lol
-	mov power, #0
+	mov ovenPower, #0
 	LCD_cursor(1,1)
 	LCD_print(#msg_reset_top)
 	LCD_cursor(2,1)
@@ -937,15 +940,17 @@ LM: mov b, #0;
  	LCD_cursor(2, 7)
     ;LCD_printBCD(bcd+1); display on the LCD
  	;LCD_printBCD(bcd+0); display on the LCD
- 	Send_BCD(bcd+1) ;
-    Send_BCD(bcd+0) ;
+ ;	Send_BCD(bcd+1) ;
+  ;  Send_BCD(bcd+0) ;
 	;lcall add_two_temp ; two temp
-	lcall Switchline
+	;;lcall Switchline
 
 	lcall add_two_temp ; two temp
     Send_bcd(bcd+1)             ;display the total temperature
 	Send_bcd(bcd+0)
-
+	lcall print_comma 
+	lcall print_power
+	;Send_bcd(#1)
 	lcall Switchline
   ret ; jump back to our interrupt
     ;ljmp SendVoltage ; for our testing code, constanly track the temperature
@@ -958,11 +963,15 @@ Th: mov b, #1 ; connect thermocouple to chanel1
     ;;lcall hex2bcd
     ;mov Thertemp+1,  bcd+1
     ;mov Thertemp+0,  bcd+0
+	;-----------------------------new
+ 	;Send_BCD(bcd+1) ;
+    ;Send_BCD(bcd+0) ;
 
- 	Send_BCD(bcd+1) ;
-    Send_BCD(bcd+0) ;
-
-	lcall Switchline
+	;lcall Switchline
+    
+    Send_BCD(state)
+    lcall print_comma
+    
     ljmp SendVoltage
 
 ;------------------------
@@ -1061,7 +1070,8 @@ add_two_temp:
 
    Hello_World:
        DB  'Hello, World!', '\r', '\n', 0
-
+   comma:
+   	   DB  ',',0
 ;---------
 ;Swithline
 ;---------
@@ -1071,5 +1081,20 @@ Switchline:
     mov a, #'\n'
     lcall putchar; display our value - final temperature
 	ret
+
+
+print_comma:
+	mov DPTR, #comma
+    lcall SendString
+	ret
+print_power:
+	jb oven_enabled, po
+	Send_BCD(#0)
+	ret 
+;--------------
+;print 1 if the power is on 	
+po: Send_BCD(#1)
+	ret 
+
 
 END
