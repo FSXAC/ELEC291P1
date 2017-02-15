@@ -14,7 +14,7 @@ final int   SMALL_HEX = 100;
 final String[] STATES = {
     "Main Menu",
     "Ramp To Soak",
-    "Preehat Soak",
+    "Preheat Soak",
     "Ramp to Peak",
     "Reflow",
     "Cooling"
@@ -53,6 +53,8 @@ int signal = 0;
 int power = 0;
 String[] components = {"0", "0", "0"};
 
+int mode = 1;
+
 void draw() {
     // background(50);
     fill(0, 25);
@@ -71,6 +73,21 @@ void draw() {
         power = Integer.parseInt(components[2]);
     }
 
+    switch(mode) {
+        case 1: mode1();
+            break;
+        case 2: mode2();
+            break;
+        default: mode1();
+            break;
+    }
+}
+
+void mode1() {
+    drawSignal(signal);
+}
+
+void mode2() {
     drawSignal(signal);
     displayState(state);
 
@@ -80,14 +97,13 @@ void draw() {
         textSize(50);
         stroke(240);
         rectMode(CENTER);
-        fill(power == 1 ? 0: 255);
+        fill(power == 1 ? 0: 50);
         noStroke();
         rect(width/2, height/2, width/4, 70);
         rectMode(CORNER);
         fill(255);
         text(components[0] + " : " + components[1] + " : "  + components[2], width/2, height/2);
     }
-
 }
 
 // read from serial
@@ -105,7 +121,7 @@ void drawSignal(float value) {
     float r = map(value, 10, 260, 0, 400);
     float sx = width/2 + r * cos(theta);
     float sy = height/2 + r * sin(theta);
-    stroke(255, 0, 0);
+    stroke(0, 255, 255);
     strokeWeight(10);
     line(width/2, height/2, sx, sy);
 }
@@ -121,8 +137,8 @@ void generateHexagon(float x, float y, float radius, int nstates) {
 void displayState(int activeState) {
     for (int i = 0; i < STATES.length; i++) {
         if (i == activeState) {
-            stroke(0, 255, 0);
-            strokeWeight(5);
+            stroke(0, 255, 255);
+            strokeWeight(20);
         } else {
             stroke(240);
             strokeWeight(1);
@@ -143,4 +159,9 @@ void polygon(float x, float y, float radius, int npoints) {
         vertex(sx, sy);
     }
     endShape(CLOSE);
+}
+
+// keyboard events
+void keyPressed() {
+    mode = (mode == 1 ? 2 : 1);
 }
