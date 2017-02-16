@@ -106,3 +106,6 @@ void keyPressed() {
     // background(0);
     mode = (mode == 3 ? 1 : mode + 1);
 }
+void mousePressed() {
+    mode = (mode == 3 ? 1 : mode + 1);
+}

@@ -388,7 +388,7 @@ ADC_get:
     mov a, R1
     mov R6, a ; R1 contains bits 0 to 7. Save result low.
     setb ADC_CE
-    sleep(#1)
+    sleep(#3)
         ;lcall Delay
     ; led
     sendSeg()
@@ -759,10 +759,11 @@ fsm_display_fahren:
 
 fsm_display_update:
   	; update elapsed time
-  	LCD_cursor(2, 9)
-    LCD_printBCD(minutes)
-    LCD_cursor(2, 12)
-    LCD_printBCD(seconds)
+  	;LCD_cursor(2, 9)
+    ;LCD_printBCD(minutes)
+    ;LCD_cursor(2, 12)
+    ;LCD_printBCD(seconds)
+    LCD_printTime(soakTime_sec,2, 9)
   	; update state
   	LCD_cursor(1, 7)
   	mov		a, state
