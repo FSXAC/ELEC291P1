@@ -268,7 +268,7 @@ PWM_oven:
   	cjne a, #0, PWM_max ;if ovenPower is 0, always off
   	clr oven_enabled
   	clr SSR
-    mov perCntr
+    mov a, perCntr
   	cjne a, #10, PWM_increment
   	clr a
   	mov perCntr, a
