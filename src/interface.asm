@@ -261,44 +261,45 @@ T2_ISR_return:
 ; Occurs roughly every half sec.  ;
 ;---------------------------------;
 PWM_oven:
-	push    ACC
-   ; cpl P2.5
-    ;corner cases
-	mov a, ovenPower
-	cjne a, #0, PWM_max ;if ovenPower is 0, always off
-	clr oven_enabled
-	clr SSR
-	cjne a, #10, PWM_increment
-	clr a
-	mov perCntr, a
-	ljmp PWM_return
+  	push    ACC
+     ; cpl P2.5
+      ;corner cases
+  	mov a, ovenPower
+  	cjne a, #0, PWM_max ;if ovenPower is 0, always off
+  	clr oven_enabled
+  	clr SSR
+    mov perCntr
+  	cjne a, #10, PWM_increment
+  	clr a
+  	mov perCntr, a
+  	ljmp PWM_return
 PWM_max:
-	cjne a, #10, PWM_cont ;if ovenPower is 10 always on
-	setb oven_enabled
-	setb SSR
-	mov a, perCntr
-	cjne a, #10, PWM_increment
-	clr a
-	mov perCntr, a
-	ljmp PWM_return
-	;end corner cases
+  	cjne a, #10, PWM_cont ;if ovenPower is 10 always on
+  	setb oven_enabled
+  	setb SSR
+  	mov a, perCntr
+  	cjne a, #10, PWM_increment
+  	clr a
+  	mov perCntr, a
+  	ljmp PWM_return
+  	;end corner cases
 PWM_cont:
     mov a, perCntr
     jnb oven_enabled, PWM_off
 PWM_on:
-	cjne a, ovenPower, PWM_increment ;just return if it's not there yet
-	clr oven_enabled				 ;clr oven enabled bit
-	clr SSR 						 ;turn oven off
-	ljmp PWM_increment
+  	cjne a, ovenPower, PWM_increment ;just return if it's not there yet
+  	clr oven_enabled				 ;clr oven enabled bit
+  	clr SSR 						 ;turn oven off
+  	ljmp PWM_increment
 PWM_off:
-	cjne a, #10, PWM_increment 		 ;if not finished period cycle, just return
-	clr a
-	mov perCntr, a 					 ;reset period counter to 0
-	setb oven_enabled				 ;set oven enabled bit
-	setb SSR						 	 ;turn oven on
-	ljmp PWM_return
+  	cjne a, #10, PWM_increment 		 ;if not finished period cycle, just return
+  	clr a
+  	mov perCntr, a 					 ;reset period counter to 0
+  	setb oven_enabled				 ;set oven enabled bit
+  	setb SSR						 	 ;turn oven on
+  	ljmp PWM_return
 PWM_increment:
-	inc perCntr						 ;increment period Counter
+  	inc perCntr						 ;increment period Counter
 PWM_return:
     pop     ACC
     ret
@@ -414,7 +415,7 @@ setup:
     mov		reflowTime, #45
     mov  	coolingTemp, #60
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
-    mov     ovenPower,  #2
+    mov     ovenPower,  #0
     mov     state,      #0
     clr     LM_TH  ; set the flag to low initially
     setb	celsius_f
@@ -719,30 +720,27 @@ fsm_display_fahren:
   	LCD_printChar(#'F')
 
 fsm_display_update:
-	; update elapsed time
-	LCD_cursor(2, 9)
+  	; update elapsed time
+  	LCD_cursor(2, 9)
     LCD_printBCD(minutes)
     LCD_cursor(2, 12)
     LCD_printBCD(seconds)
-	; update state
-	LCD_cursor(1, 7)
-	mov		a, state
-	add		a, #0x30
-	mov		R1, a
-	LCD_printChar(R1)
+  	; update state
+  	LCD_cursor(1, 7)
+  	mov		a, state
+  	add		a, #0x30
+  	mov		R1, a
+  	LCD_printChar(R1)
 
-	lcall SendVoltage
-    lcall SendVoltage
+  	lcall SendVoltage
 
-
-	;check for celsius fahrenheit toggle
-	jb 		BTN_UP, fsm_reset_button
+  	;check for celsius fahrenheit toggle
+  	jb 		BTN_UP, fsm_reset_button
     sleep(#DEBOUNCE)
     jb 		BTN_UP, fsm_reset_button
     jnb 	BTN_UP, $
     cpl		celsius_f
 fsm_reset_button:
-
     ; find which state we are currently on
    	jb 		BTN_START, fsm_not_reset
     sleep(#DEBOUNCE)
@@ -750,7 +748,7 @@ fsm_reset_button:
     jnb 	BTN_START, $
     ljmp 	fsm_reset_state
 fsm_not_reset:
-	mov     a,  state
+  	mov     a,  state
     cjne    a,  #RAMP2SOAK,     fsm_notState1
     ljmp    fsm_state1
 fsm_notState1:
@@ -770,37 +768,35 @@ fsm_invalid:
     ljmp    setup
 
 fsm_abort:
-	; print abort message
-	LCD_cursor(1,1)
-	LCD_print(#msg_abort_top)
-	LCD_cursor(2,1)
-	LCD_print(#msg_abort_btm)
-	waitSeconds(#0x05)
-	;jump to reset to stop oven
-	ljmp fsm_reset_state
-
+  	; print abort message
+  	LCD_cursor(1,1)
+  	LCD_print(#msg_abort_top)
+  	LCD_cursor(2,1)
+  	LCD_print(#msg_abort_btm)
+  	waitSeconds(#0x05)
+  	;jump to reset to stop oven
+  	ljmp fsm_reset_state
 
 fsm_state1:
-	jb		safetycheck_done_f, fsm_state1a
-	; safety precaution check
-	mov		a, #60d
-	clr		c
-	subb	a, soakTime_sec
-	; go to state 1 if not 60 seconds yet
-	jnz		fsm_state1a
-	; otherwise, check if temperature if above 50 degrees
-	mov 	x+0, 	Oven_temp
-	mov		x+1, 	#0x00
-	mov		x+2, 	#0x00
-	mov		x+3, 	#0x00
-	Load_y(50d)
-	lcall 	x_lteq_y
-	jb		mf, fsm_abort
-	setb	safetycheck_done_f
-
+  	jb		safetycheck_done_f, fsm_state1a
+  	; safety precaution check
+  	mov		a, #60d
+  	clr		c
+  	subb	a, soakTime_sec
+  	; go to state 1 if not 60 seconds yet
+  	jnz		fsm_state1a
+  	; otherwise, check if temperature if above 50 degrees
+  	mov 	x+0, 	Oven_temp
+  	mov		x+1, 	#0x00
+  	mov		x+2, 	#0x00
+  	mov		x+3, 	#0x00
+  	Load_y(50d)
+  	lcall 	x_lteq_y
+  	jb		mf, fsm_abort
+  	setb	safetycheck_done_f
 
 fsm_state1a:
- mov     ovenPower,        #1 ; (Geoff pls change this line of code to fit)
+    mov     ovenPower,        #10 ; (Geoff pls change this line of code to fit)
     ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
   ;  lcall SendVoltage
   ;  lcall SendVoltage
@@ -825,7 +821,6 @@ fsm_state1_done:
     ; temperature reached
     mov     state,          #PREHEAT_SOAK
     mov	    soakTime_sec,   #0x00   ; reset the timer before jummp to state2
-
     ; produces beeping noise
     beepshort()
 
@@ -875,7 +870,7 @@ fsm_state3_done:
 	LCD_printChar(R1)
     mov	    soakTime_sec,   #0x00
 fsm_state4:
-    mov     ovenPower,        #5
+    mov     ovenPower,        #1
     mov     a,      reflowTime  ; our soaktime has to be
     clr     c
     subb    a,      soakTime_sec
