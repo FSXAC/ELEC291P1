@@ -388,13 +388,11 @@ ADC_get:
     mov a, R1
     mov R6, a ; R1 contains bits 0 to 7. Save result low.
     setb ADC_CE
-    sleep(#20)
+    sleep(#5)
         ;lcall Delay
-
     ; led
     sendSeg()
     inc digit
-
     ret
 
 ;-----------------------------;
@@ -742,10 +740,6 @@ dec_reflow_time:
 ; END OF INTERFACE // BEGIN FSM       ;
 ;-------------------------------------;
 fsm:
-    clr LED_CLR
-    cpl LED_CLK
-    cpl LED_CLK
-    setb LED_CLR
     mov segBCD+1, minutes
     mov segBCD+0, seconds
 
