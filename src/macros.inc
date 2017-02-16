@@ -124,3 +124,86 @@ endmac
 	subb	a, soakTime_sec
 	jnz		?msg_sleep
 	ret
+
+; SHIFT REGISTER
+LEDseg mac
+	mov r0, a
+	mov dptr, #SEG_array
+	lcall ?LEDseg
+endmac
+?LEDseg:
+	push ar0
+	; r0 = 0x01
+	jz ?LEDseg_zero
+	; r0 = 0x00
+?LEDseg_incPointer:
+	;djnz r0, ?LEDseg_incPointer
+	inc dptr
+	dec r0
+	cjne r0, #0, ?LEDseg_incPointer
+?LEDseg_zero:
+	clr a
+	movc a, @a+dptr
+	lcall LEDByte
+	pop ar0
+	ret
+
+; assume r0 contains lower BCD, r1 contains upper BCD
+; A B C D E F G H
+; 1 2 3 4 x x x x
+sendSeg mac
+  	push ar1
+  	push ar2
+  	push acc
+    mov dptr, #SEG_array
+  	mov R1, segBCD+1
+  	mov R2, segBCD+0
+  	; display the first digit (upper 4 bits of upper BCD)
+  	; shfit in positional bits (0000 0001)
+  	mov a, #0x80
+  	lcall LEDbyte
+  	mov a, R1 ;0x12
+  	anl a, #0xF0 ;0x00010000
+  	;lcall LEDbyte
+  	rr a
+  	rr a
+  	rr a
+  	rr a ; 0000_0001
+  	LEDseg()
+  	clr LED_CLR
+  	setb LED_CLR
+  	; display the second digit (lower 4 bits of upper BCD)
+  	; shift bits into second SR (0000 0010)
+  	mov a, #0x40
+  	lcall LEDbyte
+  	mov a, R1
+  	anl a, #0x0F
+  	LEDseg()
+  	clr LED_CLR
+  	setb LED_CLR
+  	; display the third digit (upper 4 bits of lower BCD)
+  	mov a,#0x20
+  	lcall LEDbyte
+  	mov a, R2 ;0x12
+  	anl a, #0xF0 ;0x00010000
+  	;lcall LEDbyte
+  	rr a
+  	rr a
+  	rr a
+  	rr a ; 0000_0001
+  	LEDseg()
+  	clr LED_CLR
+  	setb LED_CLR
+  	; display the fourth digit (lower 4 bits of lower BCD)
+  	mov a, R2
+  	mov a, #0x10
+  	lcall LEDbyte
+  	mov a, R2
+  	anl a, #0x0F
+  	LEDseg()
+  	clr LED_CLR
+  	setb LED_CLR
+  	pop acc
+  	pop ar2
+  	pop ar1
+endmac

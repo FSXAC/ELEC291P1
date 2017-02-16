@@ -55,6 +55,12 @@ BTN_STATE   equ     P2.5
 BTN_UP      equ     P2.6
 BTN_DOWN    equ     P2.7
 
+; shift register PINS
+LED_DATA    equ     P0.4 ;(yellow)
+LED_LATCH   equ     P0.5 ;(green)
+LED_CLK     equ     P0.6 ;(blue)
+LED_CLR     equ     P0.7 ;(white)
+
 ; SSR / oven control pin
 SSR         equ     P3.7
 
@@ -83,10 +89,11 @@ dseg at 0x30
     perCntr:	ds  1 ; counter to count period in PWM
     ovenPower:	ds  1 ; currnet power of the oven, number between 0 and 10
     soakTime_sec:	ds 1
-  ;  power:		ds  1
+    ;  power:		ds  1
     Thertemp:   ds  4
     LMtemp:     ds  4
     Oven_temp:  ds  4
+    segBCD:   ds 2
 
     ; for math32
     result:     ds  2
@@ -96,17 +103,15 @@ dseg at 0x30
 
     ; for beep
     freq:       ds  2
-
     sleep_time: ds 	1
 
 bseg
     seconds_flag: 	dbit 1
     oven_enabled:	dbit 1
     reset_timer_f:	dbit 1
-	ongoing_f: 		dbit 1
-	safetycheck_done_f: dbit 1
-	celsius_f:		dbit 1
-
+  	ongoing_f: 		dbit 1
+  	safetycheck_done_f: dbit 1
+  	celsius_f:		dbit 1
 
     ; for math32
     mf:             dbit 1
@@ -133,6 +138,19 @@ msg_reset_top:		db '   R E S E T    ', 0
 msg_reset_btm:		db '   STOP OVEN    ', 0
 msg_abort_top:		db 'Oven temp not   ', 0
 msg_abort_btm:		db 'reached, ABORT! ', 0
+
+; 7 segment
+SEG_array:
+    db 00000011b ;0
+    db 10011111b ;1
+    db 00100101b ;2
+    db 00001101b ;3
+    db 10011001b ;4
+    db 01001001b ;5
+    db 01000001b ;6
+    db 00011111b ;7
+    db 00000001b ;8
+    db 00001001b ;9
 
 ; music sequenceS
 sound_start:
@@ -419,6 +437,16 @@ setup:
     mov     state,      #0
     clr     LM_TH  ; set the flag to low initially
     setb	celsius_f
+
+    ; setup LEDseg
+  	clr LED_CLK
+  	clr LED_LATCH
+  	clr LED_CLR
+  	setb LED_CLR
+
+	; set segbcd
+	mov segBCD+1, #high(0x1234)
+	mov segBCD+0, #low(0x1234)
 
 main:
     ; MAIN MENU LOOP
@@ -708,6 +736,14 @@ dec_reflow_time:
 ; END OF INTERFACE // BEGIN FSM       ;
 ;-------------------------------------;
 fsm:
+    clr LED_CLR
+    cpl LED_CLK
+    cpl LED_CLK
+    setb LED_CLR
+    mov segBCD+1, minutes
+    mov segBCD+0, seconds
+    sendSeg()
+
     ; update LCD
   	jnb 	celsius_f, fsm_display_fahren
     LCD_printTemp(Oven_temp, 1, 12)
@@ -769,6 +805,7 @@ fsm_invalid:
 
 fsm_abort:
   	; print abort message
+    beepShort()
   	LCD_cursor(1,1)
   	LCD_print(#msg_abort_top)
   	LCD_cursor(2,1)
@@ -792,7 +829,9 @@ fsm_state1:
   	mov		x+3, 	#0x00
   	Load_y(50d)
   	lcall 	x_lteq_y
-  	jb		mf, fsm_abort
+  	jnb		mf, fsm_not_abort
+  	ljmp	fsm_abort
+fsm_not_abort:
   	setb	safetycheck_done_f
 
 fsm_state1a:
@@ -876,7 +915,7 @@ fsm_state4:
     subb    a,      soakTime_sec
 	jc      fsm_state4_done
     ;-------------
-    ;check temperature    
+    ;check temperature
     mov     a,     reflowTemp
   ;  add     a,     #5
     clr     c
@@ -886,12 +925,9 @@ fsm_state4:
     mov ovenPower, #10
     ljmp fsm
 
-fsm_state4_mid:    
+fsm_state4_mid:
     mov  ovenPower, #0
     ljmp    fsm
-    
-    
-    
     ;ljmp    fsm
 fsm_state4_done:
     mov     state,  #COOLING
@@ -921,6 +957,7 @@ fsm_state5_done:
 ; RESET BUTTON
 fsm_reset_state:
     lcall SendVoltage
+    beepShort()
   	; someone please fix this so the oven stops to and not just the controller lol
   	mov ovenPower, #0
   	LCD_cursor(1,1)
@@ -944,7 +981,9 @@ fsm_reset_state:
     mov y+0, coolingTemp+0
     lcall x_gteq_y ; call the math32 function
     ; repeat while oven_temp >= coolingTemp
-  	jb mf, fsm_reset_state
+  	jnb mf, fsm_not_reset_state
+  	ljmp fsm_reset_state
+fsm_not_reset_state:
   	mov		state, 		#0
   	ljmp	fsm
 
@@ -1117,5 +1156,42 @@ print_power:
 po: Send_BCD(#1)
 	ret
 
-;
+; LED BYTE
+LEDByte:
+  	mov c, ACC.0
+  	mov LED_DATA, c
+  	setb LED_CLK
+  	clr LED_CLK
+  	mov c, ACC.1
+  	mov LED_DATA, c
+  	setb LED_CLK
+  	clr LED_CLK
+  	mov c, ACC.2
+  	mov LED_DATA, c
+  	setb LED_CLK
+  	clr LED_CLK
+  	mov c, ACC.3
+  	mov LED_DATA, c
+  	setb LED_CLK
+  	clr LED_CLK
+  	mov c, ACC.4
+  	mov LED_DATA, c
+  	setb LED_CLK
+  	clr LED_CLK
+  	mov c, ACC.5
+  	mov LED_DATA, c
+  	setb LED_CLK
+  	clr LED_CLK
+  	mov c, ACC.6
+  	mov LED_DATA, c
+  	setb LED_CLK
+  	clr LED_CLK
+  	mov c, ACC.7
+  	mov LED_DATA, c
+  	setb LED_CLK
+  	clr LED_CLK
+  	setb LED_LATCH
+  	clr LED_LATCH
+  	ret
+
 END
