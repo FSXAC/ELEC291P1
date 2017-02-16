@@ -40,7 +40,8 @@ void mode3() {
     text(str(millis() / 1000) + 's', strip_x, height - 25);
 
     // display temperature
-    text(str(signal) + " deg C", strip_x, strip_y);
+    textAlign(CORNER, CENTER);
+    text(str(signal) + " deg C", 20, strip_y);
 
     // increment horizontal
     strip_x = (strip_x >= width) ? 0 : strip_x + 5;
