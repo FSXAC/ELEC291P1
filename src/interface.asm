@@ -870,12 +870,29 @@ fsm_state3_done:
 	LCD_printChar(R1)
     mov	    soakTime_sec,   #0x00
 fsm_state4:
-    mov     ovenPower,        #1
+   ; mov     ovenPower,        #10
     mov     a,      reflowTime  ; our soaktime has to be
     clr     c
     subb    a,      soakTime_sec
-    jc      fsm_state4_done
+	jc      fsm_state4_done
+    ;-------------
+    ;check temperature    
+    mov     a,     reflowTemp
+  ;  add     a,     #5
+    clr     c
+   ;crtTemp is the temperature taken from oven (i think...)
+    subb    a,     Oven_temp ; here our soaktime has to be in binary or Decimal not ADC
+    jc      fsm_state4_mid ; go over turn it off
+    mov ovenPower, #10
+    ljmp fsm
+
+fsm_state4_mid:    
+    mov  ovenPower, #0
     ljmp    fsm
+    
+    
+    
+    ;ljmp    fsm
 fsm_state4_done:
     mov     state,  #COOLING
     beepLong()
@@ -987,7 +1004,7 @@ LM_converter:
     mov x+2, #0
     mov x+1, R7
     mov x+0, R6
-    load_y(503)
+    load_y(500)
     lcall mul32
     load_y(1023)
     lcall div32
@@ -1100,5 +1117,5 @@ print_power:
 po: Send_BCD(#1)
 	ret
 
-
+;
 END
