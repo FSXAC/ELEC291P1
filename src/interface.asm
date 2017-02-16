@@ -94,6 +94,7 @@ dseg at 0x30
     LMtemp:     ds  4
     Oven_temp:  ds  4
     segBCD:   ds 2
+    digit: ds 1
 
     ; for math32
     result:     ds  2
@@ -205,13 +206,12 @@ T2_ISR:
     push 	acc
     push 	psw
     push 	AR1
-
     inc 	countms+0
     mov 	a,     countms+0
     jnz 	T2_ISR_incDone
     inc 	countms+1
 
-	; PWM
+	  ; PWM
     lcall   PWM_oven
 
 T2_ISR_incDone:
@@ -258,7 +258,6 @@ T2_ISR_minutes:
     mov     minutes,    #0x00
 
 T2_ISR_return:
-    ;lcall SendVoltage; send voltage for each Timer2 interrupt
     pop 	AR1
     pop 	psw
     pop 	acc
@@ -389,8 +388,13 @@ ADC_get:
     mov a, R1
     mov R6, a ; R1 contains bits 0 to 7. Save result low.
     setb ADC_CE
-    sleep(#50)
+    ;sleep(#50)
         ;lcall Delay
+
+    ; led
+    sendSeg()
+    inc digit
+
     ret
 
 ;-----------------------------;
@@ -443,6 +447,8 @@ setup:
   	clr LED_LATCH
   	clr LED_CLR
   	setb LED_CLR
+    mov digit, #0x00
+
 
 	; set segbcd
 	mov segBCD+1, #high(0x1234)
@@ -742,6 +748,8 @@ fsm:
     setb LED_CLR
     mov segBCD+1, minutes
     mov segBCD+0, seconds
+
+    barLED(#4)
     sendSeg()
 
     ; update LCD

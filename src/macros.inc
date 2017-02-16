@@ -155,58 +155,111 @@ sendSeg mac
     mov dptr, #SEG_array
   	mov R1, segBCD+1
   	mov R2, segBCD+0
-  	; display the first digit (upper 4 bits of upper BCD)
-  	; shfit in positional bits (0000 0001)
-  	mov a, #0x80 ; 1000 0000
-  	lcall LEDbyte
-  	mov a, R1 ;0x12
-  	anl a, #0xF0 ; 0001 0000
-  	;lcall LEDbyte
-  	rr a
-  	rr a
-  	rr a
-  	rr a ; 0000_0001
-  	LEDseg()
-  	clr LED_CLR
-  	setb LED_CLR
-    sleep(#20)
-
-  	; display the second digit (lower 4 bits of upper BCD)
-  	; shift bits into second SR (0000 0010)
-  	mov a, #0x40
-  	lcall LEDbyte
-  	mov a, R1
-  	anl a, #0x0F
-  	LEDseg()
-  	clr LED_CLR
-  	setb LED_CLR
-    sleep(#20)
-
-  	; display the third digit (upper 4 bits of lower BCD)
-  	mov a,#0x20
-  	lcall LEDbyte
-  	mov a, R2 ;0x12
-  	anl a, #0xF0 ;0x00010000
-  	;lcall LEDbyte
-  	rr a
-  	rr a
-  	rr a
-  	rr a ; 0000_0001
-  	LEDseg()
-  	clr LED_CLR
-  	setb LED_CLR
-    sleep(#20)
-
-  	; display the fourth digit (lower 4 bits of lower BCD)
-  	mov a, R2
-  	mov a, #0x10
-  	lcall LEDbyte
-  	mov a, R2
-  	anl a, #0x0F
-  	LEDseg()
-  	clr LED_CLR
-  	setb LED_CLR
+  	lcall ?sendSeg
   	pop acc
   	pop ar2
   	pop ar1
 endmac
+?sendSeg:
+    clr c
+    mov a, digit
+    jz ?sendSeg_1
+    dec a
+    jz ?sendSeg_2
+    dec a
+    jz ?sendSeg_3
+    dec a
+    jz ?sendSeg_4
+    mov digit, #0x00
+    sjmp ?sendSeg
+?sendSeg_1:
+    ; 970312 !!!!
+    ; display the first digit (upper 4 bits of upper BCD)
+    ; shfit in positional bits (0000 0001)
+    mov a, #0x80 ; 1000 0000
+    lcall LEDbyte
+    mov a, R1 ;0x12
+    anl a, #0xF0 ; 0001 0000
+    ;lcall LEDbyte
+    rr a
+    rr a
+    rr a
+    rr a ; 0000_0001
+    LEDseg()
+    clr LED_CLR
+    setb LED_CLR
+    ljmp ?sendSeg_end
+
+?sendSeg_2:
+    ; display the second digit (lower 4 bits of upper BCD)
+    ; shift bits into second SR (0000 0010)
+    mov a, #0x40
+    lcall LEDbyte
+    mov a, R1
+    anl a, #0x0F
+    LEDseg()
+    clr LED_CLR
+    setb LED_CLR
+    ljmp ?sendSeg_end
+
+?sendSeg_3:
+    ; display the third digit (upper 4 bits of lower BCD)
+    mov a,#0x20
+    lcall LEDbyte
+    mov a, R2 ;0x12
+    anl a, #0xF0 ;0x00010000
+    ;lcall LEDbyte
+    rr a
+    rr a
+    rr a
+    rr a ; 0000_0001
+    LEDseg()
+    clr LED_CLR
+    setb LED_CLR
+    ljmp ?sendSeg_end
+
+?sendSeg_4:
+    ; display the fourth digit (lower 4 bits of lower BCD)
+    mov a, R2
+    mov a, #0x10
+    lcall LEDbyte
+    mov a, R2
+    anl a, #0x0F
+    LEDseg()
+    clr LED_CLR
+    setb LED_CLR
+    ljmp ?sendSeg_end
+?sendSeg_end:
+    ret
+
+barLED mac
+    push    ACC
+    push    AR0
+    mov     R0,     %0
+    mov     a,      #8
+    subb    a,      R0
+    lcall   ?barLED
+    pop     AR0
+    pop     ACC
+endmac
+?barLED:
+    clr     LED_CLR
+    clr     LED_CLK
+    clr     LED_LATCH
+    setb    LED_DATA
+    setb    LED_CLR
+barLED_1:
+    cpl     LED_CLK
+    cpl     LED_CLK
+    djnz    R0, barLED_1
+    mov     R0, a
+    ; inc     R0
+    clr     LED_DATA
+    jz      barLED_end
+barLED_2:
+    cpl     LED_CLK
+    cpl     LED_CLK
+    djnz    R0, barLED_2
+barLED_end:
+    setb    LED_LATCH
+    ret
