@@ -56,10 +56,10 @@ BTN_UP      equ     P2.6
 BTN_DOWN    equ     P2.7
 
 ; shift register PINS
-LED_DATA    equ     P0.4 ;(yellow)
-LED_LATCH   equ     P0.5 ;(green)
-LED_CLK     equ     P0.6 ;(blue)
-LED_CLR     equ     P0.7 ;(white)
+LED_DATA    equ     P0.1 ;(yellow)
+LED_LATCH   equ     P0.2 ;(green)
+LED_CLK     equ     P0.3 ;(blue)
+LED_CLR     equ     P0.4 ;(white)
 
 ; SSR / oven control pin
 SSR         equ     P3.7

@@ -133,11 +133,8 @@ LEDseg mac
 endmac
 ?LEDseg:
 	push ar0
-	; r0 = 0x01
 	jz ?LEDseg_zero
-	; r0 = 0x00
 ?LEDseg_incPointer:
-	;djnz r0, ?LEDseg_incPointer
 	inc dptr
 	dec r0
 	cjne r0, #0, ?LEDseg_incPointer
@@ -160,10 +157,10 @@ sendSeg mac
   	mov R2, segBCD+0
   	; display the first digit (upper 4 bits of upper BCD)
   	; shfit in positional bits (0000 0001)
-  	mov a, #0x80
+  	mov a, #0x80 ; 1000 0000
   	lcall LEDbyte
   	mov a, R1 ;0x12
-  	anl a, #0xF0 ;0x00010000
+  	anl a, #0xF0 ; 0001 0000
   	;lcall LEDbyte
   	rr a
   	rr a
@@ -172,6 +169,8 @@ sendSeg mac
   	LEDseg()
   	clr LED_CLR
   	setb LED_CLR
+    sleep(#20)
+
   	; display the second digit (lower 4 bits of upper BCD)
   	; shift bits into second SR (0000 0010)
   	mov a, #0x40
@@ -181,6 +180,8 @@ sendSeg mac
   	LEDseg()
   	clr LED_CLR
   	setb LED_CLR
+    sleep(#20)
+
   	; display the third digit (upper 4 bits of lower BCD)
   	mov a,#0x20
   	lcall LEDbyte
@@ -194,6 +195,8 @@ sendSeg mac
   	LEDseg()
   	clr LED_CLR
   	setb LED_CLR
+    sleep(#20)
+
   	; display the fourth digit (lower 4 bits of lower BCD)
   	mov a, R2
   	mov a, #0x10
