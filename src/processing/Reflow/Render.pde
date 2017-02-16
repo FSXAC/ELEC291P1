@@ -70,6 +70,11 @@ void displayState(int activeState) {
         if (i == activeState) {
             stroke(0, 255, 255);
             strokeWeight(20);
+            if (i < 5) {
+                line(hex_x[i], hex_y[i], hex_x[i+1], hex_y[i+1]);
+            } else {
+                line(hex_x[i], hex_y[i], hex_x[0], hex_y[0]);
+            }
         } else {
             stroke(240);
             strokeWeight(1);
