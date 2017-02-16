@@ -388,7 +388,7 @@ ADC_get:
     mov a, R1
     mov R6, a ; R1 contains bits 0 to 7. Save result low.
     setb ADC_CE
-    sleep(#5)
+    sleep(#1)
         ;lcall Delay
     ; led
     sendSeg()

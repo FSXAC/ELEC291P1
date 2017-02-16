@@ -200,7 +200,7 @@ endmac
     LEDseg()
     clr LED_CLR
     setb LED_CLR
-    sleep(#5)
+    sleep(#1)
     ljmp ?sendSeg_end
 
 ?sendSeg_3:
@@ -229,7 +229,7 @@ endmac
     LEDseg()
     clr LED_CLR
     setb LED_CLR
-    sleep(#5)
+    sleep(#1)
     ljmp ?sendSeg_end
 ?sendSeg_end:
     ret
