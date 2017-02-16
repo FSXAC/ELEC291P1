@@ -139,6 +139,8 @@ msg_reset_top:		db '   R E S E T    ', 0
 msg_reset_btm:		db '   STOP OVEN    ', 0
 msg_abort_top:		db 'Oven temp not   ', 0
 msg_abort_btm:		db 'reached, ABORT! ', 0
+msg_done:         db '    D O N E     ', 0
+msg_blank:        db '                ', 0
 
 ; 7 segment
 SEG_array:
@@ -388,7 +390,7 @@ ADC_get:
     mov a, R1
     mov R6, a ; R1 contains bits 0 to 7. Save result low.
     setb ADC_CE
-    sleep(#3)
+    sleep(#5)
         ;lcall Delay
     ; led
     sendSeg()
@@ -743,9 +745,6 @@ fsm:
     mov segBCD+1, minutes
     mov segBCD+0, seconds
 
-    barLED(#4)
-    sendSeg()
-
     ; update LCD
   	jnb 	celsius_f, fsm_display_fahren
     LCD_printTemp(Oven_temp, 1, 12)
@@ -891,6 +890,8 @@ fsm_state2_done:
 	add		a, #0x30
 	mov		R1, a
 	LCD_printChar(R1)
+  mov	    soakTime_sec,   #0x00
+
 
 fsm_state3:
     mov     ovenPower,      #10
@@ -940,6 +941,8 @@ fsm_state4_done:
 	add		a, #0x30
 	mov		R1, a
 	LCD_printChar(R1)
+  mov	    soakTime_sec,   #0x00
+
 
 fsm_state5:
     mov     ovenPower,      #0
@@ -953,6 +956,11 @@ fsm_state5:
 fsm_state5_done:
     mov		state,		#0
     ; TODO reset counter !!! TODO
+    LCD_cursor(1, 1)
+    LCD_print(#msg_done)
+    LCD_cursor(2, 1)
+    LCD_print(#msg_blank)
+    waitSeconds(#0x03)
     beepPulse()
     ljmp    fsm
 
@@ -1110,6 +1118,61 @@ add_two_temp:
    mov Oven_temp+2,  x+2
    mov Oven_temp+1,  x+1
    mov Oven_temp+0,  x+0
+
+   ; temperature compare
+   ; output to LED
+   ; < 10
+   Load_y(20)
+   lcall   x_gteq_y
+   jb      mf,     low1
+   barLED(#1)
+   ljmp    temp_compare_end
+low1: ; 10 < t < 20
+   Load_y(40)
+   lcall   x_gteq_y
+   jb      mf,     low2
+   barLED(#2)
+   ljmp    temp_compare_end
+low2: ; 20 < t < 25
+   Load_y(80)
+   lcall   x_gteq_y
+   jb     mf,     low3
+   barLED(#3)
+   ljmp    temp_compare_end
+low3: ; 25 < t < 35
+   Load_y(120)
+   lcall   x_gteq_y
+   jb     mf,     low4
+   barLED(#4)
+   ljmp    temp_compare_end
+low4: ; 35 < t < 45
+   Load_y(160)
+   lcall   x_gteq_y
+   jb     mf,     med1
+   barLED(#5)
+   ljmp    temp_compare_end
+med1: ; 45 < t < 60
+   Load_y(180)
+   lcall   x_gteq_y
+   jb     mf,     med2
+   barLED(#6)
+   ljmp    temp_compare_end
+med2: ; 60 < t < 70
+   Load_y(230)
+   lcall   x_gteq_y
+   jb      mf,     high1
+   barLED(#7)
+   ljmp    temp_compare_end
+high1: ; 70 < t < 80
+   Load_y(250)
+   lcall   x_gteq_y
+   jb      mf,     high2
+   barLED(#8)
+   ljmp	temp_compare_end
+high2:
+   ljmp    temp_compare_end
+
+temp_compare_end:
    lcall hex2bcd
    ret
 

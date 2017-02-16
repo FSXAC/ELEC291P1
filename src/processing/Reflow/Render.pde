@@ -1,8 +1,40 @@
+float x, y;
+
 void mode1() {
-    drawSignal(signal);
+    fill(0);
+    rectMode(CORNER);
+    rect(0, 0, 120, height);
+    rect(0, height - 50, width, height);
+
+    // display array
+    stroke(255);
+    strokeWeight(1);
+    for (int i = 0; i < data.length; i++) {
+      y = map(data[i], 0, 260, height - 50, 50);
+      x = map(i, 0, data.length + 1, 120, width);
+      if (data.length > 1 && i != data.length-1) {
+        line(
+          x,
+          y,
+          map(i+1, 0, data.length + 1, 120, width),
+          (data[i+1] == 0) ? y : map(data[i+1], 0, 260, height-50, 50)
+          );
+      }
+    }
+    noStroke();
+    fill(255);
+    text(str(millis() / 1000) + 's', x, height - 25);
+
+    // display temperature
+    textAlign(CORNER, CENTER);
+    text(str(signal) + " deg C", 10, y);
 }
 
 void mode2() {
+    fill(0, 25);
+    noStroke();
+    rect(0, 0, width, height);
+    fill(255);
     drawSignal(signal);
     displayState(state);
 
@@ -12,7 +44,7 @@ void mode2() {
         textSize(50);
         stroke(240);
         rectMode(CENTER);
-        fill(power == 1 ? 50: 0, 100);
+        fill(power == 1 ? 0: 50, 100);
         noStroke();
         rect(width/2, height/2, width/4, 100);
         rectMode(CORNER);
@@ -24,6 +56,10 @@ void mode2() {
 }
 
 void mode3() {
+    fill(0, 25);
+    noStroke();
+    rect(0, 0, width, height);
+    fill(255);
     float strip_y = map(signal, 0, 260, height - 50, 50);
     fill(
         map(strip_y, 0.3 * (height - 50), 0.7 * (height - 50), 255, 0),
@@ -40,7 +76,8 @@ void mode3() {
     text(str(millis() / 1000) + 's', strip_x, height - 25);
 
     // display temperature
-    text(str(signal) + " deg C", strip_x, strip_y);
+    textAlign(CORNER, CENTER);
+    text(str(signal) + " deg C", 20, strip_y);
 
     // increment horizontal
     strip_x = (strip_x >= width) ? 0 : strip_x + 5;
@@ -67,8 +104,14 @@ void generateHexagon(float x, float y, float radius, int nstates) {
 void displayState(int activeState) {
     for (int i = 0; i < STATES.length; i++) {
         if (i == activeState) {
-            stroke(0, 255, 255);
+            stroke(0, 255, 255, 50);
             strokeWeight(20);
+            if (activeState == 5) {
+              line(hex_x[i], hex_y[i], hex_x[0], hex_y[0]);
+            } else {
+              line(hex_x[i], hex_y[i], hex_x[i+1], hex_y[i+1]);
+            }
+            stroke(0, 255, 255);
         } else {
             stroke(240);
             strokeWeight(1);

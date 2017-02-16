@@ -7,6 +7,18 @@ final int   BAUD_RATE = 115200;
 final int   ASCII_LINEFEED = 10;
 final int   ASCII_CARRIAGE_RETURN = 13;
 
+int[] data = new int[100];
+int count = 0;
+void add(int value) {
+  if (count == data.length) {
+    data = expand(data);
+    if (mode == 1) {
+      background(50);
+    }
+  }
+  data[count++] = value;
+}
+
 // state diagram numbers
 final int   SMALL_HEX = 100;
 final String[] STATES = {
@@ -23,6 +35,7 @@ float[] hex_y = new float[6];
 // readings from serial
 int state = 0;
 int signal = 0;
+int signal_prev = 0;
 int power = 0;
 String[] components = {"0", "0", "0"};
 
@@ -63,11 +76,6 @@ void setup() {
 
 void draw() {
     // background(50);
-    fill(0, 25);
-    noStroke();
-    rect(0, 0, width, height);
-    fill(255);
-
     // read data from serial
     if (port.available() > 0) {
         readString = readSerial(readString);
@@ -76,6 +84,7 @@ void draw() {
         components = readString.split(",");
         state = Integer.parseInt(components[0]);
         signal = Integer.parseInt(components[1]);
+        add(signal);
         power = Integer.parseInt(components[2]);
     }
 
@@ -101,11 +110,10 @@ String readSerial(String previousBuffer) {
     }
 }
 
-// keyboard events
-void keyPressed() {
-    // background(0);
-    mode = (mode == 3 ? 1 : mode + 1);
-}
+int[] temp_img;
 void mousePressed() {
-    mode = (mode == 3 ? 1 : mode + 1);
+  mode = (mode == 3 ? 1 : mode + 1);
+  if (mode == 1) {
+    background(50);
+  }
 }
