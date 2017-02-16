@@ -394,8 +394,8 @@ setup:
     lcall   LCD_init
 
     ; PWM setup
-    mov     ovenPower,      #0 ;choose initial power here (0-10)
-    setb    oven_enabled
+    clr    oven_enabled
+    clr    SSR
     mov     perCntr,        #10
 
     ; Initialize MCP3008 ADC
@@ -414,7 +414,7 @@ setup:
     mov		reflowTime, #45
     mov  	coolingTemp, #60
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
-    mov     ovenPower,  #0
+    mov     ovenPower,  #2
     mov     state,      #0
     clr     LM_TH  ; set the flag to low initially
     setb	celsius_f
@@ -800,7 +800,7 @@ fsm_state1:
 
 
 fsm_state1a:
- mov     ovenPower,        #10 ; (Geoff pls change this line of code to fit)
+ mov     ovenPower,        #1 ; (Geoff pls change this line of code to fit)
     ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
   ;  lcall SendVoltage
   ;  lcall SendVoltage
@@ -875,7 +875,7 @@ fsm_state3_done:
 	LCD_printChar(R1)
     mov	    soakTime_sec,   #0x00
 fsm_state4:
-    mov     ovenPower,        #3
+    mov     ovenPower,        #5
     mov     a,      reflowTime  ; our soaktime has to be
     clr     c
     subb    a,      soakTime_sec
