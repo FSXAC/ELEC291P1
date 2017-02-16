@@ -22,8 +22,8 @@ $MODLP52
 $LIST
 
 $include(macros.inc)
-$include(LCD_4bit.inc)
 $include(math32.inc)
+$include(LCD_4bit.inc)
 
 ; Preprocessor constants
 CLK         equ     22118400
@@ -105,8 +105,8 @@ bseg
     reset_timer_f:	dbit 1
 	ongoing_f: 		dbit 1
 	safetycheck_done_f: dbit 1
-	celsius_f:		dbit 1 
-	
+	celsius_f:		dbit 1
+
 
     ; for math32
     mf:             dbit 1
@@ -196,7 +196,7 @@ T2_ISR:
 	; PWM
     lcall   PWM_oven
 
-T2_ISR_incDone_sound:
+T2_ISR_incDone:
     ; Check if a second has passed
     mov     a,  countms+0
     cjne    a,  #low(TIME_RATE),    T2_ISR_return
@@ -254,38 +254,51 @@ T2_ISR_return:
 ;---------------------------------;
 
 ;Tested, everything works as intended. PWM should not need any modification.
+;PWM_ov;---------------------------------;
+; Pulse Width Modulation		  ;
+; Power: [#0-#10]				  ;
+; Period: #10					  ;
+; Occurs roughly every half sec.  ;
+;---------------------------------;
 PWM_oven:
-    push    ACC
-    mov     a,              perCntr
-    jb     oven_enabled,   PWM_oven_on
-    ; toaster is now off, check to see if toaster should be turned on
-    cjne    a,  ovenPower,  PWM_cont
-    ; if power 10, then never turn off (corner case)
-    mov     a,  ovenPower
-    cjne    a,  #10,        PWM_corner1false
-    ljmp    PWM_corner1true
-PWM_corner1false:
-    setb    SSR
-PWM_corner1true:
-    setb    oven_enabled
-    ljmp    PWM_cont
-PWM_oven_on:
-    ; toaster is now on, check to see if toaster should be turned off
-    cjne    a,  #10,    PWM_cont
-    ; if power 0, then never turn on (corner case)
-    mov     a,  ovenPower
-    cjne    a,  #0,     PWM_corner2false
-    ljmp    PWM_corner2true
-PWM_corner2false:
-    clr     SSR
-PWM_corner2true:
-    clr     oven_enabled
-    clr     a
-    mov     perCntr,    a
-    sjmp    PWM_return
+	push    ACC
+   ; cpl P2.5
+    ;corner cases
+	mov a, ovenPower
+	cjne a, #0, PWM_max ;if ovenPower is 0, always off
+	clr oven_enabled
+	clr SSR
+	cjne a, #10, PWM_increment
+	clr a
+	mov perCntr, a
+	ljmp PWM_return
+PWM_max:
+	cjne a, #10, PWM_cont ;if ovenPower is 10 always on
+	setb oven_enabled
+	setb SSR
+	mov a, perCntr
+	cjne a, #10, PWM_increment
+	clr a
+	mov perCntr, a
+	ljmp PWM_return
+	;end corner cases
 PWM_cont:
-    inc     perCntr
-    sjmp    PWM_return
+    mov a, perCntr
+    jnb oven_enabled, PWM_off
+PWM_on:
+	cjne a, ovenPower, PWM_increment ;just return if it's not there yet
+	clr oven_enabled				 ;clr oven enabled bit
+	clr SSR 						 ;turn oven off
+	ljmp PWM_increment
+PWM_off:
+	cjne a, #10, PWM_increment 		 ;if not finished period cycle, just return
+	clr a
+	mov perCntr, a 					 ;reset period counter to 0
+	setb oven_enabled				 ;set oven enabled bit
+	setb SSR						 	 ;turn oven on
+	ljmp PWM_return
+PWM_increment:
+	inc perCntr						 ;increment period Counter
 PWM_return:
     pop     ACC
     ret
@@ -401,10 +414,10 @@ setup:
     mov		reflowTime, #45
     mov  	coolingTemp, #60
    	mov 	crtTemp,	#0x00	;temporary for testing purposes
-    mov     ovenPower,  #10
-	mov     state,      #0
+    mov     ovenPower,  #0
+    mov     state,      #0
     clr     LM_TH  ; set the flag to low initially
-	setb	celsius_f
+    setb	celsius_f
 
 main:
     ; MAIN MENU LOOP
@@ -430,11 +443,27 @@ main_button_start:
 
     ; set as FSM State 1
     mov		state, #RAMP2SOAK
-
-	setb	ongoing_f
-	clr 	safetycheck_done_f
-    beepStart()
-    ljmp 	fsm
+	  setb	ongoing_f
+    clr 	safetycheck_done_f
+    ; beepStart()
+    mov     dptr,   #sound_start
+main_button_beep:
+    clr     a
+    movc    a,  @a+dptr
+    setb    TR0
+    sleep(#100)
+    clr     TR0
+    jz      main_button_beep_done
+    mov     freq+1,     a
+    inc     dptr
+    clr     a
+    movc    a,  @a+dptr
+    mov     freq+0,     a
+    setb    TR0
+    inc     dptr
+    sjmp    main_button_beep
+main_button_beep_done:
+    ljmp 	  fsm
 
 main_button_state:
     ; [STATE] - configure reflow program
@@ -445,30 +474,30 @@ main_button_state:
     beepButton()
     ljmp    conf_soakTemp
 
-; toggle between celsius and fahrenheit	
+; toggle between celsius and fahrenheit
 main_button_cf:
     jb 		BTN_UP, main_update
     sleep(#DEBOUNCE)
     jb 		BTN_UP, main_update
     jnb 	BTN_UP, $
     cpl		celsius_f
-	
+
 main_update:
     ; update main screen values
     LCD_cursor(2, 9)
     LCD_printBCD(minutes)
     LCD_cursor(2, 12)
     LCD_printBCD(seconds)
-	lcall SendVoltage
-	jnb 	celsius_f, main_display_fahren
-    LCD_printTemp(Oven_temp, 1, 12)	
-	LCD_cursor(1, 16)
-	LCD_printChar(#'C')
-	ljmp 	main_button_start
+    lcall SendVoltage
+    jnb 	celsius_f, main_display_fahren
+    LCD_printTemp(Oven_temp, 1, 12)
+    LCD_cursor(1, 16)
+    LCD_printChar(#'C')
+    ljmp 	main_button_start
 main_display_fahren:
-	LCD_printFahren(Oven_temp) 
-	LCD_cursor(1, 16)
-	LCD_printChar(#'F')
+    LCD_printFahren(Oven_temp)
+    LCD_cursor(1, 16)
+    LCD_printChar(#'F')
     ljmp 	main_button_start
 
 ;-------------------------------------;
@@ -679,17 +708,17 @@ dec_reflow_time:
 ;-------------------------------------;
 fsm:
     ; update LCD
-	jnb 	celsius_f, fsm_display_fahren
-    LCD_printTemp(Oven_temp, 1, 12)	
-	LCD_cursor(1, 16)
-	LCD_printChar(#'C')
-	ljmp 	fsm_display_update
+  	jnb 	celsius_f, fsm_display_fahren
+    LCD_printTemp(Oven_temp, 1, 12)
+  	LCD_cursor(1, 16)
+  	LCD_printChar(#'C')
+  	ljmp 	fsm_display_update
 fsm_display_fahren:
-	LCD_printFahren(Oven_temp) 
-	LCD_cursor(1, 16)
-	LCD_printChar(#'F')
- 
-fsm_display_update: 
+  	LCD_printFahren(Oven_temp)
+  	LCD_cursor(1, 16)
+  	LCD_printChar(#'F')
+
+fsm_display_update:
 	; update elapsed time
 	LCD_cursor(2, 9)
     LCD_printBCD(minutes)
@@ -712,7 +741,7 @@ fsm_display_update:
     jb 		BTN_UP, fsm_reset_button
     jnb 	BTN_UP, $
     cpl		celsius_f
-fsm_reset_button:	
+fsm_reset_button:
 
     ; find which state we are currently on
    	jb 		BTN_START, fsm_not_reset
@@ -771,7 +800,7 @@ fsm_state1:
 
 
 fsm_state1a:
- mov     ovenPower,        #0 ; (Geoff pls change this line of code to fit)
+ mov     ovenPower,        #10 ; (Geoff pls change this line of code to fit)
     ; !! WE SHOULD USE MATH32 LIBRARY TO MAKE COMPARISONS HERE
   ;  lcall SendVoltage
   ;  lcall SendVoltage
@@ -808,7 +837,7 @@ fsm_state1_done:
 	LCD_printChar(R1)
 
 fsm_state2:
-    mov     ovenPower,          #9
+    mov     ovenPower,          #0
     mov     a,              soaktime
     clr     c
     subb    a,              soakTime_sec
@@ -827,7 +856,7 @@ fsm_state2_done:
 	LCD_printChar(R1)
 
 fsm_state3:
-    mov     ovenPower,      #0
+    mov     ovenPower,      #10
     mov     a,          reflowTemp
     clr     c
     ;crtTemp is the temperature taken from oven (i think...)
@@ -846,7 +875,7 @@ fsm_state3_done:
 	LCD_printChar(R1)
     mov	    soakTime_sec,   #0x00
 fsm_state4:
-    mov     ovenPower,        #7
+    mov     ovenPower,        #3
     mov     a,      reflowTime  ; our soaktime has to be
     clr     c
     subb    a,      soakTime_sec
@@ -862,7 +891,7 @@ fsm_state4_done:
 	LCD_printChar(R1)
 
 fsm_state5:
-    mov     ovenPower,      #10
+    mov     ovenPower,      #0
     mov     a,          Oven_temp
     clr     c
     ;crtTemp is the temperature taken from oven (i think...)
@@ -879,32 +908,33 @@ fsm_state5_done:
 
 ; RESET BUTTON
 fsm_reset_state:
-	; someone please fix this so the oven stops to and not just the controller lol
-	mov ovenPower, #0
-	LCD_cursor(1,1)
-	LCD_print(#msg_reset_top)
-	LCD_cursor(2,1)
-	LCD_print(#msg_reset_btm)
-	; show message for 5 seconds at least
-	waitSeconds(#0x05)
+    lcall SendVoltage
+  	; someone please fix this so the oven stops to and not just the controller lol
+  	mov ovenPower, #0
+  	LCD_cursor(1,1)
+  	LCD_print(#msg_reset_top)
+  	LCD_cursor(2,1)
+  	LCD_print(#msg_reset_btm)
+  	; show message for 5 seconds at least
+  	waitSeconds(#0x05)
 
-	; stay at this state until oven has cooled down
-	mov x+3, #0x00
-	mov x+2, #0x00
-	mov x+1, #0x00; load Oven_temp with x
+  	; stay at this state until oven has cooled down
+  	mov x+3, #0x00
+  	mov x+2, #0x00
+  	mov x+1, #0x00; load Oven_temp with x
     mov x+0, Oven_temp
     ; in our configuration we haven't set cooling temp yet
     mov coolingTemp, #60 ;
 
-	mov y+3, #0x00
+    mov y +3, #0x00
     mov y+2, #0x00
-	mov y+1, #0x00 ; load soaktemp to y
+  	mov y+1, #0x00 ; load soaktemp to y
     mov y+0, coolingTemp+0
     lcall x_gteq_y ; call the math32 function
     ; repeat while oven_temp >= coolingTemp
-	jb mf, fsm_reset_state
-	mov		state, 		#0
-	ljmp	fsm
+  	jb mf, fsm_reset_state
+  	mov		state, 		#0
+  	ljmp	fsm
 
 
 ;-------------------------------------

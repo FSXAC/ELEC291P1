@@ -12,7 +12,7 @@ void mode2() {
         textSize(50);
         stroke(240);
         rectMode(CENTER);
-        fill(power == 1 ? 0: 50, 100);
+        fill(power == 1 ? 50: 0, 100);
         noStroke();
         rect(width/2, height/2, width/4, 100);
         rectMode(CORNER);

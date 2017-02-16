@@ -70,30 +70,6 @@ beepButton mac
     sleep(#50)
     clr     TR0
 endmac
-beepStart mac
-    push    acc
-    mov     dptr,   #sound_start
-    lcall   ?beepStart
-    pop     acc
-endmac
-?beepStart:
-    clr     a
-    movc    a,  @a+dptr
-    setb    TR0
-    sleep(#100)
-    clr     TR0
-    jz      ?beepStart_done
-    mov     freq+1,     a
-    inc     dptr
-    clr     a
-    movc    a,  @a+dptr
-    mov     freq+0,     a
-    setb    TR0
-    inc     dptr
-    sjmp    ?beepStart
-?beepStart_done:
-    ret
-
 beepShort mac
     ; beep for 0.5s = 2 * 250ms
     ;mov     soundms+0, #low(500)
